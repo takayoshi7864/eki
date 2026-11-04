@@ -3,61 +3,1103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#1f2937">
+<meta name="theme-color" content="#8a3b2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="易 検索">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-<title>鑑定ハンドブック</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>易 検索</title>
 <style>
-#gate{max-width:360px;margin:22vh auto 0;padding:0 20px;font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;color:#1b2127}
-#gate h1{font-size:24px;margin:0 0 18px;letter-spacing:.06em}
-#gate input[type=password]{width:100%;padding:13px;font-size:17px;border:1px solid #9aa4ad;border-radius:10px;box-sizing:border-box}
-#gate label{display:block;margin:12px 0;font-size:14px}
-#gate button{width:100%;padding:13px;font-size:17px;border:0;border-radius:10px;background:#1f2937;color:#fff}
-#gate p{color:#b13f2d;min-height:1.5em;font-size:14px}
-@media (prefers-color-scheme:dark){body{background:#0f1317}#gate{color:#e6e9ec}#gate input[type=password]{background:#171c22;color:#e6e9ec;border-color:#2a323a}#gate button{background:#e6e9ec;color:#0f1317}}
+:root{--bg:#faf8f3;--panel:#fff;--ink:#242220;--sub:#6e685b;--line:#e3ded1;--accent:#8a3b2b;--mark:#ffe28a;--chip:#efeadc;--ok:#2d6a3f;--warn:#9a5b00}
+@media (prefers-color-scheme:dark){:root{--bg:#17181a;--panel:#202226;--ink:#e9e7e2;--sub:#a49f92;--line:#34373c;--accent:#e6957f;--mark:#6d5a10;--chip:#2c2f35;--ok:#7fcf95;--warn:#e0b060}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Noto Serif CJK JP",serif}
+header.top{padding:14px 16px 6px;max-width:960px;margin:0 auto}
+h1{margin:0;font-size:1.5rem;letter-spacing:.2em}
+.sub{color:var(--sub);font-size:.85rem}
+main{max-width:960px;margin:0 auto;padding:0 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+textarea,input[type=search],select,button{font:inherit;color:inherit}
+textarea{width:100%;min-height:150px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+button{background:var(--chip);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.searchbar{display:flex;gap:8px;flex-wrap:wrap}
+.searchbar input{flex:1 1 260px;font-size:1.15rem;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.searchbar select{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);max-width:100%}
+.stick{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 2px;border-bottom:1px solid var(--line)}
+.opts{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--sub);margin:8px 2px}
+.facets{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{font-size:.8rem;padding:2px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);cursor:pointer}
+.chip b{color:var(--accent);margin-left:4px}
+.summary{color:var(--sub);font-size:.88rem;margin:8px 2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0}
+.card header{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.88rem;color:var(--sub)}
+.tag{color:#fff;background:var(--accent);padding:0 9px;border-radius:5px;font-size:.95rem}
+.lab{font-weight:bold;color:var(--ink)}
+.body{margin:6px 0;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+.card footer{display:flex;gap:8px}
+.card footer button{font-size:.8rem;padding:2px 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;margin-top:8px}
+.grid button{padding:6px 4px;font-size:.95rem}
+.grid small{display:block;color:var(--sub);font-size:.7rem}
+.status{font-size:.82rem;color:var(--sub)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}
+details{margin:12px 0}
+summary{cursor:pointer;color:var(--sub)}
+.hint{font-size:.85rem;color:var(--sub)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);margin:8px 0}
+.drop.on{border-color:var(--accent)}
+code{background:var(--chip);padding:0 4px;border-radius:4px}
+.tabs{display:flex;gap:6px;margin:8px 0 2px;flex-wrap:wrap}
+.tabs button{padding:5px 16px}
+.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.editor{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px}
+.editor input,.editor textarea{width:100%;max-width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;margin:4px 0;min-height:0}
+.editor textarea{min-height:70px}
+.editor .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.editor .row input{flex:1 1 140px;width:auto}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:8px;z-index:20;font-size:.9rem;max-width:90vw}
+.tblwrap{overflow-x:auto}
+.hextable{border-collapse:collapse;margin:8px 0;width:100%;min-width:560px;table-layout:fixed}
+.hextable th{font-weight:normal;font-size:.78rem;color:var(--sub);padding:2px}
+.hextable td{padding:2px}
+.hc{width:100%;padding:3px 0;display:flex;flex-direction:column;align-items:center;line-height:1.25;font-size:.78rem}
+.hc small{color:var(--sub);font-size:.65rem}
+.hc.dim{opacity:.4}
+.hc.sel{border-color:var(--accent);background:var(--accent);color:#fff}
+.hc.sel small{color:#fff}
+.yao{display:flex;align-items:center;gap:10px;margin:2px 0}
+.yao b{width:3.2em}
+.yao svg{color:var(--ink)}
+.note .quote{white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px;color:var(--sub);overflow-wrap:anywhere}
+.note .memo{white-space:pre-wrap;margin:6px 0}
+.flash{animation:fl 1.6s}
+@keyframes fl{from{box-shadow:0 0 0 3px var(--accent)}to{box-shadow:0 0 0 0 transparent}}
+input,select,textarea{font-size:16px}
+main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+@media (max-width:760px){
+  button{min-height:38px}
+  .card footer{flex-wrap:wrap}
+  .card footer button{font-size:.85rem}
+  .searchbar select{flex:1 1 40%}
+  .opts{flex-direction:column;gap:6px}
+  .chip{padding:5px 12px}
+}
+.chip.on{background:var(--accent);color:#fff}
+.chip.on b{color:#fff}
+.rels{display:flex;gap:8px;flex-wrap:wrap}
+.hc.rel{width:auto;min-width:92px;padding:4px 10px}
+.chg{display:inline-flex;align-items:center;gap:2px;font-size:.8rem;color:var(--sub);margin-right:4px}
+.chg input{width:18px;height:18px}
+.read .quote{white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px;overflow-wrap:anywhere;margin:4px 0 12px}
+.judgetable{border-collapse:collapse;width:100%;min-width:640px;font-size:.82rem}
+.judgetable th,.judgetable td{border-bottom:1px solid var(--line);padding:2px 3px;text-align:center}
+.judgetable th:first-child{text-align:left;position:sticky;left:0;background:var(--bg)}
+.jname{border:0;background:none;padding:2px 4px;text-align:left;cursor:pointer;color:var(--ink);min-height:0!important;white-space:nowrap}
+.jc{width:100%;border-radius:6px;padding:2px;font-size:.78rem;min-height:0!important;border:1px solid transparent;background:transparent}
+.jc.jgood{background:rgba(60,160,90,.28)}
+.jc.jbad{background:rgba(200,70,50,.28)}
+.jc.jwarn{background:rgba(230,160,30,.30)}
+.jc.jok{background:rgba(90,130,170,.22)}
+.jc.j0{color:var(--sub)}
+.jc.dim{opacity:.22}
+.jnone{color:var(--sub);opacity:.5}
+@media (max-width:560px){body{font-size:15px}}
 </style>
 </head>
 <body>
-<main id="gate">
-<h1>鑑定ハンドブック</h1>
-<form id="f"><input id="pw" type="password" autocomplete="current-password" placeholder="合言葉" autofocus>
-<label><input id="rem" type="checkbox" checked> この端末で記憶する</label>
-<button>開く</button><p id="msg"></p></form>
+<header class="top">
+  <h1>易 検索</h1>
+  <div class="sub">本田濟『易』(朝日選書1010) 個人用の全文検索。本文データはこの端末のブラウザ内だけに保存され、外部へ送信されません。</div>
+  <div class="status" id="status"></div>
+</header>
+
+<main>
+  <!-- 初回:本文の読み込み -->
+  <section id="setup" class="panel" hidden>
+    <h2 style="margin:.2em 0;font-size:1.1rem">① 本文テキストを読み込む</h2>
+    <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
+      <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
+    <div class="hint">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
+    <div class="hint">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
+    <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
+    <p><button class="primary" id="build">この本文で索引を作る</button>
+    <span class="hint">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
+  </section>
+
+  <!-- 検索画面 -->
+  <section id="app" hidden>
+    <nav class="tabs">
+      <button data-view="search" class="on">検索</button>
+      <button data-view="notes" id="tabNotes">ノート</button>
+      <button data-view="hex">六十四卦</button>
+      <button data-view="judge">吉凶表</button>
+    </nav>
+    <div id="viewSearch">
+    <div class="stick">
+    <div class="searchbar">
+      <input id="q" type="search" placeholder="例:潜竜　／　天行健　／　君子 吝(スペースでAND)" autocomplete="off" autofocus>
+      <select id="scope" title="検索範囲"></select>
+      <select id="sort" title="並び順"><option value="book">本の順</option><option value="count">一致数順</option></select>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="optVar" checked> 表記ゆれを吸収(旧字体・新字体、封/卦などOCR誤読)</label>
+      <label><input type="checkbox" id="optKan" checked> ふりがな・送り仮名を飛ばして漢字だけで照合</label>
+    </div>
+    </div>
+    <div class="facets" id="facets"></div>
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+    </div>
+
+    <div id="viewNotes" hidden>
+      <div class="panel">
+        <div class="searchbar"><input id="nfilter" type="search" placeholder="ノート内を絞り込み(引用・メモ・タグ)"></div>
+        <div class="facets" id="ntags"></div>
+        <p style="margin:6px 0">
+          <button id="nmd" class="primary">Markdownで書き出す</button>
+          <button id="nmdcopy">Markdownをコピー</button>
+          <button id="nbak">バックアップ(JSON)</button>
+          <label class="hint">　読み込み: <input type="file" id="nrestore" accept=".json"></label>
+        </p>
+        <div class="hint">ブログに載せるときは、引用部分を必要最小限に絞り、出典を明記してください。ノートはこのブラウザに保存されます。別のPCへ移すときは「バックアップ」か内蔵版の書き出しを使います。</div>
+      </div>
+      <div class="summary" id="nsum"></div>
+      <div id="nlist"></div>
+    </div>
+
+    <div id="viewHex" hidden>
+      <div class="panel">
+        <b>六十四卦の一覧表</b>
+        <div class="hint">縦が上卦、横が下卦です。卦を選ぶと、六爻の図と、本書の該当箇所への入口が出ます。</div>
+        <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
+      </div>
+      <div id="hexdetail"></div>
+    </div>
+
+    <div id="viewJudge" hidden>
+      <div class="panel">
+        <b>吉凶悔吝の一覧表</b>
+        <div class="hint">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="facets" id="jchips"></div>
+        <div class="hint" id="jnote"></div>
+      </div>
+      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
+    </div>
+  </section>
+  <div id="toast" class="toast" hidden></div>
+
+  <details id="tools">
+    <summary>設定・診断・本文の入れ替え</summary>
+    <div class="panel">
+      <b>表記ゆれ辞書</b>
+      <div class="hint">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います(検索語・本文の両方に適用)。<code>#</code>で始まる行はコメント。
+      OCRの誤読が見つかったらここに足してください(例: <code>#民=艮</code> <code>#免=兌</code> <code>#甲=坎</code>)。変更後は「保存して再構築」を押します。</div>
+      <textarea id="vdict" style="min-height:180px"></textarea>
+      <p><button id="vsave">保存して再構築</button> <button id="vreset">初期値に戻す</button></p>
+    </div>
+    <div class="panel">
+      <b>アプリの更新・ホーム画面への追加</b>
+      <div class="hint">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
+      <p><button id="appupdate">最新版に更新</button></p>
+    </div>
+    <div class="panel">
+      <b>校正の履歴(本文の訂正)</b>
+      <div class="hint">検索結果の「校正」で行った置換の一覧です。元に戻すには「取り消す」を押します。</div>
+      <div id="fixlist"></div>
+    </div>
+    <div class="panel">
+      <b>索引の診断</b>
+      <div id="diag" class="hint"></div>
+    </div>
+    <div class="panel">
+      <b>本文を内蔵した検索ファイルを書き出す</b>
+      <div class="hint">書き出したHTMLは、本文を中に持っているので、開くだけで検索できます(読み込み作業は不要)。スマホやほかのPCにも、そのファイルを送るだけで使えます。著作物を含むため、個人利用にとどめ、公開・配布はしないでください。</div>
+      <p><button class="primary" id="export">内蔵版HTMLを書き出す</button></p>
+    </div>
+    <div class="panel">
+      <button id="replace">本文を入れ替える</button>
+      <button id="wipe">保存した本文を削除</button>
+      <span class="hint">　削除してもPCのファイルには影響しません。</span>
+    </div>
+  </details>
 </main>
+
+<script id="embedded" type="text/plain"></script>
+<script id="embeddedUser" type="text/plain"></script>
 <script>
-const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
-const msg=t=>{const m=document.getElementById('msg');if(m)m.textContent=t};
-const subtle=crypto.subtle;
-async function loadEnc(){const r=await fetch('app.enc');return r.json()}
-async function decrypt(key,enc){return new TextDecoder().decode(await subtle.decrypt({name:'AES-GCM',iv:b64d(enc.iv)},key,b64d(enc.data)))}
-async function keyFromPw(pw,enc){const m=await subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
-  return subtle.deriveKey({name:'PBKDF2',salt:b64d(enc.salt),iterations:enc.iter,hash:'SHA-256'},m,{name:'AES-GCM',length:256},true,['decrypt'])}
-function boot(html){
-  const doc=new DOMParser().parseFromString(html,'text/html');
-  if(doc.title)document.title=doc.title;
-  doc.querySelectorAll('link[rel=stylesheet],style').forEach(n=>document.head.append(document.importNode(n,true)));
-  const scripts=[...doc.querySelectorAll('script')];scripts.forEach(s=>s.remove());
-  document.body.innerHTML='';
-  [...doc.body.childNodes].forEach(n=>document.body.append(document.importNode(n,true)));
-  for(const s of scripts){const e=document.createElement('script');e.textContent=s.textContent;document.body.append(e)}
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const LS = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+/* ---------- 表記ゆれ辞書(初期値) ---------- */
+const DEFAULT_VDICT = `# A=B : AをBとして扱う
+# --- OCRの誤読(この本で目立つもの) ---
+封=卦
+彖=象
+異=巽
+# --- 旧字体 → 新字体 ---
+竜=龍
+說=説
+辯=弁
+辨=弁
+關=関
+國=国
+經=経
+氣=気
+隨=随
+觀=観
+剝=剥
+晉=晋
+无=無
+禮=礼
+體=体
+亂=乱
+辭=辞
+傳=伝
+數=数
+變=変
+對=対
+當=当
+應=応
+歷=歴
+與=与
+爲=為
+萬=万
+實=実
+歲=歳
+舊=旧
+戶=戸
+澤=沢
+濟=済
+潛=潜
+齊=斉
+虛=虚
+德=徳
+恆=恒
+遯=遁
+姤=垢
+繫=繋
+雜=雑
+獨=独
+點=点
+讀=読
+學=学
+會=会
+乘=乗
+來=来
+戰=戦
+兩=両
+發=発
+稱=称
+擧=挙
+觸=触
+讓=譲
+圖=図
+壯=壮
+歸=帰
+豐=豊
+鼈=鼈
+`;
+
+/* ---------- 六十四卦 [表示名, 上下経, 卦辞の書き出し(|区切り), 別表記] ---------- */
+const HEX = [
+['乾','上','乾。元亨'],['坤','上','坤。元亨'],['屯','上','屯。元亨'],['蒙','上','蒙。亨'],
+['需','上','需有孚'],['訟','上','訟。有孚'],['師','上','師貞'],['比','上','比吉'],
+['小畜','上','小畜亨'],['履','上','履虎尾'],['泰','上','泰。小往'],['否','上','否之匪人'],
+['同人','上','同人于野'],['大有','上','大有。元亨'],['謙','上','謙亨'],['豫','上','豫。利建侯'],
+['随','上','隨。元亨'],['蠱','上','蠱。元亨|蟲。元亨'],['臨','上','臨。元亨'],['観','上','觀。盥'],
+['噬嗑','上','噬嗑。亨'],['賁','上','賁。亨'],['剝','上','剝。不利'],['復','上','復。亨'],
+['无妄','上','无妄。元亨'],['大畜','上','大畜。利貞'],['頤','上','頤。貞吉'],['大過','上','大過。棟'],
+['坎','上','習坎'],['離','上','離。利貞'],
+['咸','下','成。亨|咸。亨','成'],['恆','下','恆。亨'],['遯','下','遯。亨'],['大壮','下','大壯。利貞','大壯'],
+['晉','下','晉。康侯'],['明夷','下','明夷。利艱貞'],['家人','下','家人。利女貞'],['睽','下','睽。小事吉'],
+['蹇','下','蹇。利西南'],['解','下','解。利西南'],['損','下','損。有孚'],['益','下','益。利有攸往'],
+['夬','下','夬。揚于王庭'],['姤','下','垢。女壯|姤。女壯','垢'],['萃','下','萃(亨)|萃。|萃亨'],['升','下','升。元亨'],
+['困','下','困。亨'],['井','下','井。改邑'],['革','下','革。己日'],['鼎','下','鼎。元'],
+['震','下','震。亨'],['艮','下','艮其背'],['漸','下','漸。女歸'],['帰妹','下','歸妹。征凶','歸妹'],
+['豊','下','豐。亨','豐'],['旅','下','旅。小亨'],['巽','下','巽。小亨'],['兌','下','兌。亨'],
+['渙','下','渙。亨'],['節','下','節。亨'],['中孚','下','中孚。豚魚'],['小過','下','小過。亨'],
+['既済','下','既濟|濟。〔小〕亨|濟。小亨','既濟'],['未済','下','未濟。亨','未濟']
+];
+const SECS = {
+  front:'前付・目次', kaisetsu:'解説', 'xici-up':'繋辞上伝', 'xici-down':'繋辞下伝',
+  shuo:'説卦伝', xu:'序卦伝', za:'雑卦伝', colophon:'奥付'
+};
+const SUBHEADS = ['易とは何か','易経の構成','易学の伝統','筮法','この訳書の凡例','記憶されたい術語'];
+const KANJI = /[⺀-⿟々-〇㐀-䶿一-鿿豈-﫿]/;
+const NUM = {一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,十一:11,十二:12};
+
+const state = { base:'', fixes:[], notes:[], ntag:'', nq:'', raw:'', chunks:[], vmap:new Map(), opts:{var:true,kan:true}, diag:null, shown:100, hits:[] };
+
+/* ---------- 正規化 ---------- */
+function buildVmap(text){
+  const m = new Map();
+  for(const line of text.split('\n')){
+    const s = line.trim();
+    if(!s || s[0]==='#') continue;
+    const i = s.indexOf('=');
+    if(i<1) continue;
+    const a = [...s.slice(0,i).trim()][0], b = [...s.slice(i+1).trim()][0];
+    if(a && b && a!==b) m.set(a,b);
+  }
+  return m;
 }
-(async()=>{
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-  let enc;try{enc=await loadEnc()}catch{msg('読み込めませんでした。通信を確認してください。');return}
-  // 専用リンク（#k=合言葉）で開いたときは、入力なしで復号して、この端末に記憶する
-  const hm=location.hash.match(/^#k=(.+)$/);
-  if(hm){try{const key=await keyFromPw(decodeURIComponent(hm[1]).trim(),enc),html=await decrypt(key,enc);
-    try{const raw=new Uint8Array(await subtle.exportKey('raw',key));localStorage.setItem('kk',btoa(String.fromCharCode(...raw)))}catch{}
-    history.replaceState(null,'',location.pathname+location.search);boot(html);return}catch{}}
-  let saved=null;try{saved=localStorage.getItem('kk')}catch{}
-  if(saved){try{const key=await subtle.importKey('raw',b64d(saved),'AES-GCM',false,['decrypt']);boot(await decrypt(key,enc));return}catch{try{localStorage.removeItem('kk')}catch{}}}
-  document.getElementById('f').onsubmit=async e=>{
-    e.preventDefault();msg('');
-    try{const key=await keyFromPw(document.getElementById('pw').value.trim(),enc),html=await decrypt(key,enc);
-      if(document.getElementById('rem').checked){try{const raw=new Uint8Array(await subtle.exportKey('raw',key));localStorage.setItem('kk',btoa(String.fromCharCode(...raw)))}catch{}}
-      boot(html)}catch{msg('合言葉が違います。')}
+function normChar(c){
+  const k = c.charCodeAt(0);
+  if(k>=0xFF01 && k<=0xFF5E) c = String.fromCharCode(k-0xFEE0);
+  if(state.opts.var){ const v = state.vmap.get(c); if(v) c = v; }
+  const k2 = c.charCodeAt(0);
+  if(k2>=0x30A1 && k2<=0x30F6) return String.fromCharCode(k2-0x60);
+  return c.toLowerCase();
+}
+function normStr(s){
+  let o = '';
+  for(const c of s){ if(/\s/.test(c)) continue; o += normChar(c); }
+  return o;
+}
+function kanjiOnly(s){ let o=''; for(const c of s) if(KANJI.test(c)) o+=c; return o; }
+function esc(s){ return s.replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- 解析 ---------- */
+function pageMarker(l){
+  if(l.length>16) return null;
+  const nums = l.match(/\d+/g);
+  if(!nums || nums.length!==1 || nums[0].length>3) return null;
+  const rest = l.replace(/\d+/g,'').replace(/\s+/g,'');
+  if(rest==='') return +nums[0];
+  if(/^(周易)?(上経|下経|解説|解|説|說|繫辞|繋辞|説卦|序卦|雑卦)/.test(rest)) return +nums[0];
+  return null;
+}
+function runningHead(l, hexNames){
+  const t = l.replace(/\s+/g,'');
+  if(t.length>14) return -1;
+  const m = t.match(/^\d{0,3}(上経|下経)([^\d]{1,5}?)\d{0,3}$/);
+  if(!m) return -1;
+  const tok = normStr(m[2]);
+  for(let i=0;i<hexNames.length;i++){
+    if(hexNames[i].some(n => tok===n || (n.length>=2 && tok.startsWith(n)))) return i;
+  }
+  return -2; // 見出しだが卦名不明
+}
+
+function parse(raw){
+  const L = raw.replace(/\r\n?/g,'\n').replace(/^﻿/,'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const hexNames = HEX.map(h => [h[0], h[3]||h[0]].map(normStr));
+  const hexPats  = HEX.map(h => h[2].split('|').map(normStr));
+
+  // ページ番号(ノド/小口のフッター) → 直前の本文はそのページに属する
+  const cand = [];
+  L.forEach((l,i)=>{ const m = pageMarker(l); if(m!=null) cand.push([i,m]); });
+  const markers = []; let last = 0;
+  for(let k=0;k<cand.length;k++){
+    const [i,m] = cand[k];
+    if(last===0){
+      if(m>60) continue;
+      let ok=false;
+      for(let j=k+1;j<Math.min(cand.length,k+40);j++){ const m2=cand[j][1]; if(m2>m && m2<=m+3 && cand[j][0]-i<400){ ok=true; break; } }
+      if(!ok) continue;
+    }else if(!(m>last && m<=last+4)) continue;
+    markers.push([i,m]); last = m;
+  }
+  const drop = new Set(markers.map(x=>x[0]));
+  const pageAt = new Array(L.length).fill(null);
+  { let mk=0; for(let i=0;i<L.length;i++){ while(mk<markers.length && markers[mk][0]<i) mk++; pageAt[i] = mk<markers.length ? markers[mk][1] : null; } }
+  L.forEach((l,i)=>{ if(runningHead(l,hexNames)!==-1) drop.add(i); });
+
+  // 区画に分ける
+  let sec='front', hex=-1, dan=0, wen=false, chap=1;
+  const raws = []; let cur = null;
+  const open = (label, scope, tag, hexIdx) => { if(cur && cur.lines.length) raws.push(cur); cur = {label, scope, tag, hex:hexIdx, sec, lines:[]}; };
+  open('前付','sec:front',SECS.front,-1);
+
+  for(let i=0;i<L.length;i++){
+    const line = L[i];
+    if(drop.has(i)){
+      const r = runningHead(line,hexNames);
+      if(r>=0 && sec==='hex' && r>hex && r<=hex+4){ hex=r; cur.scope='hex:'+r; cur.hex=r; cur.tag=HEX[r][0]; }
+      continue;
+    }
+    const ln = normStr(line);
+
+    if(sec==='front' && ln.startsWith(normStr('最初にことわっておかねば'))){
+      sec='kaisetsu'; open('はじめに','sec:kaisetsu',SECS.kaisetsu,-1);
+    }
+    if(sec==='kaisetsu' && SUBHEADS.map(normStr).includes(ln)){
+      open(line.replace(/\s+/g,''),'sec:kaisetsu',SECS.kaisetsu,-1);
+    }
+    // 卦の書き出し
+    if(sec==='kaisetsu' || sec==='hex'){
+      let found=-1;
+      for(let k=hex+1;k<=Math.min(hex+3,63) && found<0;k++){
+        if(hexPats[k].some(p=>ln.startsWith(p))) found=k;
+      }
+      if(found>=0){
+        const stolen=[];
+        if(cur){ while(stolen.length<8 && cur.lines.length){ const t=cur.lines[cur.lines.length-1].t; if(t.length<=28 && !t.includes('。')) stolen.unshift(cur.lines.pop()); else break; } }
+        sec='hex'; hex=found; dan=0; wen=false;
+        open('卦辞','hex:'+found,HEX[found][0],found);
+        cur.lines.push(...stolen);
+      }
+    }
+    // 繋辞以降
+    if(hex>=60){
+      let ns=null;
+      if(/^繋辞上伝$/.test(ln)) ns=['xici-up'];
+      else if(/^繋辞下伝$/.test(ln)) ns=['xici-down'];
+      else if(/^説卦伝$/.test(ln)) ns=['shuo'];
+      else if(/^序卦伝$/.test(ln)) ns=['xu'];
+      else if(/^雑卦伝$/.test(ln)) ns=['za'];
+      if(ns && sec!==ns[0]){ sec=ns[0]; chap=1; open(sec==='xu'||sec==='za'?'本文':'第1章','sec:'+sec,SECS[sec],-1); }
+    }
+    if(/^本田濟[(（]ほんだ/.test(ln) || /^本田濟\(/.test(ln)){ sec='colophon'; open('奥付','sec:colophon',SECS.colophon,-1); }
+
+    // 卦の内部を爻・伝で区切る
+    if(sec==='hex'){
+      const ym = ln.match(/^(初[九六]|[九六][二三四五]|上[九六]|用[九六])。/);
+      if(ym && !wen){ if(hex!==0) dan=2; open(ym[1],'hex:'+hex,HEX[hex][0],hex); }
+      else if(/^(象|彖)曰。/.test(ln) && dan<2){ open(dan===0?'彖伝':'大象','hex:'+hex,HEX[hex][0],hex); dan++; }
+      else if(/^文言曰。/.test(ln)){ wen=true; open('文言伝','hex:'+hex,HEX[hex][0],hex); }
+    }
+    cur.lines.push({t:line,i});
+
+    // 章の区切り
+    if((sec==='xici-up'||sec==='xici-down'||sec==='shuo') ){
+      const cm = ln.match(/^右、?第(十二|十一|十|[一二三四五六七八九])章/);
+      if(cm){ chap = (NUM[cm[1]]||chap)+1; open('第'+chap+'章','sec:'+sec,SECS[sec],-1); }
+    }
+  }
+  if(cur && cur.lines.length) raws.push(cur);
+
+  // 長い区画は分割して最終形に
+  const chunks = [];
+  for(const r of raws){
+    const cap = r.scope.startsWith('hex:') ? 1800 : 700;
+    let parts=[], acc=[], len=0;
+    for(const ln of r.lines){
+      acc.push(ln); len += ln.t.length+1;
+      if(len>=cap*0.8 && (ln.t.endsWith('。') || len>=cap*1.4)){ parts.push(acc); acc=[]; len=0; }
+    }
+    if(acc.length) parts.push(acc);
+    parts.forEach((p,k)=>{
+      const text = p.map(x=>x.t).join('\n');
+      if(text.replace(/\s/g,'').length<2) return;
+      const pg = p.map(x=>pageAt[x.i]).filter(x=>x!=null);
+      chunks.push({
+        scope:r.scope, tag:r.tag, hex:r.hex,
+        label: r.label + (parts.length>1 ? `（${k+1}/${parts.length}）` : ''),
+        text, page: (r.scope==='sec:front'||r.scope==='sec:colophon'||!pg.length) ? null : [pg[0], pg[pg.length-1]]
+      });
+    });
+  }
+  return { chunks, markers:markers.length, lines:L.length };
+}
+
+function buildIndex(chunks){
+  for(const c of chunks){
+    let n1='', n2=''; const m1=[], m2=[];
+    const t=c.text;
+    for(let i=0;i<t.length;i++){
+      const ch=t[i]; if(/\s/.test(ch)) continue;
+      const d=normChar(ch);
+      n1+=d; m1.push(i);
+      if(KANJI.test(d)){ n2+=d; m2.push(i); }
+    }
+    c.n1=n1; c.m1=m1; c.n2=n2; c.m2=m2;
+  }
+}
+
+/* ---------- 読み込み・再構築 ---------- */
+function rebuild(){
+  state.vmap = buildVmap($('#vdict').value || DEFAULT_VDICT);
+  state.opts.var = $('#optVar').checked;
+  state.opts.kan = $('#optKan').checked;
+  const res = parse(state.raw);
+  state.chunks = res.chunks;
+  buildIndex(state.chunks);
+  computeJudge();
+  const hexSeen = new Set(state.chunks.filter(c=>c.hex>=0).map(c=>c.hex));
+  const withPage = state.chunks.filter(c=>c.page).length;
+  state.diag = { hexSeen, markers:res.markers, withPage, lines:res.lines };
+  fillScope();
+  renderStatus();
+  renderDiag();
+  runSearch();
+}
+function renderStatus(){
+  const d=state.diag;
+  $('#status').innerHTML = `本文 ${state.raw.length.toLocaleString()} 文字 ／ ${state.chunks.length} 区画 ／ 卦 <b class="${d.hexSeen.size===64?'ok':'warn'}">${d.hexSeen.size}/64</b> を認識 ／ ページ推定 ${d.withPage} 区画`;
+}
+function renderDiag(){
+  const d=state.diag;
+  const miss = HEX.map((h,i)=>d.hexSeen.has(i)?null:h[0]).filter(Boolean);
+  $('#diag').innerHTML =
+    `ページ番号の検出: ${d.markers} 箇所(ページは推定値です。引用時は必ず原書で確認してください)<br>` +
+    (miss.length ? `<span class="warn">卦として認識できなかった: ${miss.join('、')}</span><br>OCRで卦辞の書き出しが崩れている可能性があります。該当卦は「すべて」の範囲で語を直接検索してください。` : '<span class="ok">64卦すべて認識できました。</span>');
+}
+function fillScope(){
+  const cnt = {}; state.chunks.forEach(c=>cnt[c.scope]=(cnt[c.scope]||0)+1);
+  const opt = (v,t)=>`<option value="${v}">${t}${cnt[v]?`（${cnt[v]}）`:''}</option>`;
+  let h = `<option value="all">範囲: すべて</option>` + opt('sec:kaisetsu','解説');
+  h += '<optgroup label="上経">' + HEX.map((x,i)=>x[1]==='上'?opt('hex:'+i,`${i+1} ${x[0]}`):'').join('') + '</optgroup>';
+  h += '<optgroup label="下経">' + HEX.map((x,i)=>x[1]==='下'?opt('hex:'+i,`${i+1} ${x[0]}`):'').join('') + '</optgroup>';
+  h += '<optgroup label="十翼のまとめ">' + opt('sec:xici-up','繋辞上伝')+opt('sec:xici-down','繋辞下伝')+opt('sec:shuo','説卦伝')+opt('sec:xu','序卦伝')+opt('sec:za','雑卦伝') + '</optgroup>';
+  const keep = $('#scope').value;
+  $('#scope').innerHTML = h;
+  if([...$('#scope').options].some(o=>o.value===keep)) $('#scope').value = keep;
+}
+
+/* ---------- 検索 ---------- */
+function mergeRanges(r){
+  r.sort((a,b)=>a[0]-b[0]); const o=[];
+  for(const x of r){ if(o.length && x[0]<=o[o.length-1][1]) o[o.length-1][1]=Math.max(o[o.length-1][1],x[1]); else o.push([x[0],x[1]]); }
+  return o;
+}
+function matchChunk(c, terms){
+  const ranges=[]; let count=0;
+  for(const t of terms){
+    const useKan = state.opts.kan && t.n2.length===t.n1.length && t.n2.length>0;
+    const hay = useKan?c.n2:c.n1, map = useKan?c.m2:c.m1, nd = useKan?t.n2:t.n1;
+    let from=0, f=0;
+    for(;;){ const i=hay.indexOf(nd,from); if(i<0) break; f++; ranges.push([map[i], map[i+nd.length-1]+1]); from=i+nd.length; }
+    if(!f) return null;
+    count+=f;
+  }
+  return {ranges:mergeRanges(ranges), count};
+}
+function hl(text, ranges, s, e){
+  let o='', p=s;
+  for(const [a,b] of ranges){
+    if(b<=s||a>=e) continue;
+    const x=Math.max(a,s), y=Math.min(b,e);
+    o += esc(text.slice(p,x)) + '<mark>' + esc(text.slice(x,y)) + '</mark>'; p=y;
+  }
+  return o + esc(text.slice(p,e));
+}
+function snippet(c, ranges, full){
+  const t=c.text;
+  if(full || t.length<=420) return hl(t,ranges,0,t.length);
+  const a0 = ranges.length ? ranges[0][0] : 0;
+  const s = Math.max(0, a0-100), e = Math.min(t.length, s+420);
+  return (s>0?'…':'') + hl(t,ranges,s,e) + (e<t.length?'…':'');
+}
+function pageLabel(c){
+  if(!c.page) return '';
+  return c.page[0]===c.page[1] ? `p.${c.page[0]}` : `p.${c.page[0]}–${c.page[1]}`;
+}
+
+function runSearch(){
+  state.shown = 100;
+  const q = $('#q').value;
+  const terms = q.split(/[\s　]+/).filter(Boolean).map(t=>{ const n1=normStr(t); return {n1, n2:kanjiOnly(n1)}; }).filter(t=>t.n1);
+  const scope = $('#scope').value;
+  const sort = $('#sort').value;
+  const res = $('#results'), fac = $('#facets'), sum = $('#summary');
+  if(!state.chunks.length) return;
+
+  if(!terms.length){
+    fac.innerHTML='';
+    if(scope==='all'){
+      sum.textContent='語を入力するか、下の一覧から範囲を選んでください。';
+      const cnt = {}; state.chunks.forEach(c=>cnt[c.scope]=(cnt[c.scope]||0)+1);
+      const btn=(v,t)=>cnt[v]?`<button data-scope="${v}">${t}<small>${cnt[v]}区画</small></button>`:'';
+      res.innerHTML = '<div class="panel"><b>範囲から読む</b><div class="grid">' +
+        btn('sec:kaisetsu','解説') +
+        HEX.map((h,i)=>btn('hex:'+i,`${i+1} ${h[0]}`)).join('') +
+        btn('sec:xici-up','繋辞上伝')+btn('sec:xici-down','繋辞下伝')+btn('sec:shuo','説卦伝')+btn('sec:xu','序卦伝')+btn('sec:za','雑卦伝') +
+        '</div></div>';
+      state.hits=[]; return;
+    }
+    const pool = state.chunks.filter(c=>c.scope===scope);
+    state.hits = pool.map(c=>({c, ranges:[], count:0}));
+    sum.textContent = `${pool.length} 区画を表示(閲覧モード)`;
+    renderHits(); return;
+  }
+
+  const all=[];
+  for(const c of state.chunks){ const r=matchChunk(c,terms); if(r) all.push({c, ranges:r.ranges, count:r.count}); }
+  // 分布チップ
+  const fc = new Map();
+  all.forEach(h=>{
+    if(!fc.has(h.c.scope)) fc.set(h.c.scope,{tag:h.c.tag,n:0});
+    fc.get(h.c.scope).n+=h.count;
+  });
+  fac.innerHTML = [...fc.entries()].map(([sc,o])=>`<span class="chip" data-scope="${sc}">${esc(o.tag)}<b>${o.n}</b></span>`).join('');
+  let hits = scope==='all' ? all : all.filter(h=>h.c.scope===scope);
+  if(sort==='count') hits = hits.slice().sort((a,b)=>b.count-a.count);
+  state.hits = hits;
+  const total = hits.reduce((s,h)=>s+h.count,0);
+  sum.textContent = hits.length ? `${hits.length} 区画 ／ ${total} 箇所が一致` : '一致なし。表記ゆれの吸収がONか、別の字(旧字体・OCR誤読)がないか確認してください。';
+  renderHits();
+}
+function renderHits(){
+  const res=$('#results');
+  const part = state.hits.slice(0,state.shown);
+  res.innerHTML = part.map((h,i)=>{
+    const c=h.c, pg=pageLabel(c);
+    return `<article class="card" data-i="${i}">
+      <header><span class="tag">${esc(c.tag)}</span><span class="lab">${esc(c.label)}</span>${pg?`<span title="ページは推定値">${pg}</span>`:''}${h.count?`<span>${h.count}件</span>`:''}</header>
+      <div class="body">${snippet(c,h.ranges,false)}</div>
+      <footer><button data-act="full">全文</button><button data-act="copy">引用コピー</button><button data-act="note">ノート</button><button data-act="fix">校正</button></footer>
+      <div class="editor-slot"></div>
+    </article>`;
+  }).join('') + (state.hits.length>state.shown ? `<p><button id="more">さらに ${Math.min(100,state.hits.length-state.shown)} 件表示</button></p>` : '');
+}
+
+/* ---------- イベント ---------- */
+function copyText(s){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(s).catch(()=>fallback(s));
+  fallback(s);
+}
+function fallback(s){ const t=document.createElement('textarea'); t.value=s; document.body.appendChild(t); t.select(); try{document.execCommand('copy');}catch(e){} t.remove(); }
+
+$('#results').addEventListener('click', e=>{
+  const sc = e.target.closest('[data-scope]');
+  if(sc){ $('#scope').value = sc.dataset.scope; runSearch(); window.scrollTo({top:0}); return; }
+  if(e.target.id==='more'){ state.shown+=100; renderHits(); return; }
+  const card = e.target.closest('.card'); const btn = e.target.closest('button[data-act]');
+  if(!card || !btn) return;
+  const h = state.hits[+card.dataset.i], c=h.c;
+  if(btn.dataset.act==='full'){
+    const open = card.classList.toggle('open');
+    card.querySelector('.body').innerHTML = snippet(c,h.ranges,open);
+    btn.textContent = open ? '閉じる' : '全文';
+  }else if(btn.dataset.act==='copy'){
+    const pg = pageLabel(c);
+    copyText(`${c.text}\n――本田濟『易』(朝日選書1010)「${c.tag}／${c.label}」${pg?pg+'(推定)':''}`);
+    btn.textContent='コピーしました'; setTimeout(()=>btn.textContent='引用コピー',1200);
+  }else if(btn.dataset.act==='note' || btn.dataset.act==='fix'){
+    openEditor(card, btn.dataset.act, h);
+  }else if(btn.dataset.act==='cancel'){
+    const slot=card.querySelector('.editor-slot'); slot.innerHTML=''; slot.dataset.kind='';
+  }else if(btn.dataset.act==='fixgo'){
+    doFix(card.querySelector('.editor-slot'));
+  }else if(btn.dataset.act==='notego'){
+    doNote(card.querySelector('.editor-slot'), c);
+  }
+});
+$('#results').addEventListener('input', e=>{ if(e.target.classList.contains('f-from')) updateFixCount(e.target.closest('.editor-slot')); });
+$('#facets').addEventListener('click', e=>{ const sc=e.target.closest('[data-scope]'); if(sc){ $('#scope').value=sc.dataset.scope; runSearch(); } });
+let tm; $('#q').addEventListener('input', ()=>{ clearTimeout(tm); tm=setTimeout(runSearch,120); });
+$('#scope').addEventListener('change', runSearch);
+$('#sort').addEventListener('change', runSearch);
+$('#optVar').addEventListener('change', rebuild);
+$('#optKan').addEventListener('change', ()=>{ state.opts.kan=$('#optKan').checked; runSearch(); });
+document.addEventListener('keydown', e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){ e.preventDefault(); $('#q').focus(); } });
+
+async function readFile(f){
+  const buf = await f.arrayBuffer();
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+  catch(e){ try{ return new TextDecoder('shift_jis').decode(buf); }catch(e2){ return new TextDecoder().decode(buf); } }
+}
+async function takeFile(f){
+  if(!f) return;
+  let txt = await readFile(f);
+  // 「内蔵版HTML」そのものが選ばれた場合は、中の本文・ノート・校正を取り出す
+  const m = txt.match(/<script id="embedded" type="text\/plain">([\s\S]*?)<\/script>/);
+  state.pendingUser = null;
+  if(m && m[1].trim()){
+    try{
+      const src = txt;
+      txt = fromB64(m[1].trim());
+      const mu = src.match(/<script id="embeddedUser" type="text\/plain">([\s\S]*?)<\/script>/);
+      if(mu && mu[1].trim()) state.pendingUser = JSON.parse(fromB64(mu[1].trim()));
+      toast('内蔵版ファイルから本文を取り出しました。「索引を作る」を押してください');
+    }catch(e){ toast('内蔵版ファイルを読み取れませんでした'); }
+  }
+  $('#paste').value = txt;
+}
+$('#file').addEventListener('change', e=>takeFile(e.target.files[0]));
+const drop=$('#drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('on');}));
+drop.addEventListener('drop', e=>takeFile(e.dataTransfer.files[0]));
+
+function start(raw){
+  state.base = raw; state.raw = applyFixes(raw);
+  $('#setup').hidden = true; $('#app').hidden = false;
+  rebuild();
+  $('#q').focus();
+}
+$('#build').addEventListener('click', ()=>{
+  const raw = $('#paste').value;
+  if(raw.trim().length<200){ alert('本文が短すぎます。全文を貼り付けるか、テキストファイルを選んでください。'); return; }
+  if(!LS.set('eki.raw', raw)) alert('この環境ではブラウザに本文を保存できませんでした。今回だけ使えます(次回は再度読み込みが必要です)。');
+  if(state.pendingUser){
+    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || [];
+    if(state.pendingUser.vdict){ $('#vdict').value = state.pendingUser.vdict; LS.set('eki.vdict', state.pendingUser.vdict); }
+    saveUser(); renderFixes(); state.pendingUser = null;
+  }
+  start(raw);
+});
+$('#vsave').addEventListener('click', ()=>{ LS.set('eki.vdict',$('#vdict').value); rebuild(); });
+$('#vreset').addEventListener('click', ()=>{ $('#vdict').value=DEFAULT_VDICT; LS.del('eki.vdict'); rebuild(); });
+$('#replace').addEventListener('click', ()=>{ $('#paste').value=state.base; $('#app').hidden=true; $('#setup').hidden=false; });
+$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文を削除しますか?')){ LS.del('eki.raw'); location.reload(); } });
+
+/* ---------- 校正・ノート ---------- */
+function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.split(f.from).join(f.to); } return raw; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>{t.hidden=true;},2400); }
+function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
+function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.length ? `(${state.notes.length})` : ''); }
+function saveUser(){
+  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes}))) toast('この環境では記録を保存できませんでした');
+  updateTabs();
+}
+function download(name, text, type){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+let lastSel = {text:'', i:-1};
+document.addEventListener('selectionchange', ()=>{
+  const s=getSelection(); const t=s.toString();
+  if(!t.trim()) return;
+  const n=s.anchorNode; const el = n && (n.nodeType===1 ? n : n.parentElement);
+  const card = el && el.closest ? el.closest('.card') : null;
+  if(card && el.closest('.body')) lastSel = {text:t, i:+card.dataset.i};
+});
+function openEditor(card, kind){
+  const slot = card.querySelector('.editor-slot');
+  if(slot.dataset.kind===kind){ slot.innerHTML=''; slot.dataset.kind=''; return; }
+  slot.dataset.kind = kind;
+  const sel = lastSel.i===+card.dataset.i ? lastSel.text.trim() : '';
+  slot.dataset.quote = sel;
+  if(kind==='fix'){
+    slot.innerHTML = `<div class="editor"><div class="hint">本文の誤字を選択してから「校正」を押すと、誤の欄に入ります(同じ行の中で選んでください)。</div>
+      <div class="row">誤 <input class="f-from" value="${escAttr(sel)}"> → 正 <input class="f-to"></div>
+      <div class="hint f-count"></div>
+      <button class="primary" data-act="fixgo">本文全体で置換</button> <button data-act="cancel">閉じる</button></div>`;
+    updateFixCount(slot);
+  }else{
+    slot.innerHTML = `<div class="editor"><div class="hint">${sel ? '選択した部分を引用として保存します。' : 'この区画の本文を引用として保存します(必要最小限にするには、保存したい部分を選択してから「ノート」を押してください)。'}</div>
+      <textarea class="n-memo" placeholder="メモ(任意)"></textarea>
+      <input class="n-tags" placeholder="タグ(カンマ区切り 例: 処世,乾)">
+      <button class="primary" data-act="notego">ノートに保存</button> <button data-act="cancel">閉じる</button></div>`;
+  }
+}
+function updateFixCount(slot){
+  const f=slot.querySelector('.f-from').value;
+  const n = f ? state.raw.split(f).length-1 : 0;
+  slot.querySelector('.f-count').textContent = f ? (n ? `本文中に ${n} か所あります` : '本文に見つかりません(改行をまたぐ選択はできません)') : '';
+}
+function doFix(slot){
+  const from=slot.querySelector('.f-from').value, to=slot.querySelector('.f-to').value;
+  if(!from){ toast('「誤」の欄が空です'); return; }
+  const n = state.raw.split(from).length-1;
+  if(!n){ toast('本文に見つかりません'); return; }
+  if(!confirm(`本文中の ${n} か所を置換します。\n「${from}」 → 「${to}」`)) return;
+  state.fixes.push({from,to}); saveUser();
+  state.raw = applyFixes(state.base); rebuild(); renderFixes(); toast(`${n}か所を訂正しました`);
+}
+function doNote(slot, c){
+  const quote = slot.dataset.quote || c.text;
+  const memo = slot.querySelector('.n-memo').value.trim();
+  const tags = slot.querySelector('.n-tags').value.split(/[,、，\s]+/).map(s=>s.trim()).filter(Boolean);
+  state.notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), tag:c.tag, label:c.label, page:c.page, quote, memo, tags, ts:Date.now()});
+  saveUser(); slot.innerHTML=''; slot.dataset.kind=''; toast('ノートに保存しました');
+}
+function renderFixes(){
+  $('#fixlist').innerHTML = state.fixes.length
+    ? state.fixes.map((f,i)=>`<div class="yao"><span>「${esc(f.from)}」→「${esc(f.to)}」</span><button data-fixdel="${i}">取り消す</button></div>`).join('')
+    : '<span class="hint">まだありません。</span>';
+}
+$('#fixlist').addEventListener('click', e=>{
+  const b=e.target.closest('[data-fixdel]'); if(!b) return;
+  state.fixes.splice(+b.dataset.fixdel,1); saveUser();
+  state.raw = applyFixes(state.base); rebuild(); renderFixes();
+});
+
+/* ノート画面 */
+function fmtPage(p){ return p ? (p[0]===p[1]?`p.${p[0]}`:`p.${p[0]}–${p[1]}`)+'(推定)' : ''; }
+function noteMd(n){
+  const pg=fmtPage(n.page);
+  return `### ${n.tag}／${n.label}\n\n${n.quote.split('\n').map(l=>'> '+l).join('\n')}\n\n${n.memo?n.memo+'\n\n':''}${n.tags.length?n.tags.map(t=>'#'+t).join(' ')+'\n\n':''}出典: 本田濟『易』(朝日選書1010)${pg?' '+pg:''}\n`;
+}
+function filteredNotes(){
+  const q=normStr(state.nq);
+  return state.notes.filter(n=>(!state.ntag || n.tags.includes(state.ntag)) &&
+    (!q || normStr([n.tag,n.label,n.quote,n.memo,n.tags.join(' ')].join(' ')).includes(q)));
+}
+function notesMd(){ return '# 易 ノート\n\n' + filteredNotes().map(noteMd).join('\n---\n\n'); }
+function renderNotes(){
+  const list=filteredNotes();
+  const tagc={}; state.notes.forEach(n=>n.tags.forEach(t=>tagc[t]=(tagc[t]||0)+1));
+  $('#ntags').innerHTML = (state.ntag?'<span class="chip" data-ntag="">すべて</span>':'') +
+    Object.entries(tagc).map(([t,n])=>`<span class="chip" data-ntag="${escAttr(t)}">#${esc(t)}<b>${n}</b></span>`).join('');
+  $('#nsum').textContent = state.notes.length ? `${list.length} 件 / 全 ${state.notes.length} 件` : 'ノートはまだありません。検索結果の「ノート」ボタンから保存できます。';
+  $('#nlist').innerHTML = list.map(n=>`<article class="card note" data-nid="${n.id}">
+    <header><span class="tag">${esc(n.tag)}</span><span class="lab">${esc(n.label)}</span><span>${fmtPage(n.page)}</span>${n.tags.map(t=>`<span>#${esc(t)}</span>`).join('')}</header>
+    <div class="quote">${esc(n.quote.length>500 ? n.quote.slice(0,500)+'…' : n.quote)}</div>
+    ${n.memo?`<div class="memo">${esc(n.memo)}</div>`:''}
+    <footer><button data-nact="edit">メモ編集</button><button data-nact="copy">Markdownコピー</button><button data-nact="del">削除</button></footer></article>`).join('');
+}
+$('#nfilter').addEventListener('input', e=>{ state.nq=e.target.value; renderNotes(); });
+$('#viewNotes').addEventListener('click', e=>{
+  const ch=e.target.closest('[data-ntag]'); if(ch){ state.ntag=ch.dataset.ntag; renderNotes(); return; }
+  const b=e.target.closest('[data-nact]'); if(!b) return;
+  const n=state.notes.find(x=>x.id===b.closest('.card').dataset.nid); if(!n) return;
+  if(b.dataset.nact==='del'){ if(confirm('このノートを削除しますか?')){ state.notes=state.notes.filter(x=>x!==n); saveUser(); renderNotes(); } }
+  else if(b.dataset.nact==='copy'){ copyText(noteMd(n)); toast('コピーしました'); }
+  else if(b.dataset.nact==='edit'){
+    const m=prompt('メモ',n.memo); if(m===null) return;
+    const t=prompt('タグ(カンマ区切り)',n.tags.join(','));
+    n.memo=m.trim(); if(t!==null) n.tags=t.split(/[,、，\s]+/).map(s=>s.trim()).filter(Boolean);
+    saveUser(); renderNotes();
+  }
+});
+$('#nmd').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } download('eki-notes.md', notesMd(), 'text/markdown'); });
+$('#nmdcopy').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } copyText(notesMd()); toast('コピーしました'); });
+$('#nbak').addEventListener('click', ()=>download('eki-backup.json', JSON.stringify({fixes:state.fixes, notes:state.notes, vdict:$('#vdict').value}), 'application/json'));
+$('#nrestore').addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    const d=JSON.parse(await f.text()); let nn=0, nf=0;
+    (d.notes||[]).forEach(n=>{ if(n && n.id && !state.notes.some(x=>x.id===n.id)){ state.notes.push(n); nn++; } });
+    (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); nf++; } });
+    state.notes.sort((a,b)=>b.ts-a.ts);
+    saveUser();
+    if(nf){ state.raw=applyFixes(state.base); rebuild(); renderFixes(); }
+    renderNotes(); toast(`ノート ${nn} 件、校正 ${nf} 件を読み込みました`);
+  }catch(err){ toast('読み込めませんでした'); }
+  e.target.value='';
+});
+
+/* ---------- 六十四卦の一覧表 ---------- */
+const TRI={乾:'111',兌:'110',離:'101',震:'100',巽:'011',坎:'010',艮:'001',坤:'000'};   // 下から上 (1=陽)
+const TORD=['乾','兌','離','震','巽','坎','艮','坤'];
+const TIMG={乾:'天',兌:'沢',離:'火',震:'雷',巽:'風',坎:'水',艮:'山',坤:'地'};
+// 各卦の「上卦+下卦」(文王の序列)
+const HT=('乾乾 坤坤 坎震 艮坎 坎乾 乾坎 坤坎 坎坤 巽乾 乾兌 坤乾 乾坤 乾離 離乾 坤艮 震坤 兌震 艮巽 坤兌 巽坤 離震 艮離 艮坤 坤震 乾震 艮乾 艮震 兌巽 坎坎 離離 '+
+  '兌艮 震巽 乾艮 震乾 離坤 坤離 巽離 離兌 坎艮 震坎 艮兌 巽震 兌乾 乾巽 兌坤 坤巽 兌坎 坎巽 兌離 離巽 震震 艮艮 巽艮 震兌 震離 離艮 巽巽 兌兌 巽坎 坎兌 巽兌 震艮 坎離 離坎').split(' ');
+const HEXAT={}; HT.forEach((s,i)=>HEXAT[s]=i);
+state.hexSel=-1;
+const POSN=['初','二','三','四','五','上'];
+const hexLines = i => (TRI[HT[i][1]]+TRI[HT[i][0]]).split('').map(Number);       // 下から上
+const yaoName = (k,v) => { const n=v?'九':'六'; return k===0?'初'+n : k===5?'上'+n : n+POSN[k]; };
+function hexSvg(i,w,h){
+  let s=`<svg viewBox="0 0 30 30" width="${w}" height="${h}" aria-hidden="true" fill="currentColor">`;
+  hexLines(i).forEach((v,k)=>{ const y=26-k*4.8;
+    s += v ? `<rect x="2" y="${y}" width="26" height="2.6"/>` : `<rect x="2" y="${y}" width="11" height="2.6"/><rect x="17" y="${y}" width="11" height="2.6"/>`; });
+  return s+'</svg>';
+}
+const lineSvg = v => `<svg viewBox="0 0 30 4" width="60" height="8" aria-hidden="true" fill="currentColor">${v?'<rect x="1" y="0.5" width="28" height="3"/>':'<rect x="1" y="0.5" width="12" height="3"/><rect x="17" y="0.5" width="12" height="3"/>'}</svg>`;
+function renderHexTable(){
+  const have = new Set(state.chunks.filter(c=>c.hex>=0).map(c=>c.hex));
+  let h = '<tr><th>上＼下</th>' + TORD.map(t=>`<th>${t}<br>${TIMG[t]}</th>`).join('') + '</tr>';
+  for(const u of TORD){
+    h += `<tr><th>${u}<br>${TIMG[u]}</th>`;
+    for(const l of TORD){
+      const i=HEXAT[u+l];
+      h += `<td><button class="hc${have.has(i)?'':' dim'}${state.hexSel===i?' sel':''}" data-hex="${i}">${hexSvg(i,22,22)}<span>${HEX[i][0]}</span><small>${i+1}</small></button></td>`;
+    }
+    h += '</tr>';
+  }
+  $('#hextable').innerHTML = h;
+}
+function renderHexDetail(i){
+  state.hexSel=i; renderHexTable();
+  const u=HT[i][0], l=HT[i][1], L=hexLines(i);
+  const chunks = state.chunks.filter(c=>c.hex===i);
+  const has = name => chunks.some(c=>c.label.startsWith(name));
+  let rows='';
+  for(let k=5;k>=0;k--){ const nm=yaoName(k,L[k]);
+    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b>${nm}</b>${lineSvg(L[k])}${has(nm)?`<button data-jump="${nm}">読む</button>`:'<span class="hint">(区画なし)</span>'}</div>`; }
+  const extra = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
+  $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${HEX[i][0]} <span class="hint">(${HEX[i][1]}経)</span></h3>
+    <div class="hint">上卦 ${u}(${TIMG[u]}) ／ 下卦 ${l}(${TIMG[l]})</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
+      <div style="color:var(--accent)">${hexSvg(i,84,84)}</div><div style="flex:1 1 220px">${rows}</div></div>
+    <p>${extra} <button class="primary" data-jump="">この卦を最初から読む</button></p>
+    ${chunks.length?'':'<p class="warn">本文からこの卦の区画を認識できていません。「診断」を確認してください。</p>'}
+    <div id="hexrel"></div><div id="hexreading" class="read"></div></div>`;
+  state.changed = new Set();
+  renderRel(i); renderReading();
+}
+function jumpTo(i,label){
+  const sc='hex:'+i;
+  if(!state.chunks.some(c=>c.scope===sc)){ toast('この卦の本文区画が見つかりません'); return; }
+  switchView('search'); $('#q').value=''; $('#scope').value=sc; runSearch();
+  if(label){
+    const t=[...document.querySelectorAll('#results .card')].find(c=>c.querySelector('.lab').textContent.startsWith(label));
+    if(t){ t.scrollIntoView({block:'center'}); t.classList.add('flash'); }
+  }else window.scrollTo({top:0});
+}
+$('#viewHex').addEventListener('click', e=>{
+  const hb=e.target.closest('[data-hex]');
+  if(hb){ renderHexDetail(+hb.dataset.hex); $('#hexdetail').scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  const jb=e.target.closest('[data-jump]'); if(jb) jumpTo(jb.dataset.jhex!=null ? +jb.dataset.jhex : state.hexSel, jb.dataset.jump);
+});
+$('#viewHex').addEventListener('change', e=>{
+  const c=e.target.closest('[data-chg]'); if(!c) return;
+  const k=+c.dataset.chg; if(c.checked) state.changed.add(k); else state.changed.delete(k);
+  renderReading();
+});
+
+/* ---------- 関連する卦・変爻と之卦 ---------- */
+const LINEAT = {}; for(let i=0;i<64;i++) LINEAT[hexLines(i).join('')] = i;
+const idxOf = L => LINEAT[L.join('')];
+function relHex(i){
+  const L=hexLines(i);
+  return [
+    ['綜卦', idxOf([...L].reverse())],                         // 上下を逆さにした卦
+    ['錯卦', idxOf(L.map(v=>1-v))],                            // 陰陽をすべて反転した卦
+    ['互卦', idxOf([L[1],L[2],L[3],L[2],L[3],L[4]])]           // 2〜5爻から作る卦
+  ];
+}
+function renderRel(i){
+  $('#hexrel').innerHTML = '<h4 style="margin:.9em 0 .2em">関連する卦</h4><div class="hint">綜卦=上下を逆さにした卦 / 錯卦=陰陽をすべて反転した卦 / 互卦=2〜5爻から作る卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">' +
+    relHex(i).map(([n,j])=>`<button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span><small>${n}${j===i?'(同じ)':''}</small></button>`).join('') + '</div>';
+}
+function readingTarget(i, ch){
+  const n=ch.size;
+  if(n===0) return ['卦辞','変爻がないときは、本卦の卦辞を見ます。'];
+  if(n===1){ const k=[...ch][0]; return [yaoName(k,hexLines(i)[k]), '変爻が1つのときは、その爻の爻辞を見ます。']; }
+  if(n===6 && (i===0||i===1)) return [i===0?'用九':'用六','乾・坤の六爻がすべて変ずるときは、用九・用六を見ます。'];
+  return ['卦辞','2爻以上が変ずるときは、本書は本卦の卦辞を見るのを妥当としています(別の読み方をする流儀もあります)。'];
+}
+function chunkBox(i,label,title){
+  const c = state.chunks.find(c=>c.hex===i && c.label.startsWith(label));
+  if(!c) return `<div class="hint">${title}:「${HEX[i][0]} ${label}」の区画が見つかりません。</div>`;
+  const t = c.text.length>900 ? c.text.slice(0,900)+'…' : c.text;
+  return `<div><div class="hint"><b>${title}:${HEX[i][0]} ${label}</b> ${pageLabel(c)} <button data-jump="${label}" data-jhex="${i}">検索画面で開く</button></div><div class="quote">${esc(t)}</div></div>`;
+}
+function renderReading(){
+  const i=state.hexSel; if(i<0) return;
+  const L=hexLines(i), ch=state.changed;
+  const j=idxOf(L.map((v,k)=>ch.has(k)?1-v:v));
+  const [lab,why]=readingTarget(i,ch);
+  let h='<h4 style="margin:.9em 0 .2em">変爻と之卦</h4><div class="hint">上の「変」にチェックすると、之卦を計算し、読む箇所を示します。</div>';
+  if(ch.size) h += `<p>本卦 <b>${HEX[i][0]}</b> → 之卦 <button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span></button></p>`;
+  h += `<div class="hint">${why}</div>` + chunkBox(i,lab,'読む箇所');
+  if(ch.size) h += chunkBox(j,'卦辞','之卦の卦辞(参考)');
+  $('#hexreading').innerHTML = h;
+}
+
+/* ---------- 吉凶悔吝の一覧表 ---------- */
+state.jf = '';
+function judgeTags(l){
+  const t=[];
+  if(/凶/.test(l)) t.push('凶');
+  if(/吉/.test(l)) t.push('吉');
+  if(/[厲厉]/.test(l)) t.push('厲');
+  if(/[无無]悔|悔亡|悔[无無]/.test(l)) t.push('悔亡'); else if(/悔/.test(l)) t.push('悔');
+  if(/吝/.test(l)) t.push('吝');
+  if(/[无無]咎|咎[无無]/.test(l)) t.push('无咎'); else if(/咎/.test(l)) t.push('咎');
+  return t;
+}
+function judgeClass(t){
+  if(!t.length) return 'j0';
+  if(t.includes('凶')) return 'jbad';
+  if(t.includes('吉')) return 'jgood';
+  if(t.some(x=>['悔','吝','厲','咎'].includes(x))) return 'jwarn';
+  return 'jok';
+}
+function firstClassical(c){
+  const ls=c.text.split('\n');
+  const k=ls.findIndex(l=>/。/.test(l)); if(k<0) return '';
+  let s=ls[k]; if(!/。$/.test(s) && ls[k+1]) s+=ls[k+1];
+  return s;
+}
+function computeJudge(){
+  const J=Array.from({length:64},()=>({g:undefined, y:Array(6).fill(undefined)}));
+  const pos={'初':0,'二':1,'三':2,'四':3,'五':4,'上':5};
+  for(const c of state.chunks){
+    if(c.hex<0) continue;
+    const r=J[c.hex];
+    if(c.label.startsWith('卦辞')){ if(r.g===undefined) r.g=judgeTags(firstClassical(c)); continue; }
+    const m=c.label.match(/^(初|上)[九六]|^[九六]([二三四五])/);
+    if(m){ const k=m[1]?pos[m[1]]:pos[m[2]]; if(r.y[k]===undefined) r.y[k]=judgeTags(firstClassical(c)); }
+  }
+  state.judge=J;
+}
+function renderJudge(){
+  const J=state.judge; if(!J) return;
+  const cnt={}; let none=0;
+  J.forEach(r=>[r.g,...r.y].forEach(t=>{ if(t===undefined){ none++; return; } t.forEach(x=>cnt[x]=(cnt[x]||0)+1); }));
+  const order=['吉','凶','悔','吝','厲','无咎','悔亡','咎'];
+  $('#jchips').innerHTML = `<span class="chip${state.jf?'':' on'}" data-jf="">すべて</span>` +
+    order.filter(x=>cnt[x]).map(x=>`<span class="chip${state.jf===x?' on':''}" data-jf="${x}">${x}<b>${cnt[x]}</b></span>`).join('');
+  $('#jnote').textContent = `本文の区画が見つからない欄(?): ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`;
+  const cell=(t,i,lab)=>{
+    if(t===undefined) return '<td><span class="jnone" title="区画なし">？</span></td>';
+    const dim = state.jf && !t.includes(state.jf) ? ' dim' : '';
+    return `<td><button class="jc ${judgeClass(t)}${dim}" data-jh="${i}" data-jl="${lab}">${t.length?t.join('・'):'·'}</button></td>`;
   };
+  let h='<tr><th>卦</th><th>卦辞</th>'+['初','二','三','四','五','上'].map(x=>`<th>${x}</th>`).join('')+'</tr>';
+  for(let i=0;i<64;i++){
+    const r=J[i], L=hexLines(i);
+    h += `<tr><th><button class="jname" data-jn="${i}">${i+1} ${HEX[i][0]}</button></th>${cell(r.g,i,'卦辞')}` +
+         r.y.map((t,k)=>cell(t,i,yaoName(k,L[k]))).join('') + '</tr>';
+  }
+  $('#judgetable').innerHTML=h;
+}
+$('#viewJudge').addEventListener('click', e=>{
+  const f=e.target.closest('[data-jf]'); if(f){ state.jf=f.dataset.jf; renderJudge(); return; }
+  const c=e.target.closest('[data-jh]'); if(c){ jumpTo(+c.dataset.jh, c.dataset.jl); return; }
+  const n=e.target.closest('[data-jn]'); if(n){ switchView('hex'); renderHexDetail(+n.dataset.jn); $('#hexdetail').scrollIntoView({block:'start'}); }
+});
+
+/* タブ切り替え */
+function switchView(v){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
+  if(v==='judge') renderJudge();
+  if(v==='notes') renderNotes();
+  if(v==='hex') renderHexTable();
+}
+document.querySelector('.tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b) switchView(b.dataset.view); });
+
+/* ---------- 起動 ---------- */
+$('#vdict').value = LS.get('eki.vdict') || DEFAULT_VDICT;
+function toB64(s){
+  const b = new TextEncoder().encode(s); let bin='';
+  for(let i=0;i<b.length;i+=0x8000) bin += String.fromCharCode.apply(null, b.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+$('#export').addEventListener('click', ()=>{
+  const clone = document.documentElement.cloneNode(true);
+  clone.querySelector('#embedded').textContent = toB64(state.base);
+  clone.querySelector('#embeddedUser').textContent = toB64(JSON.stringify({fixes:state.fixes, notes:state.notes, vdict:$('#vdict').value}));
+  const html = '<!doctype html>\n' + clone.outerHTML;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download = 'eki-search-内蔵版.html';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+function fromB64(e){ return new TextDecoder().decode(Uint8Array.from(atob(e), c=>c.charCodeAt(0))); }
+let embRaw = '', embUser = null;
+{ const e = document.getElementById('embedded').textContent.trim();
+  if(e){ try{ embRaw = fromB64(e); }catch(err){} }
+  const u = document.getElementById('embeddedUser').textContent.trim();
+  if(u){ try{ embUser = JSON.parse(fromB64(u)); }catch(err){} } }
+let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
+if(!userData) userData = embUser;
+if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; }
+if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
+updateTabs(); renderFixes();
+// オフライン対応(http/https で開いたときだけ有効)
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+$('#appupdate').addEventListener('click', async ()=>{
+  try{
+    const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister()));
+    const ks = await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k)));
+  }catch(e){}
+  location.reload();
+});
+const saved = LS.get('eki.raw');
+if(embRaw.length>200){ $('#wipe').hidden = true; start(embRaw); }
+else if(saved && saved.length>200) start(saved);
+else $('#setup').hidden=false;
+// テスト用フック
+window.__eki = { state, parse, normStr, runSearch };
 })();
 </script>
 </body>
