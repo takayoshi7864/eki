@@ -1,7 +1,0 @@
-# 書籍の本文・ノートは絶対にアップロードしない
-*内蔵版*
-*.txt
-*.json
-*.pdf
-export*.html
-eki-notes*
