@@ -2,7 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#8a3b2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="易 検索">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>易 検索</title>
 <style>
 :root{--bg:#faf8f3;--panel:#fff;--ink:#242220;--sub:#6e685b;--line:#e3ded1;--accent:#8a3b2b;--mark:#ffe28a;--chip:#efeadc;--ok:#2d6a3f;--warn:#9a5b00}
@@ -72,6 +78,35 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
 .note .memo{white-space:pre-wrap;margin:6px 0}
 .flash{animation:fl 1.6s}
 @keyframes fl{from{box-shadow:0 0 0 3px var(--accent)}to{box-shadow:0 0 0 0 transparent}}
+input,select,textarea{font-size:16px}
+main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
+@media (max-width:760px){
+  button{min-height:38px}
+  .card footer{flex-wrap:wrap}
+  .card footer button{font-size:.85rem}
+  .searchbar select{flex:1 1 40%}
+  .opts{flex-direction:column;gap:6px}
+  .chip{padding:5px 12px}
+}
+.chip.on{background:var(--accent);color:#fff}
+.chip.on b{color:#fff}
+.rels{display:flex;gap:8px;flex-wrap:wrap}
+.hc.rel{width:auto;min-width:92px;padding:4px 10px}
+.chg{display:inline-flex;align-items:center;gap:2px;font-size:.8rem;color:var(--sub);margin-right:4px}
+.chg input{width:18px;height:18px}
+.read .quote{white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px;overflow-wrap:anywhere;margin:4px 0 12px}
+.judgetable{border-collapse:collapse;width:100%;min-width:640px;font-size:.82rem}
+.judgetable th,.judgetable td{border-bottom:1px solid var(--line);padding:2px 3px;text-align:center}
+.judgetable th:first-child{text-align:left;position:sticky;left:0;background:var(--bg)}
+.jname{border:0;background:none;padding:2px 4px;text-align:left;cursor:pointer;color:var(--ink);min-height:0!important;white-space:nowrap}
+.jc{width:100%;border-radius:6px;padding:2px;font-size:.78rem;min-height:0!important;border:1px solid transparent;background:transparent}
+.jc.jgood{background:rgba(60,160,90,.28)}
+.jc.jbad{background:rgba(200,70,50,.28)}
+.jc.jwarn{background:rgba(230,160,30,.30)}
+.jc.jok{background:rgba(90,130,170,.22)}
+.jc.j0{color:var(--sub)}
+.jc.dim{opacity:.22}
+.jnone{color:var(--sub);opacity:.5}
 @media (max-width:560px){body{font-size:15px}}
 </style>
 </head>
@@ -87,7 +122,8 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
   <section id="setup" class="panel" hidden>
     <h2 style="margin:.2em 0;font-size:1.1rem">① 本文テキストを読み込む</h2>
     <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
-      <input type="file" id="file" accept=".txt,.text,.md,text/plain"></div>
+      <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
+    <div class="hint">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
     <div class="hint">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
     <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
     <p><button class="primary" id="build">この本文で索引を作る</button>
@@ -100,6 +136,7 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
       <button data-view="search" class="on">検索</button>
       <button data-view="notes" id="tabNotes">ノート</button>
       <button data-view="hex">六十四卦</button>
+      <button data-view="judge">吉凶表</button>
     </nav>
     <div id="viewSearch">
     <div class="stick">
@@ -142,6 +179,16 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
       </div>
       <div id="hexdetail"></div>
     </div>
+
+    <div id="viewJudge" hidden>
+      <div class="panel">
+        <b>吉凶悔吝の一覧表</b>
+        <div class="hint">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="facets" id="jchips"></div>
+        <div class="hint" id="jnote"></div>
+      </div>
+      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
+    </div>
   </section>
   <div id="toast" class="toast" hidden></div>
 
@@ -153,6 +200,11 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
       OCRの誤読が見つかったらここに足してください(例: <code>#民=艮</code> <code>#免=兌</code> <code>#甲=坎</code>)。変更後は「保存して再構築」を押します。</div>
       <textarea id="vdict" style="min-height:180px"></textarea>
       <p><button id="vsave">保存して再構築</button> <button id="vreset">初期値に戻す</button></p>
+    </div>
+    <div class="panel">
+      <b>アプリの更新・ホーム画面への追加</b>
+      <div class="hint">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
+      <p><button id="appupdate">最新版に更新</button></p>
     </div>
     <div class="panel">
       <b>校正の履歴(本文の訂正)</b>
@@ -473,6 +525,7 @@ function rebuild(){
   const res = parse(state.raw);
   state.chunks = res.chunks;
   buildIndex(state.chunks);
+  computeJudge();
   const hexSeen = new Set(state.chunks.filter(c=>c.hex>=0).map(c=>c.hex));
   const withPage = state.chunks.filter(c=>c.page).length;
   state.diag = { hexSeen, markers:res.markers, withPage, lines:res.lines };
@@ -647,7 +700,23 @@ async function readFile(f){
   try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf); }
   catch(e){ try{ return new TextDecoder('shift_jis').decode(buf); }catch(e2){ return new TextDecoder().decode(buf); } }
 }
-async function takeFile(f){ if(!f) return; $('#paste').value = await readFile(f); }
+async function takeFile(f){
+  if(!f) return;
+  let txt = await readFile(f);
+  // 「内蔵版HTML」そのものが選ばれた場合は、中の本文・ノート・校正を取り出す
+  const m = txt.match(/<script id="embedded" type="text\/plain">([\s\S]*?)<\/script>/);
+  state.pendingUser = null;
+  if(m && m[1].trim()){
+    try{
+      const src = txt;
+      txt = fromB64(m[1].trim());
+      const mu = src.match(/<script id="embeddedUser" type="text\/plain">([\s\S]*?)<\/script>/);
+      if(mu && mu[1].trim()) state.pendingUser = JSON.parse(fromB64(mu[1].trim()));
+      toast('内蔵版ファイルから本文を取り出しました。「索引を作る」を押してください');
+    }catch(e){ toast('内蔵版ファイルを読み取れませんでした'); }
+  }
+  $('#paste').value = txt;
+}
 $('#file').addEventListener('change', e=>takeFile(e.target.files[0]));
 const drop=$('#drop');
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('on');}));
@@ -664,6 +733,11 @@ $('#build').addEventListener('click', ()=>{
   const raw = $('#paste').value;
   if(raw.trim().length<200){ alert('本文が短すぎます。全文を貼り付けるか、テキストファイルを選んでください。'); return; }
   if(!LS.set('eki.raw', raw)) alert('この環境ではブラウザに本文を保存できませんでした。今回だけ使えます(次回は再度読み込みが必要です)。');
+  if(state.pendingUser){
+    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || [];
+    if(state.pendingUser.vdict){ $('#vdict').value = state.pendingUser.vdict; LS.set('eki.vdict', state.pendingUser.vdict); }
+    saveUser(); renderFixes(); state.pendingUser = null;
+  }
   start(raw);
 });
 $('#vsave').addEventListener('click', ()=>{ LS.set('eki.vdict',$('#vdict').value); rebuild(); });
@@ -837,14 +911,17 @@ function renderHexDetail(i){
   const has = name => chunks.some(c=>c.label.startsWith(name));
   let rows='';
   for(let k=5;k>=0;k--){ const nm=yaoName(k,L[k]);
-    rows += `<div class="yao"><b>${nm}</b>${lineSvg(L[k])}${has(nm)?`<button data-jump="${nm}">読む</button>`:'<span class="hint">(区画なし)</span>'}</div>`; }
+    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b>${nm}</b>${lineSvg(L[k])}${has(nm)?`<button data-jump="${nm}">読む</button>`:'<span class="hint">(区画なし)</span>'}</div>`; }
   const extra = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
   $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${HEX[i][0]} <span class="hint">(${HEX[i][1]}経)</span></h3>
     <div class="hint">上卦 ${u}(${TIMG[u]}) ／ 下卦 ${l}(${TIMG[l]})</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
       <div style="color:var(--accent)">${hexSvg(i,84,84)}</div><div style="flex:1 1 220px">${rows}</div></div>
     <p>${extra} <button class="primary" data-jump="">この卦を最初から読む</button></p>
-    ${chunks.length?'':'<p class="warn">本文からこの卦の区画を認識できていません。「診断」を確認してください。</p>'}</div>`;
+    ${chunks.length?'':'<p class="warn">本文からこの卦の区画を認識できていません。「診断」を確認してください。</p>'}
+    <div id="hexrel"></div><div id="hexreading" class="read"></div></div>`;
+  state.changed = new Set();
+  renderRel(i); renderReading();
 }
 function jumpTo(i,label){
   const sc='hex:'+i;
@@ -858,13 +935,123 @@ function jumpTo(i,label){
 $('#viewHex').addEventListener('click', e=>{
   const hb=e.target.closest('[data-hex]');
   if(hb){ renderHexDetail(+hb.dataset.hex); $('#hexdetail').scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
-  const jb=e.target.closest('[data-jump]'); if(jb) jumpTo(state.hexSel, jb.dataset.jump);
+  const jb=e.target.closest('[data-jump]'); if(jb) jumpTo(jb.dataset.jhex!=null ? +jb.dataset.jhex : state.hexSel, jb.dataset.jump);
+});
+$('#viewHex').addEventListener('change', e=>{
+  const c=e.target.closest('[data-chg]'); if(!c) return;
+  const k=+c.dataset.chg; if(c.checked) state.changed.add(k); else state.changed.delete(k);
+  renderReading();
+});
+
+/* ---------- 関連する卦・変爻と之卦 ---------- */
+const LINEAT = {}; for(let i=0;i<64;i++) LINEAT[hexLines(i).join('')] = i;
+const idxOf = L => LINEAT[L.join('')];
+function relHex(i){
+  const L=hexLines(i);
+  return [
+    ['綜卦', idxOf([...L].reverse())],                         // 上下を逆さにした卦
+    ['錯卦', idxOf(L.map(v=>1-v))],                            // 陰陽をすべて反転した卦
+    ['互卦', idxOf([L[1],L[2],L[3],L[2],L[3],L[4]])]           // 2〜5爻から作る卦
+  ];
+}
+function renderRel(i){
+  $('#hexrel').innerHTML = '<h4 style="margin:.9em 0 .2em">関連する卦</h4><div class="hint">綜卦=上下を逆さにした卦 / 錯卦=陰陽をすべて反転した卦 / 互卦=2〜5爻から作る卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">' +
+    relHex(i).map(([n,j])=>`<button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span><small>${n}${j===i?'(同じ)':''}</small></button>`).join('') + '</div>';
+}
+function readingTarget(i, ch){
+  const n=ch.size;
+  if(n===0) return ['卦辞','変爻がないときは、本卦の卦辞を見ます。'];
+  if(n===1){ const k=[...ch][0]; return [yaoName(k,hexLines(i)[k]), '変爻が1つのときは、その爻の爻辞を見ます。']; }
+  if(n===6 && (i===0||i===1)) return [i===0?'用九':'用六','乾・坤の六爻がすべて変ずるときは、用九・用六を見ます。'];
+  return ['卦辞','2爻以上が変ずるときは、本書は本卦の卦辞を見るのを妥当としています(別の読み方をする流儀もあります)。'];
+}
+function chunkBox(i,label,title){
+  const c = state.chunks.find(c=>c.hex===i && c.label.startsWith(label));
+  if(!c) return `<div class="hint">${title}:「${HEX[i][0]} ${label}」の区画が見つかりません。</div>`;
+  const t = c.text.length>900 ? c.text.slice(0,900)+'…' : c.text;
+  return `<div><div class="hint"><b>${title}:${HEX[i][0]} ${label}</b> ${pageLabel(c)} <button data-jump="${label}" data-jhex="${i}">検索画面で開く</button></div><div class="quote">${esc(t)}</div></div>`;
+}
+function renderReading(){
+  const i=state.hexSel; if(i<0) return;
+  const L=hexLines(i), ch=state.changed;
+  const j=idxOf(L.map((v,k)=>ch.has(k)?1-v:v));
+  const [lab,why]=readingTarget(i,ch);
+  let h='<h4 style="margin:.9em 0 .2em">変爻と之卦</h4><div class="hint">上の「変」にチェックすると、之卦を計算し、読む箇所を示します。</div>';
+  if(ch.size) h += `<p>本卦 <b>${HEX[i][0]}</b> → 之卦 <button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span></button></p>`;
+  h += `<div class="hint">${why}</div>` + chunkBox(i,lab,'読む箇所');
+  if(ch.size) h += chunkBox(j,'卦辞','之卦の卦辞(参考)');
+  $('#hexreading').innerHTML = h;
+}
+
+/* ---------- 吉凶悔吝の一覧表 ---------- */
+state.jf = '';
+function judgeTags(l){
+  const t=[];
+  if(/凶/.test(l)) t.push('凶');
+  if(/吉/.test(l)) t.push('吉');
+  if(/[厲厉]/.test(l)) t.push('厲');
+  if(/[无無]悔|悔亡|悔[无無]/.test(l)) t.push('悔亡'); else if(/悔/.test(l)) t.push('悔');
+  if(/吝/.test(l)) t.push('吝');
+  if(/[无無]咎|咎[无無]/.test(l)) t.push('无咎'); else if(/咎/.test(l)) t.push('咎');
+  return t;
+}
+function judgeClass(t){
+  if(!t.length) return 'j0';
+  if(t.includes('凶')) return 'jbad';
+  if(t.includes('吉')) return 'jgood';
+  if(t.some(x=>['悔','吝','厲','咎'].includes(x))) return 'jwarn';
+  return 'jok';
+}
+function firstClassical(c){
+  const ls=c.text.split('\n');
+  const k=ls.findIndex(l=>/。/.test(l)); if(k<0) return '';
+  let s=ls[k]; if(!/。$/.test(s) && ls[k+1]) s+=ls[k+1];
+  return s;
+}
+function computeJudge(){
+  const J=Array.from({length:64},()=>({g:undefined, y:Array(6).fill(undefined)}));
+  const pos={'初':0,'二':1,'三':2,'四':3,'五':4,'上':5};
+  for(const c of state.chunks){
+    if(c.hex<0) continue;
+    const r=J[c.hex];
+    if(c.label.startsWith('卦辞')){ if(r.g===undefined) r.g=judgeTags(firstClassical(c)); continue; }
+    const m=c.label.match(/^(初|上)[九六]|^[九六]([二三四五])/);
+    if(m){ const k=m[1]?pos[m[1]]:pos[m[2]]; if(r.y[k]===undefined) r.y[k]=judgeTags(firstClassical(c)); }
+  }
+  state.judge=J;
+}
+function renderJudge(){
+  const J=state.judge; if(!J) return;
+  const cnt={}; let none=0;
+  J.forEach(r=>[r.g,...r.y].forEach(t=>{ if(t===undefined){ none++; return; } t.forEach(x=>cnt[x]=(cnt[x]||0)+1); }));
+  const order=['吉','凶','悔','吝','厲','无咎','悔亡','咎'];
+  $('#jchips').innerHTML = `<span class="chip${state.jf?'':' on'}" data-jf="">すべて</span>` +
+    order.filter(x=>cnt[x]).map(x=>`<span class="chip${state.jf===x?' on':''}" data-jf="${x}">${x}<b>${cnt[x]}</b></span>`).join('');
+  $('#jnote').textContent = `本文の区画が見つからない欄(?): ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`;
+  const cell=(t,i,lab)=>{
+    if(t===undefined) return '<td><span class="jnone" title="区画なし">？</span></td>';
+    const dim = state.jf && !t.includes(state.jf) ? ' dim' : '';
+    return `<td><button class="jc ${judgeClass(t)}${dim}" data-jh="${i}" data-jl="${lab}">${t.length?t.join('・'):'·'}</button></td>`;
+  };
+  let h='<tr><th>卦</th><th>卦辞</th>'+['初','二','三','四','五','上'].map(x=>`<th>${x}</th>`).join('')+'</tr>';
+  for(let i=0;i<64;i++){
+    const r=J[i], L=hexLines(i);
+    h += `<tr><th><button class="jname" data-jn="${i}">${i+1} ${HEX[i][0]}</button></th>${cell(r.g,i,'卦辞')}` +
+         r.y.map((t,k)=>cell(t,i,yaoName(k,L[k]))).join('') + '</tr>';
+  }
+  $('#judgetable').innerHTML=h;
+}
+$('#viewJudge').addEventListener('click', e=>{
+  const f=e.target.closest('[data-jf]'); if(f){ state.jf=f.dataset.jf; renderJudge(); return; }
+  const c=e.target.closest('[data-jh]'); if(c){ jumpTo(+c.dataset.jh, c.dataset.jl); return; }
+  const n=e.target.closest('[data-jn]'); if(n){ switchView('hex'); renderHexDetail(+n.dataset.jn); $('#hexdetail').scrollIntoView({block:'start'}); }
 });
 
 /* タブ切り替え */
 function switchView(v){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
-  $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex';
+  $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
+  if(v==='judge') renderJudge();
   if(v==='notes') renderNotes();
   if(v==='hex') renderHexTable();
 }
@@ -898,6 +1085,15 @@ if(!userData) userData = embUser;
 if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 updateTabs(); renderFixes();
+// オフライン対応(http/https で開いたときだけ有効)
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+$('#appupdate').addEventListener('click', async ()=>{
+  try{
+    const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister()));
+    const ks = await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k)));
+  }catch(e){}
+  location.reload();
+});
 const saved = LS.get('eki.raw');
 if(embRaw.length>200){ $('#wipe').hidden = true; start(embRaw); }
 else if(saved && saved.length>200) start(saved);
