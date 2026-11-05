@@ -138,7 +138,7 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 <body>
 <header class="top">
   <h1>易 解説</h1>
-  <div class="sub">易を立てた記録と、その解説。データはこの端末のブラウザ内だけに保存され、外部へ送信されません。</div>
+  <div class="sub">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
   <div class="status" id="status"></div>
 </header>
 
@@ -154,6 +154,12 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
     <p><button class="primary" id="build">この本文で索引を作る</button> <button id="nobook">原典なしで始める</button>
     <span class="hint">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
+    <details class="panel" id="setupcloud"><summary><b>クラウド同期に接続して始める(2台目以降の端末はこちら)</b></summary>
+      <div class="hint">自分専用のクラウド(Cloudflare)に保存した、記録・解説文・原文を呼び出します。本文の読み込みは要りません。</div>
+      <label class="hint">保存場所のURL <input id="sc_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
+      <label class="hint">合言葉 <input id="sc_token" type="password" autocomplete="off"></label>
+      <p><button class="primary" id="sc_go">接続して始める</button></p>
+    </details>
   </section>
 
   <!-- 検索画面 -->
@@ -276,6 +282,15 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
       <textarea id="vdict" style="min-height:180px"></textarea>
       <p><button id="vsave">保存して再構築</button> <button id="vreset">初期値に戻す</button></p>
     </div>
+    <div class="panel" id="cloudpanel">
+      <b>クラウド同期(自分専用・無料)</b>
+      <div class="hint">記録・解説文・原文・ノートを、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
+      <label class="hint">保存場所のURL <input id="c_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
+      <label class="hint">合言葉(20文字以上のランダムな文字列) <input id="c_token" type="password" autocomplete="off"></label>
+      <p><button id="c_gen">合言葉を作る</button> <button class="primary" id="c_save">接続して同期</button> <button id="c_now">いますぐ同期</button> <button id="c_link">接続用リンクをコピー</button> <button id="c_off">接続を解除</button></p>
+      <div class="hint" id="c_msg"></div>
+      <div class="hint">接続用リンクには合言葉が含まれます。パスワードと同じように、ご自身のブックマークにだけ保存し、他の人には送らないでください。</div>
+    </div>
     <div class="panel">
       <b>アプリの更新・ホーム画面への追加</b>
       <div class="hint">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
@@ -309,6 +324,7 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
+let cloud = null, cloudMsg = '';
 const LS = {
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ return false; } },
@@ -830,9 +846,12 @@ function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.spli
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>{t.hidden=true;},2400); }
 function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
 function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.length ? `(${state.notes.length})` : ''); }
-function saveUser(){
-  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen}))) toast('この環境では記録を保存できませんでした');
+state.tomb = {};   // 削除した項目の目印(同期で復活しないようにする)
+const tombAdd = id => { if(id) state.tomb[id] = Date.now(); };
+function saveUser(noSync){
+  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, tomb:state.tomb}))) toast('この環境では記録を保存できませんでした');
   updateTabs(); updateStatus();
+  if(!noSync) scheduleSync();
 }
 function download(name, text, type){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
@@ -926,7 +945,7 @@ $('#viewNotes').addEventListener('click', e=>{
   const ch=e.target.closest('[data-ntag]'); if(ch){ state.ntag=ch.dataset.ntag; renderNotes(); return; }
   const b=e.target.closest('[data-nact]'); if(!b) return;
   const n=state.notes.find(x=>x.id===b.closest('.card').dataset.nid); if(!n) return;
-  if(b.dataset.nact==='del'){ if(confirm('このノートを削除しますか?')){ state.notes=state.notes.filter(x=>x!==n); saveUser(); renderNotes(); } }
+  if(b.dataset.nact==='del'){ if(confirm('このノートを削除しますか?')){ tombAdd(n.id); state.notes=state.notes.filter(x=>x!==n); saveUser(); renderNotes(); } }
   else if(b.dataset.nact==='copy'){ copyText(noteMd(n)); toast('コピーしました'); }
   else if(b.dataset.nact==='edit'){
     const m=prompt('メモ',n.memo); if(m===null) return;
@@ -1454,7 +1473,7 @@ $('#viewLog').addEventListener('click', e=>{
       const pk=a.dataset.pk, name=$('#pname').value.trim(), st=$('#pstat').value, tg=$('#ptags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean);
       state.log.forEach(x=>{ if(purposeKey(x)===pk){ if(name) x.title=name; x.status=st; x.tags=tg; x.upd=Date.now(); } });
       state.pedit=null; saveUser(); renderLog(); toast('目的を更新しました'); break; }
-    case 'del': if(ent && confirm('この記録を削除しますか?')){ state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
+    case 'del': if(ent && confirm('この記録を削除しますか?')){ tombAdd(ent.id); state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
   }
 });
 $('#viewLog').addEventListener('change', e=>{
@@ -1585,7 +1604,7 @@ function importLib(text, src){
   if(add) saveUser();
   return {found:items.length, add, dup};
 }
-function updateStatus(){ $('#status').innerHTML = `解説 <b>${libCount()}</b> / ${LIBTOTAL} 項目 ／ 記録 <b>${state.log.length}</b> 件`; }
+function updateStatus(){ $('#status').innerHTML = `解説 <b>${libCount()}</b> / ${LIBTOTAL} 項目 ／ 記録 <b>${state.log.length}</b> 件${cloud?` ／ ☁ ${cloudMsg||'未同期'}`:''}`; }
 function renderLibProg(){
   const el=$('#libprog'); if(!el) return;
   el.textContent = `登録済みの項目: ${libCount()} / ${LIBTOTAL}(解説のある卦: ${HEX.filter((_,i)=>hasLib(i)).length} / 64)。表の ● が、解説のある卦です。`;
@@ -1643,7 +1662,7 @@ function saveLibForm(ed){
   state.lastSrc=src;
   const key=i+'|'+lab, arr=state.lib[key] || (state.lib[key]=[]);
   const x = id ? arr.find(y=>y.id===id) : null;
-  if(x){ x.text=text; x.src=src; }
+  if(x){ x.text=text; x.src=src; x.upd=Date.now(); }
   else arr.push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, src, ts:Date.now()});
   saveUser(); refreshSecs(); toast('解説を保存しました');
 }
@@ -1656,7 +1675,7 @@ function libAction(e){
   const del=t.closest('[data-libdel]');
   if(del){
     const key=del.dataset.i+'|'+del.dataset.lab;
-    if(confirm('この解説を削除しますか?')){ state.lib[key]=(state.lib[key]||[]).filter(y=>y.id!==del.dataset.libdel); if(!state.lib[key].length) delete state.lib[key]; saveUser(); refreshSecs(); }
+    if(confirm('この解説を削除しますか?')){ tombAdd(del.dataset.libdel); state.lib[key]=(state.lib[key]||[]).filter(y=>y.id!==del.dataset.libdel); if(!state.lib[key].length) delete state.lib[key]; saveUser(); refreshSecs(); }
     return true;
   }
   const sv=t.closest('[data-libsave]'); if(sv){ saveLibForm(sv.closest('.editor')); return true; }
@@ -1718,7 +1737,7 @@ let embRaw = '', embUser = null;
   if(u){ try{ embUser = JSON.parse(fromB64(u)); }catch(err){} } }
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
-if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; }
+if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.tomb = userData.tomb || {}; }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 updateTabs(); renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
@@ -1730,13 +1749,114 @@ $('#appupdate').addEventListener('click', async ()=>{
   }catch(e){}
   location.reload();
 });
+
+/* ---------- クラウド同期(自分専用のCloudflare Worker + KV) ---------- */
+function mergeIn(d){
+  let ch=false; d=d||{};
+  const up = x => x.upd||x.ts||0, dead = id => state.tomb[id]!=null;
+  Object.entries(d.tomb||{}).forEach(([id,t])=>{ if(!(state.tomb[id]>=t)){ state.tomb[id]=t; ch=true; } });
+  const mergeList=(cur,rem)=>{
+    const out=[], by=new Map();
+    cur.forEach(x=>{ if(x && !dead(x.id)){ out.push(x); by.set(x.id,x); } else if(x) ch=true; });
+    (rem||[]).forEach(x=>{
+      if(!x || !x.id || dead(x.id)) return;
+      const y=by.get(x.id);
+      if(!y){ out.push(x); by.set(x.id,x); ch=true; }
+      else if(up(x)>up(y)){ out[out.indexOf(y)]=x; by.set(x.id,x); ch=true; }
+    });
+    return out;
+  };
+  state.log = mergeList(state.log, (d.log||[]).filter(x=>x && x.ts));
+  state.notes = mergeList(state.notes, d.notes);
+  const keys=new Set([...Object.keys(state.lib), ...Object.keys(d.lib||{})]);
+  keys.forEach(k=>{ const a=mergeList(state.lib[k]||[], (d.lib||{})[k]); if(a.length) state.lib[k]=a; else delete state.lib[k]; });
+  (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); ch=true; } });
+  Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]){ state.gen[k]=v; ch=true; } });
+  state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); state.notes.sort((a,b)=>b.ts-a.ts);
+  return ch;
+}
+const snapshot = () => ({tomb:state.tomb, fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, saved:Date.now()});
+function needPush(rem){
+  const up = x => x.upd||x.ts||0, r=new Map();
+  (rem.log||[]).concat(rem.notes||[]).forEach(x=>x&&x.id&&r.set(x.id,up(x)));
+  Object.values(rem.lib||{}).forEach(a=>(a||[]).forEach(x=>x&&x.id&&r.set(x.id,up(x))));
+  const mine=[...state.log, ...state.notes]; Object.values(state.lib).forEach(a=>mine.push(...a));
+  if(mine.some(x=>!r.has(x.id) || up(x)>r.get(x.id))) return true;
+  const rt=rem.tomb||{}; if(Object.keys(state.tomb).some(id=>!(rt[id]>=state.tomb[id]))) return true;
+  const rg=rem.gen||{}; if(Object.keys(state.gen).some(k=>!rg[k])) return true;
+  const rf=rem.fixes||[]; return state.fixes.some(x=>!rf.some(y=>y.from===x.from && y.to===x.to));
+}
+async function cloudReq(method, body){
+  const base=cloud.url.replace(/\/+$/,'');
+  if(/\/macros\//.test(base)){   // Google Apps Script: 合言葉は本文に入れる(通信を単純な形にして、ブラウザの制限を避ける)
+    const r = await fetch(base, {method:'POST', redirect:'follow', cache:'no-store', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(method==='GET' ? {token:cloud.token, action:'get'} : {token:cloud.token, action:'put', data:JSON.parse(body)})});
+    if(!r.ok) throw new Error('サーバーのエラー '+r.status);
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error==='unauthorized' ? '合言葉が違います' : 'サーバーのエラー');
+    return method==='GET' ? j.data : null;
+  }
+  const r = await fetch(base+'/data', {method, body, cache:'no-store',
+    headers: Object.assign({Authorization:'Bearer '+cloud.token}, body?{'Content-Type':'application/json'}:{})});
+  if(r.status===401) throw new Error('合言葉が違います');
+  if(!r.ok) throw new Error('サーバーのエラー '+r.status);
+  return method==='GET' ? r.json() : null;
+}
+function setCloudMsg(m, bad){ cloudMsg=m; updateStatus(); const el=$('#c_msg'); if(el){ el.textContent = cloud ? 'クラウド: '+m : ''; el.style.color = bad ? '#e57373' : ''; } }
+function rerender(){
+  try{ updateTabs(); updateStatus(); renderLog(); renderNotes(); if(state.hexSel>=0) refreshSecs(); else { renderHexTable(); renderLibProg(); } }catch(e){}
+}
+let syncing=false, syncAgain=false, syncTimer=0, lastSync=0;
+function scheduleSync(){ if(!cloud) return; clearTimeout(syncTimer); syncTimer=setTimeout(cloudSync, 2000); }
+async function cloudSync(){
+  if(!cloud) return;
+  if(syncing){ syncAgain=true; return; }
+  syncing=true; setCloudMsg('同期中…');
+  try{
+    const rem = (await cloudReq('GET')) || {};
+    if(mergeIn(rem)){ saveUser(true); rerender(); }
+    if(needPush(rem)) await cloudReq('PUT', JSON.stringify(snapshot()));
+    const n=new Date(); lastSync=Date.now(); setCloudMsg(`同期済み ${pad2(n.getHours())}:${pad2(n.getMinutes())}`);
+  }catch(e){ setCloudMsg('同期できません('+(e && e.message || e)+')', true); }
+  finally{ syncing=false; if(syncAgain){ syncAgain=false; scheduleSync(); } }
+}
+function connectCloud(url, token){
+  url=(url||'').trim(); token=(token||'').trim();
+  if(!/^https:\/\//.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(url)){ toast('保存場所のURLは https:// から始まる形で入力してください'); return false; }
+  if(token.length<8){ toast('合言葉が短すぎます'); return false; }
+  cloud={url:url.replace(/\/+$/,''), token}; LS.set('eki.cloud', JSON.stringify(cloud));
+  cloudSync(); return true;
+}
+function genToken(){ const a=new Uint8Array(24); crypto.getRandomValues(a); return [...a].map(b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join(''); }
+{
+  try{ cloud = JSON.parse(LS.get('eki.cloud')||'null'); }catch(e){ cloud=null; }
+  const m=location.hash.match(/^#c=(.+)$/);
+  if(m){
+    try{ const c=JSON.parse(fromB64(decodeURIComponent(m[1]))); if(c.u && c.t){ cloud={url:c.u, token:c.t}; LS.set('eki.cloud', JSON.stringify(cloud)); } }catch(e){}
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+  }
+}
+$('#c_gen').addEventListener('click', ()=>{ $('#c_token').type='text'; $('#c_token').value=genToken(); toast('合言葉を作りました。Cloudflareの「TOKEN」にも、同じものを入れます'); });
+$('#c_save').addEventListener('click', ()=>connectCloud($('#c_url').value, $('#c_token').value));
+$('#c_now').addEventListener('click', ()=>{ if(!cloud) toast('先に接続してください'); else cloudSync(); });
+$('#c_link').addEventListener('click', ()=>{
+  if(!cloud){ toast('先に接続してください'); return; }
+  const link=location.origin+location.pathname+'#c='+encodeURIComponent(toB64(JSON.stringify({u:cloud.url,t:cloud.token})));
+  copyText(link); toast('接続用リンクをコピーしました。ブックマークに保存してください');
+});
+$('#c_off').addEventListener('click', ()=>{ if(confirm('この端末のクラウド接続を解除しますか?(クラウド上のデータと、この端末のデータは消えません)')){ cloud=null; LS.del('eki.cloud'); cloudMsg=''; updateStatus(); const el=$('#c_msg'); if(el) el.textContent=''; $('#c_url').value=''; $('#c_token').value=''; } });
+$('#sc_go').addEventListener('click', ()=>{ if(connectCloud($('#sc_url').value, $('#sc_token').value)){ LS.set('eki.nobook','1'); start(''); } });
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && cloud && Date.now()-lastSync>20000) cloudSync(); });
+window.addEventListener('online', ()=>cloudSync());
+if(cloud){ $('#c_url').value=cloud.url; $('#c_token').value=cloud.token; }
 const saved = LS.get('eki.raw');
 if(embRaw.length>200){ $('#wipe').hidden = true; start(embRaw); }
 else if(saved && saved.length>200) start(saved);
-else if(LS.get('eki.nobook')==='1') start('');
+else if(LS.get('eki.nobook')==='1' || cloud) start('');
 else $('#setup').hidden=false;
+if(cloud) cloudSync();
 // テスト用フック
-window.__eki = { importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, fullTrad };
 })();
 </script>
 </body>
