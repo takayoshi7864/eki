@@ -63,6 +63,16 @@ details[open]>summary{border-color:var(--accent);background:color-mix(in srgb,va
 details[open]>summary::before{content:'－';background:var(--accent);color:#fff}
 details[open]>summary::after{content:'閉じる';color:var(--accent)}
 details>summary+*{margin-top:10px}
+/* 記録のカード: 卦の図、変爻、メモ・解説・行動・振り返りを、一覧で見えるように */
+.tag.pend{background:var(--warn);border-color:var(--warn);color:var(--bg)}
+.lhex{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px}
+.lhex b{font-size:1.05rem}
+.lhex .arrow{color:var(--sub)}
+.lhex small{color:var(--sub);margin-left:auto}
+.lrows{display:grid;gap:5px;margin:8px 0 4px;padding-top:8px;border-top:1px dashed var(--line)}
+.lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
+.lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
+.lrow>span{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sethead{font-size:1rem;margin:20px 2px 8px;color:var(--sub);font-weight:500;letter-spacing:.06em}
 .hint{font-size:.85rem;color:var(--sub)}
 .drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);margin:8px 0}
@@ -1287,12 +1297,15 @@ function entryDetail(e){
 }
 function logCard(e){
   const open = state.lopen===e.id;
-  const z = e.ch.length ? ` → ${hexName(e.rel.zhi)}` : '';
+  const zhi = e.ch.length ? e.rel.zhi : null;
+  const pend = !!(state._pend && state._pend.has(e.id));
+  const rows = [['メモ',e.memo],['解説',e.advice],['行動',e.action],['振り返り',e.review]].filter(([,v])=>v && String(v).trim());
   return `<article class="card logitem" data-lid="${e.id}">
-    <header><span>${fmtDT(e.ts)}</span><span class="lab">${hexName(e.hex)}${z}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}</header>
-    ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
+    <header><span>${fmtDT(e.ts)}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}${pend?'<span class="tag pend">振り返り待ち</span>':''}</header>
+    <div class="lhex">${hexSvg(e.hex,22,22)}<b>${hexName(e.hex)}</b>${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,22,22)}<b>${hexName(zhi)}</b>`:''}<small>${e.ch.length?'変爻: '+yaoNames(e.hex,e.ch):'変爻なし'}</small></div>
     <div class="body"><b>${esc(purposeOf(e))}</b></div>
-    ${!open && (e.action||e.memo) ? `<div class="hint">${esc((e.action||e.memo).slice(0,80))}</div>` : ''}
+    ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
+    ${!open && rows.length ? `<div class="lrows">${rows.map(([k,v])=>`<div class="lrow"><b>${k}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}
     ${open ? entryDetail(e) : ''}
     <footer><button data-lact="open" data-id="${e.id}">${open?'閉じる':'解説を見る'}</button><button data-lact="edit" data-id="${e.id}">編集</button><button data-lact="del" data-id="${e.id}">削除</button></footer>
   </article>`;
@@ -1344,6 +1357,7 @@ function renderLogList(){
   const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
   const list = logFiltered();
+  state._pend = new Set(pendingReviews().map(x=>x.id));
   $('#lsum').textContent = state.log.length ? `${list.length} 件 / 全 ${state.log.length} 件` : 'まだ記録がありません。「＋ 新しい記録」から始めましょう。';
   if(f.mode==='stats'){ $('#loglist').innerHTML = statsHtml(list); return; }
   if(f.mode==='purpose'){
