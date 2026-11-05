@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12141d">
+<script>try{var t=localStorage.getItem('eki.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="易 解説">
 <link rel="manifest" href="manifest.webmanifest">
@@ -12,7 +13,9 @@
 <title>易 解説</title>
 <style>
 :root{--bg:#faf8f3;--panel:#fff;--ink:#242220;--sub:#6e685b;--line:#e3ded1;--accent:#8a3b2b;--mark:#ffe28a;--chip:#efeadc;--ok:#2d6a3f;--warn:#9a5b00}
-@media (prefers-color-scheme:dark){:root{--bg:#17181a;--panel:#202226;--ink:#e9e7e2;--sub:#a49f92;--line:#34373c;--accent:#e6957f;--mark:#6d5a10;--chip:#2c2f35;--ok:#7fcf95;--warn:#e0b060}}
+:root{color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17181a;--panel:#202226;--ink:#e9e7e2;--sub:#a49f92;--line:#34373c;--accent:#e6957f;--mark:#6d5a10;--chip:#2c2f35;--ok:#7fcf95;--warn:#e0b060;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#17181a;--panel:#202226;--ink:#e9e7e2;--sub:#a49f92;--line:#34373c;--accent:#e6957f;--mark:#6d5a10;--chip:#2c2f35;--ok:#7fcf95;--warn:#e0b060;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Noto Serif CJK JP",serif}
 header.top{padding:14px 16px 6px;max-width:960px;margin:0 auto}
@@ -294,6 +297,9 @@ body:not(.help) .exp{display:none !important}
     </div>
     <div class="panel">
       <label><input type="checkbox" id="helpt"> ページ中の説明文を表示する(初期設定は非表示)</label>
+    </div>
+    <div class="panel">
+      <label>表示の色 <select id="themesel"><option value="auto">自動(端末の設定に合わせる)</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
     </div>
     <div class="panel" id="cloudpanel">
       <b>クラウド同期(自分専用・無料)</b>
@@ -1970,6 +1976,15 @@ else $('#setup').hidden=false;
 if(cloud) cloudSync();
 { const on = LS.get('eki.help')==='1'; document.body.classList.toggle('help', on); $('#helpt').checked = on;
   $('#helpt').addEventListener('change', e=>{ document.body.classList.toggle('help', e.target.checked); LS.set('eki.help', e.target.checked?'1':'0'); }); }
+// 表示の色: 自動(端末の設定に従う)/ライト/ダーク
+{ const root=document.documentElement, sel=$('#themesel'), mq=window.matchMedia && matchMedia('(prefers-color-scheme:dark)');
+  const paint=()=>{ const t=LS.get('eki.theme')||'auto';
+    if(t==='light'||t==='dark') root.dataset.theme=t; else root.removeAttribute('data-theme');
+    sel.value = (t==='light'||t==='dark') ? t : 'auto';
+    const m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim()||'#faf8f3'); };
+  sel.addEventListener('change', ()=>{ LS.set('eki.theme', sel.value); paint(); });
+  if(mq && mq.addEventListener) mq.addEventListener('change', paint);
+  paint(); }
 // テスト用フック
 window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, fullTrad };
 })();
