@@ -215,6 +215,11 @@ body:not(.help) .exp{display:none !important}
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
         </details>
+        <details><summary>原文をまとめて登録する(固定。本の読み込みは不要)</summary>
+          <div class="hint exp">見出しは解説文と同じ「乾為天　初爻」の形です。見出しの下の文章が、その項目の原文として登録されます。すでに登録した原文は、同じ項目なら置き換わります。</div>
+          <textarea id="gentext" style="min-height:140px" placeholder="乾為天　卦辞&#10;(原文)&#10;乾為天　初爻&#10;(原文)"></textarea>
+          <p><button class="primary" id="gengo">原文を登録する</button></p>
+        </details>
         <div class="hint exp">1項目ずつ足すときは、下の表で卦を選び、各項目の「＋ 解説を追加」から入力できます。解説は、あとからいくつでも追加できます(出典と日付つきで貯まります)。</div>
       </div>
       <div class="panel">
@@ -834,7 +839,7 @@ $('#build').addEventListener('click', ()=>{
   LS.del('eki.nobook');
   if(!LS.set('eki.raw', raw)) alert('この環境ではブラウザに本文を保存できませんでした。今回だけ使えます(次回は再度読み込みが必要です)。');
   if(state.pendingUser){
-    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || []; state.log = state.pendingUser.log || []; state.lib = state.pendingUser.lib || {}; state.gen = state.pendingUser.gen || {};
+    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || []; state.log = state.pendingUser.log || []; state.lib = state.pendingUser.lib || {}; state.gen = state.pendingUser.gen || {}; state.genFix = state.pendingUser.genFix || {};
     if(state.pendingUser.vdict){ $('#vdict').value = state.pendingUser.vdict; LS.set('eki.vdict', state.pendingUser.vdict); }
     saveUser(); renderFixes(); state.pendingUser = null;
   }
@@ -853,7 +858,7 @@ function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.l
 state.tomb = {};   // 削除した項目の目印(同期で復活しないようにする)
 const tombAdd = id => { if(id) state.tomb[id] = Date.now(); };
 function saveUser(noSync){
-  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, tomb:state.tomb}))) toast('この環境では記録を保存できませんでした');
+  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, tomb:state.tomb}))) toast('この環境では記録を保存できませんでした');
   updateTabs(); updateStatus();
   if(!noSync) scheduleSync();
 }
@@ -970,6 +975,7 @@ $('#nrestore').addEventListener('change', async e=>{
     let nl=0; (d.log||[]).forEach(x=>{ if(x && x.id && x.ts && !state.log.some(y=>y.id===x.id)){ state.log.push(x); nl++; } });
     let nb=0; Object.entries(d.lib||{}).forEach(([k,arr])=>{ const cur=state.lib[k]||(state.lib[k]=[]); (arr||[]).forEach(x=>{ if(x && x.id && x.text && !cur.some(y=>y.id===x.id)){ cur.push(x); nb++; } }); });
     Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]) state.gen[k]=v; });
+    Object.entries(d.genFix||{}).forEach(([k,v])=>{ if(v && !(state.genFix[k] && state.genFix[k].upd>=v.upd)) state.genFix[k]=v; });
     state.log.sort((a,b)=>b.ts.localeCompare(a.ts));
     state.notes.sort((a,b)=>b.ts-a.ts);
     saveUser();
@@ -1270,7 +1276,7 @@ function entryExplain(e,primary){
   const topLabs=['卦辞',...e.ch.map(k=>POSLAB[k])];
   if(e.ch.length===6 && (e.hex===0||e.hex===1)) topLabs.push(e.hex===0?'用九':'用六');
   const topKeys=new Set(topLabs.map(l=>e.hex+'|'+l));
-  const origs=topLabs.filter(l=>state.gen[e.hex+'|'+l]).map(l=>`<div class="orig-box"><div class="hint"><b>${fullTrad(e.hex)}　${l==='卦辞'?'卦辞(本卦)':l.endsWith('爻')?secTitle(e.hex,l)+'(変爻)':l+'(変爻)'}</b></div><div class="orig">${esc(state.gen[e.hex+'|'+l])}</div></div>`).join('');
+  const origs=topLabs.filter(l=>genText(e.hex+'|'+l)).map(l=>`<div class="orig-box"><div class="hint"><b>${fullTrad(e.hex)}　${l==='卦辞'?'卦辞(本卦)':l.endsWith('爻')?secTitle(e.hex,l)+'(変爻)':l+'(変爻)'}</b></div><div class="orig">${esc(genText(e.hex+'|'+l))}</div></div>`).join('');
   const origHtml = '<div class="hint"><b>原文(易の本より)</b>:本卦と変爻</div>' + (origs || '<div class="hint">原文は、まだ取り込まれていません(本の本文を一度読み込むと、自動で入ります)。</div>');
   // 登録のある項目だけを出す(読む箇所は、未登録でも追加できるよう残す)
   const shown=items.filter((it,k)=>n(it)>0 || k===0);
@@ -1391,7 +1397,7 @@ function logMd(){
   }).join('\n---\n\n');
 }
 async function backupShare(){
-  const json = JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, vdict:$('#vdict').value});
+  const json = JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, vdict:$('#vdict').value});
   const file = new File([json], 'eki-backup.json', {type:'application/json'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{ await navigator.share({files:[file], title:'易 検索 バックアップ'}); return; }
@@ -1520,7 +1526,9 @@ const hasLib = i => libLabels(i).some(l=>(state.lib[i+'|'+l]||[]).length>0);
 const libCount = () => Object.keys(state.lib).filter(k=>(state.lib[k]||[]).length>0).length;
 
 /* 原文(易の本より): 本の本文から、卦名の副題と経文の読み下し文だけを取り出して保存する(通釈・注は含めない) */
-state.gen = {};   // "卦番号|項目" -> 原文(経文)
+state.gen = {};   // "卦番号|項目" -> 原文(本から自動で取り出したもの)
+state.genFix = {};   // "卦番号|項目" -> {text, upd}  登録した原文(固定。本の再読み込みで上書きされない)
+const genText = k => (state.genFix[k] && state.genFix[k].text) || state.gen[k] || '';
 function classicalLines(c, label){
   const ls=c.text.split('\n').map(l=>l.trim());
   const KANA=/[ぁ-んァ-ヶ]/, FURI=/^[ぁ-んァ-ヶー・\s]+$/;
@@ -1567,7 +1575,7 @@ function refreshGen(){
   state.gen = extractGen();
   if(JSON.stringify(state.gen)!==before) saveUser();
 }
-const origBlock = (i,label) => { const g=state.gen[i+'|'+label]; return g ? `<div class="orig-box"><div class="hint"><b>原文</b>(易の本より)</div><div class="orig">${esc(g)}</div></div>` : ''; };
+const origBlock = (i,label) => { const g=genText(i+'|'+label); return g ? `<div class="orig-box"><div class="hint"><b>原文</b>(易の本より)</div><div class="orig">${esc(g)}</div></div>` : ''; };
 const mapV = s => [...s].map(c=>state.vmap.get(c)||c).join('');      // 旧字体・表記ゆれをそろえる(1文字ずつ)
 const YAOALIAS = {'初九':'初爻','初六':'初爻','九二':'二爻','六二':'二爻','九三':'三爻','六三':'三爻','九四':'四爻','六四':'四爻','九五':'五爻','六五':'五爻','上九':'上爻','上六':'上爻','初':'初爻','二':'二爻','三':'三爻','四':'四爻','五':'五爻','上':'上爻'};
 const LABALIAS = {'彖':'彖伝','彖辞':'彖伝','象伝':'大象','大象伝':'大象','象':'大象','総論':'概要','概説':'概要','全体':'概要','解説':'概要'};
@@ -1631,7 +1639,7 @@ function entriesHtml(i,l){
 function secBlock(i,l){
   const n=(state.lib[i+'|'+l]||[]).length;
   return `<details class="sec-d" data-lab="${l}"${l==='概要'?' open':''}><summary>${secTitle(i,l)} <span class="hint">${n?`(解説文 ${n}件)`:'(解説文 未登録)'}</span></summary>
-    ${origBlock(i,l)}<div class="hint"><b>解説文</b></div>
+    ${l==='概要'?'':origBlock(i,l)+`<p><button data-genedit="${l}">原文を${genText(i+'|'+l)?'編集':'登録'}</button></p><div class="genform-slot"></div>`}<div class="hint"><b>解説文</b></div>
     ${entriesHtml(i,l)}<div class="libform-slot"></div><p><button data-libadd="${l}">＋ 解説文を追加</button></p></details>`;
 }
 function refreshSecs(){
@@ -1688,6 +1696,19 @@ function libAction(e){
     if(confirm('この解説を削除しますか?')){ tombAdd(del.dataset.libdel); state.lib[key]=(state.lib[key]||[]).filter(y=>y.id!==del.dataset.libdel); if(!state.lib[key].length) delete state.lib[key]; saveUser(); refreshSecs(); }
     return true;
   }
+  const ge=t.closest('[data-genedit]');
+  if(ge){
+    const det=ge.closest('details'), lab=ge.dataset.genedit, k=state.hexSel+'|'+lab;
+    det.querySelector('.genform-slot').innerHTML = `<div class="editor" data-genkey="${k}"><textarea class="gen-text" placeholder="原文を入力してください(空にして保存すると、登録した原文を取り消します)"></textarea><button class="primary" data-gensave>保存</button> <button data-gencancel>閉じる</button></div>`;
+    det.querySelector('.gen-text').value = genText(k); det.querySelector('.gen-text').focus(); return true;
+  }
+  const gs=t.closest('[data-gensave]');
+  if(gs){
+    const ed=gs.closest('.editor'), k=ed.dataset.genkey, v=ed.querySelector('.gen-text').value.trim();
+    state.genFix[k]={text:v, upd:Date.now()};
+    saveUser(); refreshSecs(); toast(v?'原文を登録しました':'登録した原文を取り消しました'); return true;
+  }
+  const gc=t.closest('[data-gencancel]'); if(gc){ gc.closest('.genform-slot').innerHTML=''; return true; }
   const sv=t.closest('[data-libsave]'); if(sv){ saveLibForm(sv.closest('.editor')); return true; }
   const cn=t.closest('[data-libcancel]'); if(cn){ cn.closest('.libform-slot').innerHTML=''; return true; }
   return false;
@@ -1705,6 +1726,13 @@ $('#libgo').addEventListener('click', ()=>{
   if(!r.found){ toast('見出しが見つかりません。「乾為天　初爻」のような見出し行が必要です'); return; }
   $('#libtext').value=''; renderLibProg(); renderHexTable(); refreshSecs();
   toast(`${r.add} 件を追加しました${r.dup?`(重複 ${r.dup} 件はスキップ)`:''}`);
+});
+$('#gengo').addEventListener('click', ()=>{
+  const t=$('#gentext').value; if(!t.trim()){ toast('原文が空です'); return; }
+  const items=parseLib(t).filter(it=>it.label!=='概要');
+  if(!items.length){ toast('見出しが見つかりません。「乾為天　初爻」のような見出し行が必要です'); return; }
+  let n=0; items.forEach(it=>{ const k=it.i+'|'+it.label, v=it.text.trim(); if(v && !(state.genFix[k] && state.genFix[k].text===v)){ state.genFix[k]={text:v, upd:Date.now()}; n++; } });
+  saveUser(); $('#gentext').value=''; refreshSecs(); toast(`原文を ${n} 件登録しました`);
 });
 $('#libfile').addEventListener('change', async e=>{ const f=e.target.files[0]; if(f){ $('#libtext').value=await readFile(f); toast('読み込みました。「取り込む」を押してください'); } e.target.value=''; });
 $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start(''); });
@@ -1732,7 +1760,7 @@ function toB64(s){
 $('#export').addEventListener('click', ()=>{
   const clone = document.documentElement.cloneNode(true);
   clone.querySelector('#embedded').textContent = toB64(state.base);
-  clone.querySelector('#embeddedUser').textContent = toB64(JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, vdict:$('#vdict').value}));
+  clone.querySelector('#embeddedUser').textContent = toB64(JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, vdict:$('#vdict').value}));
   const html = '<!doctype html>\n' + clone.outerHTML;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([html],{type:'text/html'}));
@@ -1747,7 +1775,7 @@ let embRaw = '', embUser = null;
   if(u){ try{ embUser = JSON.parse(fromB64(u)); }catch(err){} } }
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
-if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.tomb = userData.tomb || {}; }
+if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 updateTabs(); renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
@@ -1782,10 +1810,11 @@ function mergeIn(d){
   keys.forEach(k=>{ const a=mergeList(state.lib[k]||[], (d.lib||{})[k]); if(a.length) state.lib[k]=a; else delete state.lib[k]; });
   (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); ch=true; } });
   Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]){ state.gen[k]=v; ch=true; } });
+  Object.entries(d.genFix||{}).forEach(([k,v])=>{ if(v && (v.upd||0)>((state.genFix[k]||{}).upd||0)){ state.genFix[k]=v; ch=true; } });
   state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); state.notes.sort((a,b)=>b.ts-a.ts);
   return ch;
 }
-const snapshot = () => ({tomb:state.tomb, fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, saved:Date.now()});
+const snapshot = () => ({tomb:state.tomb, fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, saved:Date.now()});
 function needPush(rem){
   const up = x => x.upd||x.ts||0, r=new Map();
   (rem.log||[]).concat(rem.notes||[]).forEach(x=>x&&x.id&&r.set(x.id,up(x)));
@@ -1794,6 +1823,7 @@ function needPush(rem){
   if(mine.some(x=>!r.has(x.id) || up(x)>r.get(x.id))) return true;
   const rt=rem.tomb||{}; if(Object.keys(state.tomb).some(id=>!(rt[id]>=state.tomb[id]))) return true;
   const rg=rem.gen||{}; if(Object.keys(state.gen).some(k=>!rg[k])) return true;
+  const rx=rem.genFix||{}; if(Object.keys(state.genFix).some(k=>!rx[k] || (state.genFix[k].upd||0)>(rx[k].upd||0))) return true;
   const rf=rem.fixes||[]; return state.fixes.some(x=>!rf.some(y=>y.from===x.from && y.to===x.to));
 }
 async function cloudReq(method, body){
