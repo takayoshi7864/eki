@@ -168,7 +168,7 @@ body:not(.help) .exp{display:none !important}
     <div class="hint exp">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます(「原典なしで始める」)。</div>
     <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
       <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
-    <div class="hint exp">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
+    <div class="hint exp">書き出した「内蔵版HTML」を選ぶこともできます(本文・校正がそのまま移ります)。</div>
     <div class="hint exp">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
     <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
     <p><button class="primary" id="build">この本文で索引を作る</button> <button id="nobook">原典なしで始める</button>
@@ -186,7 +186,6 @@ body:not(.help) .exp{display:none !important}
     <nav class="tabs">
       <button data-view="log" class="on">記録</button>
       <button data-view="hex">解説</button>
-      <button data-view="notes" id="tabNotes" hidden>ノート</button>
       <button data-view="judge">吉凶表</button>
       <button data-view="search" title="本の本文(原典)の検索">原典</button>
       <button data-view="settings">設定</button>
@@ -206,21 +205,6 @@ body:not(.help) .exp{display:none !important}
     <div class="facets" id="facets"></div>
     <div class="summary" id="summary"></div>
     <div id="results"></div>
-    </div>
-
-    <div id="viewNotes" hidden>
-      <div class="panel">
-        <div class="searchbar"><input id="nfilter" type="search" placeholder="ノート内を絞り込み(引用・メモ・タグ)"></div>
-        <div class="facets" id="ntags"></div>
-        <p style="margin:6px 0">
-          <button id="nmd" class="primary">Markdownで書き出す</button>
-          <button id="nmdcopy">Markdownをコピー</button>
-          <button id="nbak">バックアップ(JSON)</button>
-        </p>
-        <div class="hint exp">ブログに載せるときは、引用部分を必要最小限に絞り、出典を明記してください。ノートはこのブラウザに保存されます。別のPCへ移すときは「バックアップ」か内蔵版の書き出しを使います。</div>
-      </div>
-      <div class="summary" id="nsum"></div>
-      <div id="nlist"></div>
     </div>
 
     <div id="viewHex" hidden>
@@ -249,7 +233,7 @@ body:not(.help) .exp{display:none !important}
         <div class="hint" id="feres"></div>
         <textarea id="fetext" spellcheck="false" style="width:100%;min-height:65vh;line-height:1.7"></textarea>
       </div>
-      <h2 class="sethead">解説文の取り込み・置換</h2>
+      <h2 class="sethead">解説文の取り込み・原文の登録</h2>
       <div class="panel">
         <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
           <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・象伝・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
@@ -257,13 +241,6 @@ body:not(.help) .exp{display:none !important}
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
           <div class="hint" id="libres"></div>
-        </details>
-        <details><summary>解説文をまとめて置換する(誤字の直しなど)</summary>
-          <div class="hint exp">全卦の解説文のなかから、「探す文字」を「置き換える文字」に、まとめて直します(原文は対象外)。実行の前に、見つかった箇所を一覧で確認できます。直したあとは、「直前の置換を取り消す」で、元に戻せます。</div>
-          <label class="hint">探す文字 <input id="rpfrom" placeholder="例: 手打つ" style="width:100%"></label>
-          <label class="hint">置き換える文字 <input id="rpto" placeholder="例: 手を打つ(空欄にすると、削除します)" style="width:100%"></label>
-          <p><button id="rpprev">見つかった箇所を見る</button> <button class="primary" id="rpgo">置換する</button> <button id="rpundo">直前の置換を取り消す</button></p>
-          <div class="hint" id="rpres"></div>
         </details>
         <details><summary>原文をまとめて登録する(固定。本の読み込みは不要)</summary>
           <div class="hint exp">見出しは解説文と同じ「乾為天　初爻」の形です。見出しの下の文章が、その項目の原文として登録されます。すでに登録した原文は、同じ項目なら置き換わります。</div>
@@ -297,7 +274,7 @@ body:not(.help) .exp{display:none !important}
     </div>
     <div class="panel" id="cloudpanel">
       <b>クラウド同期(自分専用・無料)</b>
-      <div class="hint exp">記録・解説文・原文・ノートを、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
+      <div class="hint exp">記録・解説文・原文を、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
       <label class="hint">保存場所のURL <input id="c_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
       <label class="hint">合言葉(20文字以上のランダムな文字列) <input id="c_token" type="password" autocomplete="off"></label>
       <p><button id="c_gen">合言葉を作る</button> <button class="primary" id="c_save">接続して同期</button> <button id="c_now">いますぐ同期</button> <button id="c_link">接続用リンクをコピー</button> <button id="c_off">接続を解除</button></p>
@@ -306,7 +283,7 @@ body:not(.help) .exp{display:none !important}
     </div>
     <div class="panel">
       <b>アプリの更新・ホーム画面への追加</b>
-      <div class="hint exp">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
+      <div class="hint exp">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・校正は消えません)。</div>
       <p><button id="appupdate">最新版に更新</button></p>
     </div>
     <div class="panel">
@@ -482,7 +459,7 @@ const SUBHEADS = ['易とは何か','易経の構成','易学の伝統','筮法'
 const KANJI = /[⺀-⿟々-〇㐀-䶿一-鿿豈-﫿]/;
 const NUM = {一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,十一:11,十二:12};
 
-const state = { base:'', fixes:[], notes:[], ntag:'', nq:'', raw:'', chunks:[], vmap:new Map(), opts:{var:true,kan:true}, diag:null, shown:100, hits:[] };
+const state = { base:'', fixes:[], notes:[], raw:'', chunks:[], vmap:new Map(), opts:{var:true,kan:true}, diag:null, shown:100, hits:[] };
 
 /* ---------- 正規化 ---------- */
 function buildVmap(text){
@@ -796,7 +773,7 @@ function renderHits(){
     return `<article class="card" data-i="${i}">
       <header><span class="tag">${esc(c.tag)}</span><span class="lab">${esc(c.label)}</span>${pg?`<span title="ページは推定値">${pg}</span>`:''}${h.count?`<span>${h.count}件</span>`:''}</header>
       <div class="body">${snippet(c,h.ranges,false)}</div>
-      <footer><button data-act="full">全文</button><button data-act="copy">引用コピー</button><button data-act="note">ノート</button><button data-act="fix">校正</button></footer>
+      <footer><button data-act="full">全文</button><button data-act="copy">引用コピー</button><button data-act="fix">校正</button></footer>
       <div class="editor-slot"></div>
     </article>`;
   }).join('') + (state.hits.length>state.shown ? `<p><button id="more">さらに ${Math.min(100,state.hits.length-state.shown)} 件表示</button></p>` : '');
@@ -824,14 +801,12 @@ $('#results').addEventListener('click', e=>{
     const pg = pageLabel(c);
     copyText(`${c.text}\n――本田濟『易』(朝日選書1010)「${c.tag}／${c.label}」${pg?pg+'(推定)':''}`);
     btn.textContent='コピーしました'; setTimeout(()=>btn.textContent='引用コピー',1200);
-  }else if(btn.dataset.act==='note' || btn.dataset.act==='fix'){
+  }else if(btn.dataset.act==='fix'){
     openEditor(card, btn.dataset.act, h);
   }else if(btn.dataset.act==='cancel'){
     const slot=card.querySelector('.editor-slot'); slot.innerHTML=''; slot.dataset.kind='';
   }else if(btn.dataset.act==='fixgo'){
     doFix(card.querySelector('.editor-slot'));
-  }else if(btn.dataset.act==='notego'){
-    doNote(card.querySelector('.editor-slot'), c);
   }
 });
 $('#results').addEventListener('input', e=>{ if(e.target.classList.contains('f-from')) updateFixCount(e.target.closest('.editor-slot')); });
@@ -851,7 +826,7 @@ async function readFile(f){
 async function takeFile(f){
   if(!f) return;
   let txt = await readFile(f);
-  // 「内蔵版HTML」そのものが選ばれた場合は、中の本文・ノート・校正を取り出す
+  // 「内蔵版HTML」そのものが選ばれた場合は、中の本文・校正を取り出す
   const m = txt.match(/<script id="embedded" type="text\/plain">([\s\S]*?)<\/script>/);
   state.pendingUser = null;
   if(m && m[1].trim()){
@@ -893,13 +868,12 @@ $('#build').addEventListener('click', ()=>{
 $('#vsave').addEventListener('click', ()=>{ LS.set('eki.vdict',$('#vdict').value); rebuild(); });
 $('#vreset').addEventListener('click', ()=>{ $('#vdict').value=DEFAULT_VDICT; LS.del('eki.vdict'); rebuild(); });
 $('#replace').addEventListener('click', ()=>{ $('#paste').value=state.base; $('#app').hidden=true; $('#setup').hidden=false; });
-$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文(原典)を削除しますか?(解説・記録・ノートは消えません)')){ LS.del('eki.raw'); LS.del('eki.nobook'); location.reload(); } });
+$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文(原典)を削除しますか?(解説・記録は消えません)')){ LS.del('eki.raw'); LS.del('eki.nobook'); location.reload(); } });
 
-/* ---------- 校正・ノート ---------- */
+/* ---------- 校正 ---------- */
 function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.split(f.from).join(f.to); } return raw; }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>{t.hidden=true;},2400); }
 function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
-function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.length ? `(${state.notes.length})` : ''); }
 /* 旧い項目名「大象」を「象伝」に改める(保存データ・同期データ・バックアップ) */
 function relabelKeys(obj){
   if(!obj || typeof obj!=='object') return false;
@@ -918,7 +892,7 @@ state.tomb = {};   // 削除した項目の目印(同期で復活しないよう
 const tombAdd = id => { if(id) state.tomb[id] = Date.now(); };
 function saveUser(noSync){
   if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, tomb:state.tomb}))) toast('この環境では記録を保存できませんでした');
-  updateTabs(); updateStatus();
+  updateStatus();
   if(!noSync) scheduleSync();
 }
 function download(name, text, type){
@@ -945,11 +919,6 @@ function openEditor(card, kind){
       <div class="hint f-count"></div>
       <button class="primary" data-act="fixgo">本文全体で置換</button> <button data-act="cancel">閉じる</button></div>`;
     updateFixCount(slot);
-  }else{
-    slot.innerHTML = `<div class="editor"><div class="hint">${sel ? '選択した部分を引用として保存します。' : 'この区画の本文を引用として保存します(必要最小限にするには、保存したい部分を選択してから「ノート」を押してください)。'}</div>
-      <textarea class="n-memo" placeholder="メモ(任意)"></textarea>
-      <input class="n-tags" placeholder="タグ(カンマ区切り 例: 処世,乾)">
-      <button class="primary" data-act="notego">ノートに保存</button> <button data-act="cancel">閉じる</button></div>`;
   }
 }
 function updateFixCount(slot){
@@ -966,13 +935,6 @@ function doFix(slot){
   state.fixes.push({from,to}); saveUser();
   state.raw = applyFixes(state.base); rebuild(); renderFixes(); toast(`${n}か所を訂正しました`);
 }
-function doNote(slot, c){
-  const quote = slot.dataset.quote || c.text;
-  const memo = slot.querySelector('.n-memo').value.trim();
-  const tags = slot.querySelector('.n-tags').value.split(/[,、，\s]+/).map(s=>s.trim()).filter(Boolean);
-  state.notes.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), tag:c.tag, label:c.label, page:c.page, quote, memo, tags, ts:Date.now()});
-  saveUser(); slot.innerHTML=''; slot.dataset.kind=''; toast('ノートに保存しました');
-}
 function renderFixes(){
   $('#fixlist').innerHTML = state.fixes.length
     ? state.fixes.map((f,i)=>`<div class="yao"><span>「${esc(f.from)}」→「${esc(f.to)}」</span><button data-fixdel="${i}">取り消す</button></div>`).join('')
@@ -984,47 +946,8 @@ $('#fixlist').addEventListener('click', e=>{
   state.raw = applyFixes(state.base); rebuild(); renderFixes();
 });
 
-/* ノート画面 */
+/* ページ表記 */
 function fmtPage(p){ return p ? (p[0]===p[1]?`p.${p[0]}`:`p.${p[0]}–${p[1]}`)+'(推定)' : ''; }
-function noteMd(n){
-  const pg=fmtPage(n.page);
-  return `### ${n.tag}／${n.label}\n\n${n.quote.split('\n').map(l=>'> '+l).join('\n')}\n\n${n.memo?n.memo+'\n\n':''}${n.tags.length?n.tags.map(t=>'#'+t).join(' ')+'\n\n':''}出典: 本田濟『易』(朝日選書1010)${pg?' '+pg:''}\n`;
-}
-function filteredNotes(){
-  const q=normStr(state.nq);
-  return state.notes.filter(n=>(!state.ntag || n.tags.includes(state.ntag)) &&
-    (!q || normStr([n.tag,n.label,n.quote,n.memo,n.tags.join(' ')].join(' ')).includes(q)));
-}
-function notesMd(){ return '# 易 ノート\n\n' + filteredNotes().map(noteMd).join('\n---\n\n'); }
-function renderNotes(){
-  const list=filteredNotes();
-  const tagc={}; state.notes.forEach(n=>n.tags.forEach(t=>tagc[t]=(tagc[t]||0)+1));
-  $('#ntags').innerHTML = (state.ntag?'<span class="chip" data-ntag="">すべて</span>':'') +
-    Object.entries(tagc).map(([t,n])=>`<span class="chip" data-ntag="${escAttr(t)}">#${esc(t)}<b>${n}</b></span>`).join('');
-  $('#nsum').textContent = state.notes.length ? `${list.length} 件 / 全 ${state.notes.length} 件` : 'ノートはまだありません。検索結果の「ノート」ボタンから保存できます。';
-  $('#nlist').innerHTML = list.map(n=>`<article class="card note" data-nid="${n.id}">
-    <header><span class="tag">${esc(n.tag)}</span><span class="lab">${esc(n.label)}</span><span>${fmtPage(n.page)}</span>${n.tags.map(t=>`<span>#${esc(t)}</span>`).join('')}</header>
-    <div class="quote">${esc(n.quote.length>500 ? n.quote.slice(0,500)+'…' : n.quote)}</div>
-    ${n.memo?`<div class="memo">${esc(n.memo)}</div>`:''}
-    <footer><button data-nact="edit">メモ編集</button><button data-nact="copy">Markdownコピー</button><button data-nact="del">削除</button></footer></article>`).join('');
-}
-$('#nfilter').addEventListener('input', e=>{ state.nq=e.target.value; renderNotes(); });
-$('#viewNotes').addEventListener('click', e=>{
-  const ch=e.target.closest('[data-ntag]'); if(ch){ state.ntag=ch.dataset.ntag; renderNotes(); return; }
-  const b=e.target.closest('[data-nact]'); if(!b) return;
-  const n=state.notes.find(x=>x.id===b.closest('.card').dataset.nid); if(!n) return;
-  if(b.dataset.nact==='del'){ if(confirm('このノートを削除しますか?')){ tombAdd(n.id); state.notes=state.notes.filter(x=>x!==n); saveUser(); renderNotes(); } }
-  else if(b.dataset.nact==='copy'){ copyText(noteMd(n)); toast('コピーしました'); }
-  else if(b.dataset.nact==='edit'){
-    const m=prompt('メモ',n.memo); if(m===null) return;
-    const t=prompt('タグ(カンマ区切り)',n.tags.join(','));
-    n.memo=m.trim(); if(t!==null) n.tags=t.split(/[,、，\s]+/).map(s=>s.trim()).filter(Boolean);
-    saveUser(); renderNotes();
-  }
-});
-$('#nmd').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } download('eki-notes.md', notesMd(), 'text/markdown'); });
-$('#nmdcopy').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } copyText(notesMd()); toast('コピーしました'); });
-$('#nbak').addEventListener('click', backupShare);
 $('#nrestore').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
   try{
@@ -1039,7 +962,7 @@ $('#nrestore').addEventListener('change', async e=>{
     state.notes.sort((a,b)=>b.ts-a.ts);
     saveUser();
     if(nf){ state.raw=applyFixes(state.base); rebuild(); renderFixes(); }
-    renderNotes(); toast(`ノート ${nn} 件、校正 ${nf} 件、記録 ${nl} 件、解説 ${nb} 件を読み込みました`);
+    toast(`校正 ${nf} 件、記録 ${nl} 件、解説 ${nb} 件を読み込みました`);
   }catch(err){ toast('読み込めませんでした'); }
   e.target.value='';
 });
@@ -1843,55 +1766,7 @@ $('#libgo').addEventListener('click', ()=>{
   $('#libres').innerHTML = `<b>${r.found}項目を読み取りました</b>(${[...new Set(r.items.map(x=>fullTrad(x.i)))].join('・')})` +
     (miss.length ? `<br>見つからなかった項目: ${miss.map(esc).join(' ／ ')}` : '<br>この卦の項目は、すべて読み取れました');
 });
-/* 解説文の一括置換(誤字の直しなど): 探す→置き換える。直前の置換は取り消せる */
-function replFind(from){
-  const out=[]; if(!from) return out;
-  for(const [k,arr] of Object.entries(state.lib)){
-    const [i,label]=[+k.split('|')[0], k.split('|')[1]];
-    for(const x of arr){ const n=x.text.split(from).length-1; if(n>0) out.push({i,label,id:x.id,n,text:x.text}); }
-  }
-  return out.sort((a,b)=>a.i-b.i);
-}
-function replApply(from,to){
-  const hits=replFind(from); if(!hits.length) return {n:0,items:0};
-  const undo=[]; let n=0;
-  hits.forEach(h=>{ const k=h.i+'|'+h.label, x=(state.lib[k]||[]).find(y=>y.id===h.id); if(!x) return;
-    undo.push({k, id:x.id, text:x.text}); x.text=x.text.split(from).join(to); x.upd=Date.now(); n+=h.n; });
-  state.replUndo={from,to,undo,ts:Date.now()};
-  LS.set('eki.replundo', JSON.stringify(state.replUndo));
-  saveUser(); return {n, items:undo.length};
-}
-function replUndoLast(){
-  let u=state.replUndo; if(!u){ try{ u=JSON.parse(LS.get('eki.replundo')||'null'); }catch(e){ u=null; } }
-  if(!u || !u.undo || !u.undo.length) return 0;
-  let c=0; u.undo.forEach(r=>{ const x=(state.lib[r.k]||[]).find(y=>y.id===r.id); if(x){ x.text=r.text; x.upd=Date.now(); c++; } });
-  state.replUndo=null; LS.set('eki.replundo',''); saveUser(); return c;
-}
-const replSnip=(t,from)=>{ const p=t.indexOf(from), a=Math.max(0,p-14), b=Math.min(t.length,p+from.length+14);
-  return (a>0?'…':'')+esc(t.slice(a,p))+'<mark>'+esc(from)+'</mark>'+esc(t.slice(p+from.length,b))+(b<t.length?'…':''); };
-$('#rpprev').addEventListener('click', ()=>{
-  const from=$('#rpfrom').value; if(!from){ toast('探す文字を入れてください'); return; }
-  const h=replFind(from);
-  $('#rpres').innerHTML = h.length
-    ? `<b>${h.reduce((s,x)=>s+x.n,0)}か所(${h.length}項目)</b><br>` + h.slice(0,40).map(x=>`${esc(fullTrad(x.i))} ${esc(x.label)}: ${replSnip(x.text,from)}`).join('<br>') + (h.length>40?`<br>…ほか ${h.length-40} 項目`:'')
-    : '見つかりませんでした';
-});
-$('#rpgo').addEventListener('click', ()=>{
-  const from=$('#rpfrom').value, to=$('#rpto').value;
-  if(!from){ toast('探す文字を入れてください'); return; }
-  if(from===to){ toast('置き換える文字が、同じです'); return; }
-  const h=replFind(from); if(!h.length){ toast('見つかりませんでした'); return; }
-  const n=h.reduce((s,x)=>s+x.n,0);
-  if(!confirm(`解説文の ${n} か所(${h.length} 項目)を置換します。\n「${from}」 → 「${to}」\n(直後なら、取り消せます)`)) return;
-  const r=replApply(from,to); refreshSecs();
-  $('#rpres').innerHTML=`<b>${r.n}か所(${r.items}項目)を置換しました。</b>まちがえたときは、「直前の置換を取り消す」を押します。`;
-  toast(`${r.n} か所を置換しました`);
-});
-$('#rpundo').addEventListener('click', ()=>{
-  const c=replUndoLast(); refreshSecs();
-  $('#rpres').textContent = c ? `${c}項目を、置換の前に戻しました` : '取り消せる置換が、ありません';
-  toast(c ? '取り消しました' : '取り消せる置換がありません');
-});
+LS.del('eki.replundo');   // 旧い「置換の取り消し」用の保存データを、消す
 /* 設定ページ: 解説文の全文を表示して、そのまま編集する */
 const FELAB=['概要','卦辞','彖伝','象伝',...POSLAB,'用九','用六','文言伝'];
 const feNewId=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -1999,12 +1874,11 @@ $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start('')
 /* タブ切り替え */
 function switchView(v){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
-  $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
+  $('#viewSearch').hidden = v!=='search'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
   $('#viewLog').hidden = v!=='log'; $('#viewSettings').hidden = v!=='settings';
   if(v==='settings') feOpen();
   if(v==='log') renderLog();
   if(v==='judge') renderJudge();
-  if(v==='notes') renderNotes();
   if(v==='hex'){ renderHexTable(); renderLibProg(); }
   if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典(本の本文)は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
 }
@@ -2037,7 +1911,7 @@ let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }
 if(!userData) userData = embUser;
 if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; if(relabelAll(state)) saveUser(true); }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
-updateTabs(); renderFixes();
+renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 $('#appupdate').addEventListener('click', async ()=>{
@@ -2104,7 +1978,7 @@ async function cloudReq(method, body){
 }
 function setCloudMsg(m, bad){ cloudMsg=m; updateStatus(); const el=$('#c_msg'); if(el){ el.textContent = cloud ? 'クラウド: '+m : ''; el.style.color = bad ? '#e57373' : ''; } }
 function rerender(){
-  try{ updateTabs(); updateStatus(); renderLog(); renderNotes(); if(state.hexSel>=0) refreshSecs(); else { renderHexTable(); renderLibProg(); } }catch(e){}
+  try{ updateStatus(); renderLog(); if(state.hexSel>=0) refreshSecs(); else { renderHexTable(); renderLibProg(); } }catch(e){}
 }
 let syncing=false, syncAgain=false, syncTimer=0, lastSync=0;
 function scheduleSync(){ if(!cloud) return; clearTimeout(syncTimer); syncTimer=setTimeout(cloudSync, 2000); }
@@ -2169,7 +2043,7 @@ if(cloud) cloudSync();
   if(mq && mq.addEventListener) mq.addEventListener('change', paint);
   paint(); }
 // テスト用フック
-window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, replFind, replApply, replUndoLast, feBuild, feParse, feDiff, feApply, feUndo, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, feBuild, feParse, feDiff, feApply, feUndo, fullTrad };
 })();
 </script>
 </body>
