@@ -54,7 +54,16 @@ mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
 .status{font-size:.82rem;color:var(--sub)}
 .ok{color:var(--ok)}.warn{color:var(--warn)}
 details{margin:12px 0}
-summary{cursor:pointer;color:var(--sub)}
+/* 開閉が、ひと目で分かるように: 「＋ 開く」→「－ 閉じる」。開いているときは、色がつく */
+summary{list-style:none;cursor:pointer;position:relative;padding:9px 4.8em 9px 2.7em;border:1px solid var(--line);border-radius:8px;background:var(--chip);color:var(--ink)}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'＋';position:absolute;left:.65em;top:50%;transform:translateY(-50%);width:1.4em;height:1.4em;line-height:1.35em;text-align:center;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);font-size:.9em;font-weight:bold}
+summary::after{content:'開く';position:absolute;right:.8em;top:50%;transform:translateY(-50%);font-size:.78rem;color:var(--sub)}
+details[open]>summary{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
+details[open]>summary::before{content:'－';background:var(--accent);color:#fff}
+details[open]>summary::after{content:'閉じる';color:var(--accent)}
+details>summary+*{margin-top:10px}
+.sethead{font-size:1rem;margin:20px 2px 8px;color:var(--sub);font-weight:500;letter-spacing:.06em}
 .hint{font-size:.85rem;color:var(--sub)}
 .drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;color:var(--sub);margin:8px 0}
 .drop.on{border-color:var(--accent)}
@@ -177,9 +186,10 @@ body:not(.help) .exp{display:none !important}
     <nav class="tabs">
       <button data-view="log" class="on">記録</button>
       <button data-view="hex">解説</button>
-      <button data-view="notes" id="tabNotes">ノート</button>
+      <button data-view="notes" id="tabNotes" hidden>ノート</button>
       <button data-view="judge">吉凶表</button>
       <button data-view="search" title="本の本文(原典)の検索">原典</button>
+      <button data-view="settings">設定</button>
     </nav>
     <div id="viewSearch">
     <div class="stick">
@@ -206,7 +216,6 @@ body:not(.help) .exp{display:none !important}
           <button id="nmd" class="primary">Markdownで書き出す</button>
           <button id="nmdcopy">Markdownをコピー</button>
           <button id="nbak">バックアップ(JSON)</button>
-          <label class="hint">　読み込み: <input type="file" id="nrestore" accept=".json"></label>
         </p>
         <div class="hint exp">ブログに載せるときは、引用部分を必要最小限に絞り、出典を明記してください。ノートはこのブラウザに保存されます。別のPCへ移すときは「バックアップ」か内蔵版の書き出しを使います。</div>
       </div>
@@ -216,8 +225,32 @@ body:not(.help) .exp{display:none !important}
 
     <div id="viewHex" hidden>
       <div class="panel" id="libpanel">
-        <b>解説をためる</b>
+        <b>解説の登録状況</b>
         <div class="hint" id="libprog"></div>
+        <div class="hint exp">解説文の追加・編集・取り込みは、「設定」のページで行います。ここは、見るためのページです。</div>
+      </div>
+      <div class="panel">
+        <b>六十四卦の一覧表</b>
+        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
+        <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
+      </div>
+      <div id="hexdetail"></div>
+    </div>
+
+    <div id="viewSettings" hidden>
+      <div class="panel">
+        <label>表示の色 <select id="themesel"><option value="auto">自動(端末の設定に合わせる)</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
+      </div>
+      <div class="panel" id="fullpanel">
+        <b>解説文の全文(表示と編集)</b>
+        <div class="hint exp">登録した解説文を、見出し(例: 乾為天　初爻)つきの1つの文章で表示します。そのまま書き換えて、「保存する」を押すと、解説文に反映されます。見出しの行は、書き換えないでください。同じ項目に、解説文が複数あるときは、同じ見出しが、続けて並びます。見出しごと消すと、その解説文は削除されます。</div>
+        <label class="hint">表示する範囲 <select id="fescope"></select></label>
+        <p><button id="fecheck">変更を確認</button> <button class="primary" id="fesave">保存する</button> <button id="fereload">最新の状態に戻す</button> <button id="feundo">直前の保存を取り消す</button></p>
+        <div class="hint" id="feres"></div>
+        <textarea id="fetext" spellcheck="false" style="width:100%;min-height:65vh;line-height:1.7"></textarea>
+      </div>
+      <h2 class="sethead">解説文の取り込み・置換</h2>
+      <div class="panel">
         <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
           <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・象伝・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
           <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
@@ -237,35 +270,13 @@ body:not(.help) .exp{display:none !important}
           <textarea id="gentext" style="min-height:140px" placeholder="乾為天　卦辞&#10;(原文)&#10;乾為天　初爻&#10;(原文)"></textarea>
           <p><button class="primary" id="gengo">原文を登録する</button></p>
         </details>
-        <div class="hint exp">1項目ずつ足すときは、下の表で卦を選び、各項目の「＋ 解説を追加」から入力できます。解説は、あとからいくつでも追加できます(出典と日付つきで貯まります)。</div>
       </div>
+      <h2 class="sethead">記録の書き出し・取り込み</h2>
       <div class="panel">
-        <b>六十四卦の一覧表</b>
-        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
-        <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
+        <b>書き出し・バックアップ</b>
+        <p><button id="lmd">Markdownで書き出す</button> <button id="lbak">バックアップ(JSON)</button> <label class="hint">　バックアップの読み込み(復元): <input type="file" id="nrestore" accept=".json"></label></p>
+        <div class="hint exp">スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
       </div>
-      <div id="hexdetail"></div>
-    </div>
-
-    <div id="viewJudge" hidden>
-      <div class="panel">
-        <b>吉凶悔吝の一覧表</b>
-        <div class="hint exp">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
-        <div class="facets" id="jchips"></div>
-        <div class="hint exp" id="jnote"></div>
-      </div>
-      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
-    </div>
-
-    <div id="viewLog" hidden>
-      <div id="logtop"></div>
-      <p>
-        <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
-        <button id="lmd">Markdownで書き出す</button>
-        <button id="lbak">バックアップ(JSON)</button>
-      </p>
-      <div class="hint exp">バックアップの読み込み(復元)は「ノート」タブにあります。スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
-      <div id="lpend"></div>
       <details class="panel" id="limp">
         <summary><b>これまでの記録をまとめて取り込む</b></summary>
         <div class="hint exp">1行に1件。「日付 | 立てた目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
@@ -273,31 +284,7 @@ body:not(.help) .exp{display:none !important}
         <p><button class="primary" id="limpgo">取り込む</button></p>
         <div id="limpres" class="hint"></div>
       </details>
-      <div id="logform" hidden></div>
-      <div class="panel">
-        <div class="searchbar"><input id="lq" type="search" placeholder="記録の中を検索(卦の名前・メモ・解説など)"></div>
-        <div class="facets" id="lkinds"></div>
-        <div class="facets" id="lmode"></div>
-        <details id="lfil"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
-          <div class="formgrid">
-            <label>本卦 <select id="fhex"></select></label>
-            <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
-            <label>期間(から) <input type="date" id="ffrom"></label>
-            <label>期間(まで) <input type="date" id="fto"></label>
-            <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
-          </div>
-          <div class="facets" id="ltagchips"></div>
-          <p><button id="fclear" type="button">絞り込みを解除</button></p>
-        </details>
-      </div>
-      <div class="summary" id="lsum"></div>
-      <div id="loglist"></div>
-    </div>
-  </section>
-  <div id="toast" class="toast" hidden></div>
-
-  <details id="tools">
-    <summary>設定・診断・本文の入れ替え</summary>
+      <h2 class="sethead">同期・辞書・その他</h2>
     <div class="panel">
       <b>表記ゆれ辞書</b>
       <div class="hint exp">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います(検索語・本文の両方に適用)。<code>#</code>で始まる行はコメント。
@@ -307,9 +294,6 @@ body:not(.help) .exp{display:none !important}
     </div>
     <div class="panel">
       <label><input type="checkbox" id="helpt"> ページ中の説明文を表示する(初期設定は非表示)</label>
-    </div>
-    <div class="panel">
-      <label>表示の色 <select id="themesel"><option value="auto">自動(端末の設定に合わせる)</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
     </div>
     <div class="panel" id="cloudpanel">
       <b>クラウド同期(自分専用・無料)</b>
@@ -344,6 +328,46 @@ body:not(.help) .exp{display:none !important}
       <button id="wipe">保存した本文を削除</button>
       <span class="hint exp">　削除してもPCのファイルには影響しません。</span>
     </div>
+    </div>
+    <div id="viewJudge" hidden>
+      <div class="panel">
+        <b>吉凶悔吝の一覧表</b>
+        <div class="hint exp">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="facets" id="jchips"></div>
+        <div class="hint exp" id="jnote"></div>
+      </div>
+      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
+    </div>
+
+    <div id="viewLog" hidden>
+      <div id="logtop"></div>
+      <p>
+        <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
+      </p>
+      <div id="lpend"></div>
+      <div id="logform" hidden></div>
+      <div class="panel">
+        <div class="searchbar"><input id="lq" type="search" placeholder="記録の中を検索(卦の名前・メモ・解説など)"></div>
+        <div class="facets" id="lkinds"></div>
+        <div class="facets" id="lmode"></div>
+        <details id="lfil"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
+          <div class="formgrid">
+            <label>本卦 <select id="fhex"></select></label>
+            <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
+            <label>期間(から) <input type="date" id="ffrom"></label>
+            <label>期間(まで) <input type="date" id="fto"></label>
+            <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
+          </div>
+          <div class="facets" id="ltagchips"></div>
+          <p><button id="fclear" type="button">絞り込みを解除</button></p>
+        </details>
+      </div>
+      <div class="summary" id="lsum"></div>
+      <div id="loglist"></div>
+    </div>
+  </section>
+  <div id="toast" class="toast" hidden></div>
+
   </details>
 </main>
 
@@ -1719,15 +1743,15 @@ function fmtLib(text){
 function entriesHtml(i,l){
   const arr=state.lib[i+'|'+l]||[];
   if(!arr.length) return '';
-  return arr.map(x=>`<div class="quote">${fmtLib(x.text)}<div class="hint">${x.src?esc(x.src)+' ・ ':''}
-    <button data-libedit="${x.id}" data-i="${i}" data-lab="${l}">編集</button> <button data-libdel="${x.id}" data-i="${i}" data-lab="${l}">削除</button></div></div>`).join('');
+  return arr.map(x=>`<div class="quote">${fmtLib(x.text)}${x.src?`<div class="hint">${esc(x.src)}</div>`:''}</div>`).join('');   // 表示だけ(編集は「設定」のページ)
 }
 function secBlock(i,l){
   const n=(state.lib[i+'|'+l]||[]).length, g=genText(i+'|'+l);
-  const orig = l==='概要' ? '' : `<div class="orig-box"><div class="hint"><b>原文</b> <button data-genedit="${l}">${g?'編集':'登録'}</button></div>${g?`<div class="orig">${esc(g)}</div>`:''}<div class="genform-slot"></div></div>`;
+  const orig = (l==='概要' || !g) ? '' : `<div class="orig-box"><div class="hint"><b>原文</b></div><div class="orig">${esc(g)}</div></div>`;
+  const body = entriesHtml(i,l) || '<div class="hint">(まだ登録がありません)</div>';
   return `<details class="sec-d" data-lab="${l}" data-def="${(n||g)?1:0}"${(l==='概要'||n||g)?' open':''}><summary>${secTitle(i,l)}${n?' ●':''}</summary>
     ${orig}<div class="hint"><b>解説文</b></div>
-    ${entriesHtml(i,l)}<div class="libform-slot"></div><p><button data-libadd="${l}">＋ 解説文を追加</button></p></details>`;
+    ${body}</details>`;
 }
 function refreshSecs(){
   const i=state.hexSel; if(i<0 || !$('#hexsecs')) return;
@@ -1799,10 +1823,13 @@ function libAction(e){
   const cn=t.closest('[data-libcancel]'); if(cn){ cn.closest('.libform-slot').innerHTML=''; return true; }
   return false;
 }
-function goLib(i,lab){
-  switchView('hex'); renderHexDetail(i);
-  const d=document.querySelector(`#hexsecs details[data-lab="${lab}"]`);
-  if(d){ d.open=true; openLibForm(d,i,lab,null); d.scrollIntoView({block:'center'}); }
+function goLib(i,lab){   // 解説文の追加は、「設定」の全文編集(その卦だけ)で行う
+  switchView('settings');
+  if(feDirty() && !confirm('設定の全文編集に、保存していない変更があります。破棄して、この卦を開きますか?')) return;
+  $('#fescope').value=String(i); feLoad();
+  const ta=$('#fetext');
+  if(!feParse(ta.value).has(i+'|'+lab)) ta.value += (ta.value?'\n\n':'')+`${fullTrad(i)}　${lab}\n`;
+  $('#fullpanel').scrollIntoView(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); ta.scrollTop=ta.scrollHeight;
 }
 document.addEventListener('click', e=>{ const g=e.target.closest('[data-golib]'); if(g){ const [i,lab]=g.dataset.golib.split('|'); goLib(+i,lab); } });
 $('#libgo').addEventListener('click', ()=>{
@@ -1865,6 +1892,100 @@ $('#rpundo').addEventListener('click', ()=>{
   $('#rpres').textContent = c ? `${c}項目を、置換の前に戻しました` : '取り消せる置換が、ありません';
   toast(c ? '取り消しました' : '取り消せる置換がありません');
 });
+/* 設定ページ: 解説文の全文を表示して、そのまま編集する */
+const FELAB=['概要','卦辞','彖伝','象伝',...POSLAB,'用九','用六','文言伝'];
+const feNewId=()=>'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const feInScope=(k,scope)=>scope<0 || +k.split('|')[0]===scope;
+function feKeys(scope){
+  const ord=l=>{ const n=FELAB.indexOf(l); return n<0?99:n; };
+  return Object.keys(state.lib).filter(k=>feInScope(k,scope)).sort((a,b)=>{ const [ai,al]=a.split('|'),[bi,bl]=b.split('|'); return (+ai-+bi)||(ord(al)-ord(bl)); });
+}
+function feBuild(scope){
+  const out=[];
+  feKeys(scope).forEach(k=>{ const [i,l]=k.split('|'); (state.lib[k]||[]).forEach(x=>out.push(`${fullTrad(+i)}　${l}\n${x.text}`)); });
+  return out.join('\n\n');
+}
+function feParse(text){
+  const names=HEX.map((_,i)=>mapV(fullTrad(i))), ok=new Set(FELAB), map=new Map(); let cur=null, buf=[];
+  const flush=()=>{ if(cur){ const t=buf.join('\n').trim(); if(t){ if(!map.has(cur)) map.set(cur,[]); map.get(cur).push(t); } } cur=null; buf=[]; };
+  for(const raw of String(text).replace(/\r\n?/g,'\n').split('\n')){
+    const m=raw.trim().match(/^(\S+?)[ 　]+(\S+)$/); let hit=null;
+    if(m){ const i=names.indexOf(mapV(m[1])), lab=toLibLabel(m[2]); if(i>=0 && ok.has(lab)) hit=i+'|'+lab; }
+    if(hit){ flush(); cur=hit; } else if(cur) buf.push(raw);
+  }
+  flush(); return map;
+}
+function feDiff(scope,text){
+  const nw=feParse(text), keys=new Set([...feKeys(scope), ...[...nw.keys()].filter(k=>feInScope(k,scope))]);
+  const ch=[], add=[], del=[];
+  keys.forEach(k=>{ const old=state.lib[k]||[], n=nw.get(k)||[], m=Math.min(old.length,n.length);
+    for(let j=0;j<m;j++) if(old[j].text.trim()!==n[j]) ch.push({k,j});
+    for(let j=m;j<n.length;j++) add.push({k,j});
+    for(let j=m;j<old.length;j++) del.push({k,j}); });
+  const outside=[...nw.keys()].filter(k=>!feInScope(k,scope)).length;
+  return {nw, ch, add, del, outside};
+}
+function feApply(scope,text){
+  const d=feDiff(scope,text), aff=new Set([...d.ch,...d.add,...d.del].map(x=>x.k));
+  if(!aff.size) return {ch:0,add:0,del:0};
+  const bak={ts:Date.now(), items:{}};
+  aff.forEach(k=>{
+    const old=state.lib[k]||[], n=d.nw.get(k)||[], arr=[];
+    bak.items[k]=old.map(x=>({...x}));
+    n.forEach((t,j)=>{ const o=old[j]; if(o){ if(o.text.trim()!==t){ o.text=t; o.upd=Date.now(); } arr.push(o); } else arr.push({id:feNewId(), text:t, src:'', ts:Date.now()}); });
+    old.slice(n.length).forEach(o=>tombAdd(o.id));
+    if(arr.length) state.lib[k]=arr; else delete state.lib[k];
+  });
+  state.feBak=bak; LS.set('eki.febak', JSON.stringify(bak)); saveUser();
+  return {ch:d.ch.length, add:d.add.length, del:d.del.length};
+}
+function feUndo(){
+  let b=state.feBak; if(!b){ try{ b=JSON.parse(LS.get('eki.febak')||'null'); }catch(e){ b=null; } }
+  if(!b || !b.items) return 0;
+  let c=0;
+  Object.entries(b.items).forEach(([k,old])=>{
+    const cur=state.lib[k]||[], keep=new Set(old.map(o=>o.id));
+    const arr=old.map(o=>{ const x=cur.find(y=>y.id===o.id); if(x){ x.text=o.text; x.src=o.src; x.upd=Date.now(); return x; } return {id:feNewId(), text:o.text, src:o.src, ts:Date.now()}; });
+    cur.filter(y=>!keep.has(y.id)).forEach(y=>tombAdd(y.id));
+    if(arr.length) state.lib[k]=arr; else delete state.lib[k];
+    c++;
+  });
+  state.feBak=null; LS.set('eki.febak',''); saveUser(); return c;
+}
+const fe={base:'', scope:-1};
+const feDirty=()=>$('#fetext').value!==fe.base;
+function feLoad(){ fe.scope=+$('#fescope').value; fe.base=feBuild(fe.scope); $('#fetext').value=fe.base; $('#feres').textContent=''; }
+function feOpen(){
+  const sel=$('#fescope');
+  if(!sel.options.length){ sel.innerHTML='<option value="-1">すべての卦</option>'+HEX.map((_,i)=>`<option value="${i}">第${i+1}卦 ${esc(fullTrad(i))}</option>`).join(''); feLoad(); }
+  else if(!feDirty()) feLoad();
+}
+function feRefresh(){ feLoad(); refreshSecs(); renderLibProg(); renderHexTable(); updateStatus(); }
+$('#fescope').addEventListener('change', ()=>{
+  if(feDirty() && !confirm('保存していない変更があります。破棄して、表示する範囲を変えますか?')){ $('#fescope').value=String(fe.scope); return; }
+  feLoad();
+});
+$('#fereload').addEventListener('click', ()=>{ if(feDirty() && !confirm('保存していない変更を、破棄して、最新の状態に戻しますか?')) return; feLoad(); });
+$('#fecheck').addEventListener('click', ()=>{
+  const d=feDiff(fe.scope,$('#fetext').value), name=k=>{ const [i,l]=k.split('|'); return `${esc(fullTrad(+i))} ${esc(l)}`; };
+  if(!d.ch.length && !d.add.length && !d.del.length){ $('#feres').textContent='変更は、ありません'+(d.outside?`(表示範囲の外の見出し ${d.outside} 件は、無視します)`:''); return; }
+  const line=(t,a)=>a.length?`<br><b>${t} ${a.length}項目</b>: `+a.slice(0,30).map(x=>name(x.k)+(x.j?`(${x.j+1}つ目)`:'')).join('、')+(a.length>30?`、…ほか ${a.length-30}`:''):'';
+  $('#feres').innerHTML=`<b>保存すると、次のように変わります</b>`+line('変更',d.ch)+line('追加',d.add)+line('削除',d.del)+(d.outside?`<br>表示範囲の外の見出し ${d.outside} 件は、無視します。`:'');
+});
+$('#fesave').addEventListener('click', ()=>{
+  const d=feDiff(fe.scope,$('#fetext').value);
+  if(!d.ch.length && !d.add.length && !d.del.length){ toast('変更は、ありません'); return; }
+  if(!confirm(`解説文を保存します。\n変更 ${d.ch.length} / 追加 ${d.add.length} / 削除 ${d.del.length} 項目`+(d.del.length?`\n\n削除は、見出しごと消した項目や、本文を空にした項目です。まちがいがないか、確認してください。(保存の直後なら、取り消せます)`:'\n(保存の直後なら、取り消せます)'))) return;
+  const r=feApply(fe.scope,$('#fetext').value); feRefresh();
+  $('#feres').innerHTML=`<b>保存しました</b>(変更 ${r.ch} / 追加 ${r.add} / 削除 ${r.del} 項目)。まちがえたときは、「直前の保存を取り消す」を押します。`;
+  toast('保存しました');
+});
+$('#feundo').addEventListener('click', ()=>{
+  if(feDirty() && !confirm('保存していない変更は、失われます。取り消しを続けますか?')) return;
+  const c=feUndo(); feRefresh();
+  $('#feres').textContent = c ? `${c}項目を、保存の前に戻しました` : '取り消せる保存が、ありません';
+  toast(c?'取り消しました':'取り消せる保存がありません');
+});
 $('#gengo').addEventListener('click', ()=>{
   const t=$('#gentext').value; if(!t.trim()){ toast('原文が空です'); return; }
   const items=parseLib(t).filter(it=>it.label!=='概要');
@@ -1879,7 +2000,8 @@ $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start('')
 function switchView(v){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
   $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
-  $('#viewLog').hidden = v!=='log';
+  $('#viewLog').hidden = v!=='log'; $('#viewSettings').hidden = v!=='settings';
+  if(v==='settings') feOpen();
   if(v==='log') renderLog();
   if(v==='judge') renderJudge();
   if(v==='notes') renderNotes();
@@ -2047,7 +2169,7 @@ if(cloud) cloudSync();
   if(mq && mq.addEventListener) mq.addEventListener('change', paint);
   paint(); }
 // テスト用フック
-window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, replFind, replApply, replUndoLast, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, replFind, replApply, replUndoLast, feBuild, feParse, feDiff, feApply, feUndo, fullTrad };
 })();
 </script>
 </body>
