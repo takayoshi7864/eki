@@ -1530,28 +1530,40 @@ state.gen = {};   // "卦番号|項目" -> 原文(本から自動で取り出し
 state.genFix = {};   // "卦番号|項目" -> {text, upd}  登録した原文(固定。本の再読み込みで上書きされない)
 const genText = k => (state.genFix[k] && state.genFix[k].text) || state.gen[k] || '';
 function classicalLines(c, label){
-  const ls=c.text.split('\n').map(l=>l.trim());
-  const KANA=/[ぁ-んァ-ヶ]/, FURI=/^[ぁ-んァ-ヶー・\s]+$/;
-  const isClassic=l=>/。/.test(l) && !KANA.test(l);
-  const k=ls.findIndex(isClassic);
+  const KANA=/[ぁ-んァ-ヶ]/, KANJI=/[一-龥]/;
+  // 行の中のふりがな(空白で区切られた、かなだけの語)を取り除く。例「けん おお とお ただ 乾は、元いに亨る。」
+  const clean = l => l.replace(/(^|\s)[ぁ-んー・]+(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
+  const ls = c.text.split('\n').map(l=>({raw:l.trim(), t:clean(l)}));
+  const isClassic = x => x.t && /。/.test(x.t) && !KANA.test(x.t);
+  const cnt = t => (t.match(/。/g)||[]).length;
+  const k = ls.findIndex(isClassic);
   if(k<0) return '';
   const out=[];
   // 卦辞: 卦名の下の副題(例「おろかな者、啓蒙、教育」)を先頭に付ける
   if(label==='卦辞'){
-    for(let j=Math.max(0,k-5);j<k;j++){ const l=ls[j]; if(l && KANA.test(l) && /[一-龥]/.test(l) && !FURI.test(l) && !/[乾坤震巽坎離艮兌][下上]/.test(l)) out.push(l); }
+    for(let j=Math.max(0,k-5);j<k;j++){ const t=ls[j].t;
+      if(t && KANA.test(t) && KANJI.test(t) && !/。/.test(t) && t.length<=40 && !/[乾坤震巽坎離艮兌][下上]/.test(t)) out.push(t); }
   }
-  // 漢文の経文のあとに続く読み下し文(ふりがな行は除く)を原文として使う
+  // 漢文の経文のあとに続く読み下し文を原文にする(ふりがな行・ふりがな混じりの漢文行は除く)
   let j=k, blocks=0;
   while(j<ls.length && blocks<2){
-    if(blocks>0 && !(isClassic(ls[j]) && /^象曰/.test(ls[j]))) break;   // 2つ目は小象(象曰)のみ
-    const need=Math.max(1,(ls[j].match(/。/g)||[]).length-2); let n=0, got=0;
-    while(j<ls.length && isClassic(ls[j])) { n+=(ls[j].match(/。/g)||[]).length; j++; }
-    for(let m=0;j<ls.length && m<4;m++,j++){
-      const l=ls[j]; if(!l) break;
-      if(FURI.test(l)) continue;
-      if(!KANA.test(l)) break;
-      out.push(l); got+=(l.match(/。/g)||[]).length;
-      if(got>=Math.max(1,need) && /。$/.test(l)) { j++; break; }
+    if(blocks>0){
+      while(j<ls.length && !ls[j].t) j++;
+      if(!(j<ls.length && isClassic(ls[j]) && /^象曰/.test(ls[j].t))) break;   // 2つ目は小象(象曰)のみ
+    }
+    let sent=0, clen=0; while(j<ls.length && isClassic(ls[j])){ sent+=cnt(ls[j].t); clen+=ls[j].t.length; j++; }
+    const need=Math.max(1,Math.floor(sent*0.4)), cap=clen*2.4+30; let got=0, klen=0;
+    for(let m=0; j<ls.length && m<6; m++, j++){
+      const x=ls[j];
+      if(!x.raw) break;
+      if(!x.t) continue;                 // ふりがなだけの行
+      if(!KANA.test(x.t)) break;         // かなを含まない行(漢文や図)に戻った
+      if(klen>0 && klen+x.t.length>cap) break;       // 経文に比べて長すぎるときは、通釈に入ったとみなす
+      out.push(x.t); got+=cnt(x.t); klen+=x.t.length;
+      if(got>=need && /。$/.test(x.t)){
+        const nx=ls[j+1];
+        if(!(nx && /^[ぁ-んー]+\s/.test(nx.raw))){ j++; break; }   // 次の行がふりがなで始まるときは、読み下しの続き
+      }
     }
     blocks++;
   }
