@@ -1532,7 +1532,7 @@ state.lib = {}; state.lastSrc = '';
 const POSLAB = ['初爻','二爻','三爻','四爻','五爻','上爻'];
 // 卦の正式名: 上卦と下卦から「乾為天」「水雷屯」のように作る
 const fullTrad = i => HT[i][0]===HT[i][1] ? `${HEX[i][0]}為${TIMG[HT[i][0]]}` : `${TIMG[HT[i][0]]}${TIMG[HT[i][1]]}${HEX[i][0]}`;
-const libLabels = i => ['概要','卦辞','彖伝','象伝',...POSLAB,...(i===0?['用九']:i===1?['用六']:[])];
+const libLabels = i => ['概要','卦辞','彖伝','象伝',...POSLAB,...(i===0?['用九','文言伝']:i===1?['用六','文言伝']:[])];
 const LIBTOTAL = HEX.reduce((s,_,i)=>s+libLabels(i).length, 0);
 const hasLib = i => libLabels(i).some(l=>(state.lib[i+'|'+l]||[]).length>0);
 const libCount = () => Object.keys(state.lib).filter(k=>(state.lib[k]||[]).length>0).length;
