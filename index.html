@@ -133,12 +133,13 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec-d{border-bottom:1px solid var(--line);padding:4px 0}
 .sec-d summary{cursor:pointer;font-weight:bold}
 @media (max-width:560px){body{font-size:15px}}
+body:not(.help) .exp{display:none !important}
 </style>
 </head>
 <body>
 <header class="top">
   <h1>易 解説</h1>
-  <div class="sub">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
+  <div class="sub exp">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
   <div class="status" id="status"></div>
 </header>
 
@@ -146,16 +147,16 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
   <!-- 初回:本文の読み込み -->
   <section id="setup" class="panel" hidden>
     <h2 style="margin:.2em 0;font-size:1.1rem">① 原典(本の本文)を読み込む ― 任意</h2>
-    <div class="hint">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます(「原典なしで始める」)。</div>
+    <div class="hint exp">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます(「原典なしで始める」)。</div>
     <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
       <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
-    <div class="hint">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
-    <div class="hint">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
+    <div class="hint exp">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
+    <div class="hint exp">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
     <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
     <p><button class="primary" id="build">この本文で索引を作る</button> <button id="nobook">原典なしで始める</button>
-    <span class="hint">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
+    <span class="hint exp">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
     <details class="panel" id="setupcloud"><summary><b>クラウド同期に接続して始める(2台目以降の端末はこちら)</b></summary>
-      <div class="hint">自分専用のクラウド(Cloudflare)に保存した、記録・解説文・原文を呼び出します。本文の読み込みは要りません。</div>
+      <div class="hint exp">自分専用のクラウド(Cloudflare)に保存した、記録・解説文・原文を呼び出します。本文の読み込みは要りません。</div>
       <label class="hint">保存場所のURL <input id="sc_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
       <label class="hint">合言葉 <input id="sc_token" type="password" autocomplete="off"></label>
       <p><button class="primary" id="sc_go">接続して始める</button></p>
@@ -198,7 +199,7 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
           <button id="nbak">バックアップ(JSON)</button>
           <label class="hint">　読み込み: <input type="file" id="nrestore" accept=".json"></label>
         </p>
-        <div class="hint">ブログに載せるときは、引用部分を必要最小限に絞り、出典を明記してください。ノートはこのブラウザに保存されます。別のPCへ移すときは「バックアップ」か内蔵版の書き出しを使います。</div>
+        <div class="hint exp">ブログに載せるときは、引用部分を必要最小限に絞り、出典を明記してください。ノートはこのブラウザに保存されます。別のPCへ移すときは「バックアップ」か内蔵版の書き出しを使います。</div>
       </div>
       <div class="summary" id="nsum"></div>
       <div id="nlist"></div>
@@ -209,16 +210,16 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
         <b>解説をためる</b>
         <div class="hint" id="libprog"></div>
         <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
-          <div class="hint">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・大象・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
+          <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・大象・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
           <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
         </details>
-        <div class="hint">1項目ずつ足すときは、下の表で卦を選び、各項目の「＋ 解説を追加」から入力できます。解説は、あとからいくつでも追加できます(出典と日付つきで貯まります)。</div>
+        <div class="hint exp">1項目ずつ足すときは、下の表で卦を選び、各項目の「＋ 解説を追加」から入力できます。解説は、あとからいくつでも追加できます(出典と日付つきで貯まります)。</div>
       </div>
       <div class="panel">
         <b>六十四卦の一覧表</b>
-        <div class="hint">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
+        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
         <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
       </div>
       <div id="hexdetail"></div>
@@ -227,9 +228,9 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     <div id="viewJudge" hidden>
       <div class="panel">
         <b>吉凶悔吝の一覧表</b>
-        <div class="hint">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="hint exp">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
         <div class="facets" id="jchips"></div>
-        <div class="hint" id="jnote"></div>
+        <div class="hint exp" id="jnote"></div>
       </div>
       <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
     </div>
@@ -241,11 +242,11 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
         <button id="lmd">Markdownで書き出す</button>
         <button id="lbak">バックアップ(JSON)</button>
       </p>
-      <div class="hint">バックアップの読み込み(復元)は「ノート」タブにあります。スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
+      <div class="hint exp">バックアップの読み込み(復元)は「ノート」タブにあります。スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
       <div id="lpend"></div>
       <details class="panel" id="limp">
         <summary><b>これまでの記録をまとめて取り込む</b></summary>
-        <div class="hint">1行に1件。「日付 | 立てた目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
+        <div class="hint exp">1行に1件。「日付 | 立てた目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
         <textarea id="limptext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
         <p><button class="primary" id="limpgo">取り込む</button></p>
         <div id="limpres" class="hint"></div>
@@ -277,28 +278,31 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     <summary>設定・診断・本文の入れ替え</summary>
     <div class="panel">
       <b>表記ゆれ辞書</b>
-      <div class="hint">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います(検索語・本文の両方に適用)。<code>#</code>で始まる行はコメント。
+      <div class="hint exp">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います(検索語・本文の両方に適用)。<code>#</code>で始まる行はコメント。
       OCRの誤読が見つかったらここに足してください(例: <code>#民=艮</code> <code>#免=兌</code> <code>#甲=坎</code>)。変更後は「保存して再構築」を押します。</div>
       <textarea id="vdict" style="min-height:180px"></textarea>
       <p><button id="vsave">保存して再構築</button> <button id="vreset">初期値に戻す</button></p>
     </div>
+    <div class="panel">
+      <label><input type="checkbox" id="helpt"> ページ中の説明文を表示する(初期設定は非表示)</label>
+    </div>
     <div class="panel" id="cloudpanel">
       <b>クラウド同期(自分専用・無料)</b>
-      <div class="hint">記録・解説文・原文・ノートを、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
+      <div class="hint exp">記録・解説文・原文・ノートを、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
       <label class="hint">保存場所のURL <input id="c_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
       <label class="hint">合言葉(20文字以上のランダムな文字列) <input id="c_token" type="password" autocomplete="off"></label>
       <p><button id="c_gen">合言葉を作る</button> <button class="primary" id="c_save">接続して同期</button> <button id="c_now">いますぐ同期</button> <button id="c_link">接続用リンクをコピー</button> <button id="c_off">接続を解除</button></p>
       <div class="hint" id="c_msg"></div>
-      <div class="hint">接続用リンクには合言葉が含まれます。パスワードと同じように、ご自身のブックマークにだけ保存し、他の人には送らないでください。</div>
+      <div class="hint exp">接続用リンクには合言葉が含まれます。パスワードと同じように、ご自身のブックマークにだけ保存し、他の人には送らないでください。</div>
     </div>
     <div class="panel">
       <b>アプリの更新・ホーム画面への追加</b>
-      <div class="hint">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
+      <div class="hint exp">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・ノート・校正は消えません)。</div>
       <p><button id="appupdate">最新版に更新</button></p>
     </div>
     <div class="panel">
       <b>校正の履歴(本文の訂正)</b>
-      <div class="hint">検索結果の「校正」で行った置換の一覧です。元に戻すには「取り消す」を押します。</div>
+      <div class="hint exp">検索結果の「校正」で行った置換の一覧です。元に戻すには「取り消す」を押します。</div>
       <div id="fixlist"></div>
     </div>
     <div class="panel">
@@ -307,13 +311,13 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     </div>
     <div class="panel">
       <b>本文を内蔵した検索ファイルを書き出す</b>
-      <div class="hint">書き出したHTMLは、本文を中に持っているので、開くだけで検索できます(読み込み作業は不要)。スマホやほかのPCにも、そのファイルを送るだけで使えます。著作物を含むため、個人利用にとどめ、公開・配布はしないでください。</div>
+      <div class="hint exp">書き出したHTMLは、本文を中に持っているので、開くだけで検索できます(読み込み作業は不要)。スマホやほかのPCにも、そのファイルを送るだけで使えます。著作物を含むため、個人利用にとどめ、公開・配布はしないでください。</div>
       <p><button class="primary" id="export">内蔵版HTMLを書き出す</button></p>
     </div>
     <div class="panel">
       <button id="replace">本文を入れ替える</button>
       <button id="wipe">保存した本文を削除</button>
-      <span class="hint">　削除してもPCのファイルには影響しません。</span>
+      <span class="hint exp">　削除してもPCのファイルには影響しません。</span>
     </div>
   </details>
 </main>
@@ -872,7 +876,7 @@ function openEditor(card, kind){
   const sel = lastSel.i===+card.dataset.i ? lastSel.text.trim() : '';
   slot.dataset.quote = sel;
   if(kind==='fix'){
-    slot.innerHTML = `<div class="editor"><div class="hint">本文の誤字を選択してから「校正」を押すと、誤の欄に入ります(同じ行の中で選んでください)。</div>
+    slot.innerHTML = `<div class="editor"><div class="hint exp">本文の誤字を選択してから「校正」を押すと、誤の欄に入ります(同じ行の中で選んでください)。</div>
       <div class="row">誤 <input class="f-from" value="${escAttr(sel)}"> → 正 <input class="f-to"></div>
       <div class="hint f-count"></div>
       <button class="primary" data-act="fixgo">本文全体で置換</button> <button data-act="cancel">閉じる</button></div>`;
@@ -1019,7 +1023,7 @@ function renderHexDetail(i){
     rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b>${POSLAB[k]}<small class="hint">(${yaoName(k,L[k])})</small></b>${lineSvg(L[k])}<button data-sec="${POSLAB[k]}">解説${n?`(${n})`:'(未)'}</button></div>`;
   }
   const bookBtns = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
-  const book = chunks.length ? `<details class="bookbox"><summary>原典(本の本文)を見る</summary><p>${bookBtns} <button class="primary" data-jump="">この卦を最初から</button></p><div class="hint">「原典」タブの検索画面で開きます。</div></details>` : '';
+  const book = chunks.length ? `<details class="bookbox"><summary>原典(本の本文)を見る</summary><p>${bookBtns} <button class="primary" data-jump="">この卦を最初から</button></p><div class="hint exp">「原典」タブの検索画面で開きます。</div></details>` : '';
   $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${fullTrad(i)} <span class="hint">(${HEX[i][1]}経)</span></h3>
     <div class="hint">上卦 ${u}(${TIMG[u]}) ／ 下卦 ${l}(${TIMG[l]})</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
@@ -1060,13 +1064,13 @@ const idxOf = L => LINEAT[L.join('')];
 function relHex(i){
   const L=hexLines(i);
   return [
-    ['綜卦', idxOf([...L].reverse())],                         // 上下を逆さにした卦
+    ['互卦', idxOf([L[1],L[2],L[3],L[2],L[3],L[4]])],          // 2〜5爻から作る卦
     ['錯卦', idxOf(L.map(v=>1-v))],                            // 陰陽をすべて反転した卦
-    ['互卦', idxOf([L[1],L[2],L[3],L[2],L[3],L[4]])]           // 2〜5爻から作る卦
+    ['綜卦', idxOf([...L].reverse())]                          // 上下を逆さにした卦
   ];
 }
 function renderRel(i){
-  $('#hexrel').innerHTML = '<h4 style="margin:.9em 0 .2em">関連する卦</h4><div class="hint">綜卦=上下を逆さにした卦 / 錯卦=陰陽をすべて反転した卦 / 互卦=2〜5爻から作る卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">' +
+  $('#hexrel').innerHTML = '<h4 style="margin:.9em 0 .2em">関連する卦</h4><div class="hint exp">互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">' +
     relHex(i).map(([n,j])=>`<button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span><small>${n}${j===i?'(同じ)':''}</small></button>`).join('') + '</div>';
 }
 function readingTarget(i, ch){
@@ -1087,9 +1091,9 @@ function renderReading(){
   const L=hexLines(i), ch=state.changed;
   const j=idxOf(L.map((v,k)=>ch.has(k)?1-v:v));
   const [lab,why]=readingTarget(i,ch);
-  let h='<h4 style="margin:.9em 0 .2em">変爻と之卦</h4><div class="hint">上の「変」にチェックすると、之卦を計算し、読む箇所を示します。</div>';
+  let h='<h4 style="margin:.9em 0 .2em">変爻と之卦</h4><div class="hint exp">上の「変」にチェックすると、之卦を計算し、読む箇所を示します。</div>';
   if(ch.size) h += `<p>本卦 <b>${HEX[i][0]}</b> → 之卦 <button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span></button></p>`;
-  h += `<div class="hint">${why}</div>` + readBlock(i,lab,'読む箇所');
+  h += `<div class="hint exp">${why}</div>` + readBlock(i,lab,'読む箇所');
   if(ch.size) h += readBlock(j,'概要','之卦の概要(参考)');
   $('#hexreading').innerHTML = h;
 }
@@ -1171,7 +1175,7 @@ const hexName = i => HEX[i][0];
 const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
 function deriveSet(i, ch){
   const L=hexLines(i);
-  const [zong,cuo,hu] = relHex(i).map(x=>x[1]);
+  const [hu,cuo,zong] = relHex(i).map(x=>x[1]);
   return {zhi: ch.length ? idxOf(L.map((v,k)=>ch.includes(k)?1-v:v)) : null, hu, cuo, zong};
 }
 const yaoNames = (i,ch) => ch.length ? [...ch].sort((a,b)=>b-a).map(k=>yaoName(k,hexLines(i)[k])).join('・') : 'なし';
@@ -1190,7 +1194,7 @@ function openLogForm(entry, kind){
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
-      <div><div class="hint">変爻(該当する爻にチェック。上の爻が上に並びます)</div><div id="lyao" class="yaos"></div></div>
+      <div><div class="hint exp">変爻(該当する爻にチェック。上の爻が上に並びます)</div><div id="lyao" class="yaos"></div></div>
       <div id="ldrv"></div>
       <div id="lread" class="read"></div>
       <label>メモ(状況・気づき) <textarea id="lmemo"></textarea></label>
@@ -1212,10 +1216,10 @@ function openLogForm(entry, kind){
 function updateLogDerived(){
   const e=state.draft, L=hexLines(e.hex), d=deriveSet(e.hex,e.ch);
   $('#lyao').innerHTML = [5,4,3,2,1,0].map(k=>`<label class="chg"><input type="checkbox" data-lch="${k}"${e.ch.includes(k)?' checked':''}>${yaoName(k,L[k])}</label>`).join(' ');
-  const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}</small></button>`;
-  $('#ldrv').innerHTML = `<div class="hint">自動で求めた関連の卦(押すと卦の詳細へ)</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
+  const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
+  $('#ldrv').innerHTML = `<div class="hint exp">自動で求めた関連の卦(押すと卦の詳細へ)。互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
   const [lab,why] = readingTarget(e.hex,new Set(e.ch));
-  $('#lread').innerHTML = `<div class="hint">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要(参考)') : '');
+  $('#lread').innerHTML = `<div class="hint exp">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要(参考)') : '');
 }
 function saveLog(){
   const e=state.draft;
@@ -1262,14 +1266,20 @@ function entryExplain(e,primary){
   if(d.zhi!=null){ add('之卦',d.zhi,'概要',false); add('之卦',d.zhi,'卦辞',false); }
   add('互卦',d.hu,'概要',false); add('錯卦',d.cuo,'概要',false); add('綜卦',d.zong,'概要',false);
   const n=it=>(state.lib[it.i+'|'+toLibLabel(it.lab)]||[]).length;
+  // 本卦・変爻の原文(易の本より)は、解説文の登録の有無にかかわらず、先に出す
+  const topLabs=['卦辞',...e.ch.map(k=>POSLAB[k])];
+  if(e.ch.length===6 && (e.hex===0||e.hex===1)) topLabs.push(e.hex===0?'用九':'用六');
+  const topKeys=new Set(topLabs.map(l=>e.hex+'|'+l));
+  const origs=topLabs.filter(l=>state.gen[e.hex+'|'+l]).map(l=>`<div class="orig-box"><div class="hint"><b>${fullTrad(e.hex)}　${l==='卦辞'?'卦辞(本卦)':l.endsWith('爻')?secTitle(e.hex,l)+'(変爻)':l+'(変爻)'}</b></div><div class="orig">${esc(state.gen[e.hex+'|'+l])}</div></div>`).join('');
+  const origHtml = '<div class="hint"><b>原文(易の本より)</b>:本卦と変爻</div>' + (origs || '<div class="hint">原文は、まだ取り込まれていません(本の本文を一度読み込むと、自動で入ります)。</div>');
   // 登録のある項目だけを出す(読む箇所は、未登録でも追加できるよう残す)
   const shown=items.filter((it,k)=>n(it)>0 || k===0);
   const hidden=items.length-shown.length;
   let first=true;
-  return shown.map(it=>{
+  return origHtml + shown.map(it=>{
     const o = n(it)>0 && first; if(o) first=false;
-    return `<details class="sec-d"${o?' open':''}><summary>【${it.role}】${fullTrad(it.i)}　${toLibLabel(it.lab)} <span class="hint">${n(it)?`(解説文 ${n(it)}件)`:'(未登録)'}</span></summary>${readBlock(it.i,it.lab,it.role)}</details>`;
-  }).join('') + (hidden?`<div class="hint">ほかの${hidden}項目は、解説文が未登録のため省略しています(「解説」タブから登録できます)。</div>`:'');
+    return `<details class="sec-d"${o?' open':''}><summary>【${it.role}】${fullTrad(it.i)}　${toLibLabel(it.lab)} <span class="hint">${n(it)?`(解説文 ${n(it)}件)`:'(未登録)'}</span></summary>${readBlock(it.i,it.lab,it.role,topKeys.has(it.i+'|'+toLibLabel(it.lab)))}</details>`;
+  }).join('') + (hidden?`<div class="hint exp">ほかの${hidden}項目は、解説文が未登録のため省略しています(「解説」タブから登録できます)。</div>`:'');
 }
 function sameHexHistory(e){
   const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,8);
@@ -1281,12 +1291,12 @@ function sameHexHistory(e){
 }
 function entryDetail(e){
   const d=e.rel, L=hexLines(e.hex);
-  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}</small></button>`;
+  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
   const sec = (t,v) => `<div class="sec"><b>${t}</b><div>${v?esc(v):'<span class="hint">未入力</span>'}</div></div>`;
   const [lab,why] = readingTarget(e.hex,new Set(e.ch));
   return `<div class="rels" style="margin:6px 0">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>
     <div class="hint">変爻: ${yaoNames(e.hex,e.ch)}</div>
-    <div class="read"><div class="hint">${why}</div>${entryExplain(e,lab)}</div>
+    <div class="read"><div class="hint exp">${why}</div>${entryExplain(e,lab)}</div>
     ${sameHexHistory(e)}${e.result?`<div class="hint">結果: ${RES[e.result]}</div>`:''}${sec('メモ',e.memo)}${sec('解説・アドバイス',e.advice)}${sec('行動',e.action)}${sec('振り返り',e.review)}`;
 }
 function logCard(e){
@@ -1366,7 +1376,7 @@ function pendingReviews(){
 }
 function renderPending(){
   const p=pendingReviews(), box=$('#lpend');
-  box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
+  box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint exp">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
     p.slice(0,20).map(e=>`<div class="hint" style="margin:4px 0"><b>${e.ts.slice(0,10)}</b> ${esc(purposeOf(e))} ／ ${hexName(e.hex)} <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`).join('')+'</details>' : '';
 }
 function renderLog(){ renderLogTop(); renderPending(); renderLogList(); }
@@ -1635,13 +1645,13 @@ function bookDetails(i,label){
   const c=state.chunks.find(c=>c.hex===i && c.label.startsWith(label));
   return c ? `<details class="bookbox"><summary>原典(本の該当箇所)を見る</summary>${chunkBox(i,label,'原典')}</details>` : '';
 }
-function readBlock(i,label,title){
+function readBlock(i,label,title,noOrig){
   const lab=toLibLabel(label), arr=state.lib[i+'|'+lab]||[];
   const head=`<div class="hint"><b>${title}:${fullTrad(i)}　${lab}${lab!==label?`(${label})`:''}</b></div>`;
   const body = arr.length
     ? arr.map(x=>`<div class="quote">${esc(x.text)}<div class="hint">${esc(x.src||'出典なし')}</div></div>`).join('')
     : `<div class="hint">解説文は、まだ登録されていません。</div><p><button type="button" data-golib="${i}|${lab}">＋ 解説文を追加する</button></p>`;
-  return `<div class="expl">${head}${origBlock(i,lab)}<div class="hint"><b>解説文</b></div>${body}${bookDetails(i, lab==='概要'?'卦辞':label)}</div>`;
+  return `<div class="expl">${head}${noOrig?'':origBlock(i,lab)}<div class="hint"><b>解説文</b></div>${body}${bookDetails(i, lab==='概要'?'卦辞':label)}</div>`;
 }
 
 /* 1項目ずつ「ためる」フォーム */
@@ -1855,6 +1865,8 @@ else if(saved && saved.length>200) start(saved);
 else if(LS.get('eki.nobook')==='1' || cloud) start('');
 else $('#setup').hidden=false;
 if(cloud) cloudSync();
+{ const on = LS.get('eki.help')==='1'; document.body.classList.toggle('help', on); $('#helpt').checked = on;
+  $('#helpt').addEventListener('change', e=>{ document.body.classList.toggle('help', e.target.checked); LS.set('eki.help', e.target.checked?'1':'0'); }); }
 // テスト用フック
 window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, fullTrad };
 })();
