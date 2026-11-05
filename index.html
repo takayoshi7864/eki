@@ -210,7 +210,7 @@ body:not(.help) .exp{display:none !important}
         <b>解説をためる</b>
         <div class="hint" id="libprog"></div>
         <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
-          <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・大象・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
+          <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・象伝・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
           <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
@@ -566,7 +566,7 @@ function parse(raw){
     if(sec==='hex'){
       const ym = ln.match(/^(初[九六]|[九六][二三四五]|上[九六]|用[九六])。/);
       if(ym && !wen){ if(hex!==0) dan=2; open(ym[1],'hex:'+hex,HEX[hex][0],hex); }
-      else if(/^(象|彖)曰。/.test(ln) && dan<2){ open(dan===0?'彖伝':'大象','hex:'+hex,HEX[hex][0],hex); dan++; }
+      else if(/^(象|彖)曰。/.test(ln) && dan<2){ open(dan===0?'彖伝':'象伝','hex:'+hex,HEX[hex][0],hex); dan++; }
       else if(/^文言曰。/.test(ln)){ wen=true; open('文言伝','hex:'+hex,HEX[hex][0],hex); }
     }
     cur.lines.push({t:line,i});
@@ -839,6 +839,7 @@ $('#build').addEventListener('click', ()=>{
   LS.del('eki.nobook');
   if(!LS.set('eki.raw', raw)) alert('この環境ではブラウザに本文を保存できませんでした。今回だけ使えます(次回は再度読み込みが必要です)。');
   if(state.pendingUser){
+    relabelAll(state.pendingUser);
     state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || []; state.log = state.pendingUser.log || []; state.lib = state.pendingUser.lib || {}; state.gen = state.pendingUser.gen || {}; state.genFix = state.pendingUser.genFix || {};
     if(state.pendingUser.vdict){ $('#vdict').value = state.pendingUser.vdict; LS.set('eki.vdict', state.pendingUser.vdict); }
     saveUser(); renderFixes(); state.pendingUser = null;
@@ -855,6 +856,20 @@ function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.spli
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>{t.hidden=true;},2400); }
 function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
 function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.length ? `(${state.notes.length})` : ''); }
+/* 旧い項目名「大象」を「象伝」に改める(保存データ・同期データ・バックアップ) */
+function relabelKeys(obj){
+  if(!obj || typeof obj!=='object') return false;
+  let ch=false;
+  Object.keys(obj).forEach(k=>{
+    if(!k.endsWith('|大象')) return;
+    const nk=k.slice(0,-2)+'象伝', v=obj[k];
+    if(obj[nk]===undefined) obj[nk]=v;
+    else if(Array.isArray(obj[nk]) && Array.isArray(v)) v.forEach(x=>{ if(!obj[nk].some(y=>y.id===x.id)) obj[nk].push(x); });
+    delete obj[k]; ch=true;
+  });
+  return ch;
+}
+const relabelAll = d => [relabelKeys(d&&d.lib), relabelKeys(d&&d.gen), relabelKeys(d&&d.genFix)].some(Boolean);
 state.tomb = {};   // 削除した項目の目印(同期で復活しないようにする)
 const tombAdd = id => { if(id) state.tomb[id] = Date.now(); };
 function saveUser(noSync){
@@ -969,7 +984,7 @@ $('#nbak').addEventListener('click', backupShare);
 $('#nrestore').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
   try{
-    const d=JSON.parse(await f.text()); let nn=0, nf=0;
+    const d=JSON.parse(await f.text()); relabelAll(d); let nn=0, nf=0;
     (d.notes||[]).forEach(n=>{ if(n && n.id && !state.notes.some(x=>x.id===n.id)){ state.notes.push(n); nn++; } });
     (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); nf++; } });
     let nl=0; (d.log||[]).forEach(x=>{ if(x && x.id && x.ts && !state.log.some(y=>y.id===x.id)){ state.log.push(x); nl++; } });
@@ -1028,7 +1043,7 @@ function renderHexDetail(i){
     const n = (state.lib[i+'|'+POSLAB[k]]||[]).length;
     rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b data-sec="${POSLAB[k]}" style="cursor:pointer">${POSLAB[k]}<small class="hint">(${yaoName(k,L[k])})</small>${n?' ●':''}</b>${lineSvg(L[k])}</div>`;
   }
-  const bookBtns = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
+  const bookBtns = ['卦辞','彖伝','象伝','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
   const book = '';
   $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${fullTrad(i)}</h3>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
@@ -1518,7 +1533,7 @@ state.lib = {}; state.lastSrc = '';
 const POSLAB = ['初爻','二爻','三爻','四爻','五爻','上爻'];
 // 卦の正式名: 上卦と下卦から「乾為天」「水雷屯」のように作る
 const fullTrad = i => HT[i][0]===HT[i][1] ? `${HEX[i][0]}為${TIMG[HT[i][0]]}` : `${TIMG[HT[i][0]]}${TIMG[HT[i][1]]}${HEX[i][0]}`;
-const libLabels = i => ['概要','卦辞','彖伝','大象',...POSLAB,...(i===0?['用九']:i===1?['用六']:[])];
+const libLabels = i => ['概要','卦辞','彖伝','象伝',...POSLAB,...(i===0?['用九']:i===1?['用六']:[])];
 const LIBTOTAL = HEX.reduce((s,_,i)=>s+libLabels(i).length, 0);
 const hasLib = i => libLabels(i).some(l=>(state.lib[i+'|'+l]||[]).length>0);
 const libCount = () => Object.keys(state.lib).filter(k=>(state.lib[k]||[]).length>0).length;
@@ -1587,7 +1602,7 @@ function extractGen(){
   for(const c of state.chunks){
     if(c.hex<0) continue;
     const base=c.label.replace(/（.*$/,'');
-    const lab = YAOALIAS[base] || (['卦辞','彖伝','大象','文言伝','用九','用六'].includes(base) ? base : null);
+    const lab = YAOALIAS[base] || (['卦辞','彖伝','象伝','文言伝','用九','用六'].includes(base) ? base : null);
     if(!lab) continue;
     const key=c.hex+'|'+lab; if(out[key]) continue;             // 長くて分割された区画は、最初の部分だけ使う
     const g=classicalLines(c,lab); if(g) out[key]=g;
@@ -1603,7 +1618,7 @@ function refreshGen(){
 const origBlock = (i,label) => { const g=genText(i+'|'+label); return g ? `<div class="orig-box"><div class="hint"><b>原文</b></div><div class="orig">${esc(g)}</div></div>` : ''; };
 const mapV = s => [...s].map(c=>state.vmap.get(c)||c).join('');      // 旧字体・表記ゆれをそろえる(1文字ずつ)
 const YAOALIAS = {'初九':'初爻','初六':'初爻','九二':'二爻','六二':'二爻','九三':'三爻','六三':'三爻','九四':'四爻','六四':'四爻','九五':'五爻','六五':'五爻','上九':'上爻','上六':'上爻','初':'初爻','二':'二爻','三':'三爻','四':'四爻','五':'五爻','上':'上爻'};
-const LABALIAS = {'彖':'彖伝','彖辞':'彖伝','象伝':'大象','大象伝':'大象','象':'大象','総論':'概要','概説':'概要','全体':'概要','解説':'概要'};
+const LABALIAS = {'彖':'彖伝','彖辞':'彖伝','大象':'象伝','大象伝':'象伝','象':'象伝','総論':'概要','概説':'概要','全体':'概要','解説':'概要'};
 function toLibLabel(s){
   s = String(s).replace(/\s+/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(/^[:：\-ー]+/,'').replace(/[*:：】\]]+$/,'');
   return YAOALIAS[s] || LABALIAS[s] || s;
@@ -1611,7 +1626,7 @@ function toLibLabel(s){
 // 見出し付きの文章を、(卦, 項目, 本文) の並びに分ける
 function parseLib(text){
   const names = HEX.map((_,i)=>mapV(fullTrad(i)));
-  const ok = new Set(['概要','卦辞','彖伝','大象','文言伝',...POSLAB,'用九','用六']);
+  const ok = new Set(['概要','卦辞','彖伝','象伝','文言伝',...POSLAB,'用九','用六']);
   const out=[]; let cur=null, buf=[];
   const flush=()=>{ if(cur){ const t=buf.join('\n').trim(); if(t) out.push({i:cur.i, label:cur.label, text:t}); } cur=null; buf=[]; };
   for(const raw of String(text).replace(/\r\n?/g,'\n').split('\n')){
@@ -1800,7 +1815,7 @@ let embRaw = '', embUser = null;
   if(u){ try{ embUser = JSON.parse(fromB64(u)); }catch(err){} } }
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
-if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; }
+if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; if(relabelAll(state)) saveUser(true); }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 updateTabs(); renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
@@ -1815,7 +1830,7 @@ $('#appupdate').addEventListener('click', async ()=>{
 
 /* ---------- クラウド同期(自分専用のCloudflare Worker + KV) ---------- */
 function mergeIn(d){
-  let ch=false; d=d||{};
+  let ch=false; d=d||{}; relabelAll(d);
   const up = x => x.upd||x.ts||0, dead = id => state.tomb[id]!=null;
   Object.entries(d.tomb||{}).forEach(([id,t])=>{ if(!(state.tomb[id]>=t)){ state.tomb[id]=t; ch=true; } });
   const mergeList=(cur,rem)=>{
