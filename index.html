@@ -1281,7 +1281,7 @@ function entryExplain(e,primary){
   const hidden=items.length-shown.length;
   let first=true;
   return origHtml + shown.map(it=>{
-    const o = n(it)>0 && first; if(o) first=false;
+    const o = n(it)>0;
     return `<details class="sec-d"${o?' open':''}><summary>${it.role}:${fullTrad(it.i)}　${toLibLabel(it.lab)}</summary>${readBlock(it.i,it.lab,it.role,topKeys.has(it.i+'|'+toLibLabel(it.lab)))}</details>`;
   }).join('') + '';
 }
@@ -1649,7 +1649,7 @@ function entriesHtml(i,l){
 function secBlock(i,l){
   const n=(state.lib[i+'|'+l]||[]).length, g=genText(i+'|'+l);
   const orig = l==='概要' ? '' : `<div class="orig-box"><div class="hint"><b>原文</b> <button data-genedit="${l}">${g?'編集':'登録'}</button></div>${g?`<div class="orig">${esc(g)}</div>`:''}<div class="genform-slot"></div></div>`;
-  return `<details class="sec-d" data-lab="${l}"${l==='概要'?' open':''}><summary>${secTitle(i,l)}${n?' ●':''}</summary>
+  return `<details class="sec-d" data-lab="${l}" data-def="${(n||g)?1:0}"${(l==='概要'||n||g)?' open':''}><summary>${secTitle(i,l)}${n?' ●':''}</summary>
     ${orig}<div class="hint"><b>解説文</b></div>
     ${entriesHtml(i,l)}<div class="libform-slot"></div><p><button data-libadd="${l}">＋ 解説文を追加</button></p></details>`;
 }
@@ -1657,7 +1657,7 @@ function refreshSecs(){
   const i=state.hexSel; if(i<0 || !$('#hexsecs')) return;
   const open=new Set([...document.querySelectorAll('#hexsecs details[open]')].map(d=>d.dataset.lab));
   $('#hexsecs').innerHTML = libLabels(i).map(l=>secBlock(i,l)).join('');
-  document.querySelectorAll('#hexsecs details').forEach(d=>{ d.open = open.has(d.dataset.lab); });
+  document.querySelectorAll('#hexsecs details').forEach(d=>{ d.open = open.has(d.dataset.lab) || d.dataset.def==='1' || d.dataset.lab==='概要'; });
   renderReading(); renderLibProg(); renderHexTable(); updateStatus();
 }
 function bookDetails(i,label){
