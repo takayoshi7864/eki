@@ -19,6 +19,9 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","Noto Serif CJK JP",serif}
 header.top{padding:14px 16px 6px;max-width:960px;margin:0 auto}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.toprow h1{margin:0}
+.themebtn{flex:none;font-size:.85rem;padding:4px 10px;white-space:nowrap}
 h1{margin:0;font-size:1.5rem;letter-spacing:.2em}
 .sub{color:var(--sub);font-size:.85rem}
 main{max-width:960px;margin:0 auto;padding:0 16px 60px}
@@ -144,7 +147,7 @@ body:not(.help) .exp{display:none !important}
 </head>
 <body>
 <header class="top">
-  <h1>易 解説</h1>
+  <div class="toprow"><h1>易 解説</h1><button type="button" id="themebtn" class="themebtn" aria-label="表示の色を切り替える(自動・ライト・ダーク)">◐ 自動</button></div>
   <div class="sub exp">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
   <div class="status" id="status"></div>
 </header>
@@ -221,6 +224,13 @@ body:not(.help) .exp{display:none !important}
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
           <div class="hint" id="libres"></div>
+        </details>
+        <details><summary>解説文をまとめて置換する(誤字の直しなど)</summary>
+          <div class="hint exp">全卦の解説文のなかから、「探す文字」を「置き換える文字」に、まとめて直します(原文は対象外)。実行の前に、見つかった箇所を一覧で確認できます。直したあとは、「直前の置換を取り消す」で、元に戻せます。</div>
+          <label class="hint">探す文字 <input id="rpfrom" placeholder="例: 手打つ" style="width:100%"></label>
+          <label class="hint">置き換える文字 <input id="rpto" placeholder="例: 手を打つ(空欄にすると、削除します)" style="width:100%"></label>
+          <p><button id="rpprev">見つかった箇所を見る</button> <button class="primary" id="rpgo">置換する</button> <button id="rpundo">直前の置換を取り消す</button></p>
+          <div class="hint" id="rpres"></div>
         </details>
         <details><summary>原文をまとめて登録する(固定。本の読み込みは不要)</summary>
           <div class="hint exp">見出しは解説文と同じ「乾為天　初爻」の形です。見出しの下の文章が、その項目の原文として登録されます。すでに登録した原文は、同じ項目なら置き換わります。</div>
@@ -1806,6 +1816,55 @@ $('#libgo').addEventListener('click', ()=>{
   $('#libres').innerHTML = `<b>${r.found}項目を読み取りました</b>(${[...new Set(r.items.map(x=>fullTrad(x.i)))].join('・')})` +
     (miss.length ? `<br>見つからなかった項目: ${miss.map(esc).join(' ／ ')}` : '<br>この卦の項目は、すべて読み取れました');
 });
+/* 解説文の一括置換(誤字の直しなど): 探す→置き換える。直前の置換は取り消せる */
+function replFind(from){
+  const out=[]; if(!from) return out;
+  for(const [k,arr] of Object.entries(state.lib)){
+    const [i,label]=[+k.split('|')[0], k.split('|')[1]];
+    for(const x of arr){ const n=x.text.split(from).length-1; if(n>0) out.push({i,label,id:x.id,n,text:x.text}); }
+  }
+  return out.sort((a,b)=>a.i-b.i);
+}
+function replApply(from,to){
+  const hits=replFind(from); if(!hits.length) return {n:0,items:0};
+  const undo=[]; let n=0;
+  hits.forEach(h=>{ const k=h.i+'|'+h.label, x=(state.lib[k]||[]).find(y=>y.id===h.id); if(!x) return;
+    undo.push({k, id:x.id, text:x.text}); x.text=x.text.split(from).join(to); x.upd=Date.now(); n+=h.n; });
+  state.replUndo={from,to,undo,ts:Date.now()};
+  LS.set('eki.replundo', JSON.stringify(state.replUndo));
+  saveUser(); return {n, items:undo.length};
+}
+function replUndoLast(){
+  let u=state.replUndo; if(!u){ try{ u=JSON.parse(LS.get('eki.replundo')||'null'); }catch(e){ u=null; } }
+  if(!u || !u.undo || !u.undo.length) return 0;
+  let c=0; u.undo.forEach(r=>{ const x=(state.lib[r.k]||[]).find(y=>y.id===r.id); if(x){ x.text=r.text; x.upd=Date.now(); c++; } });
+  state.replUndo=null; LS.set('eki.replundo',''); saveUser(); return c;
+}
+const replSnip=(t,from)=>{ const p=t.indexOf(from), a=Math.max(0,p-14), b=Math.min(t.length,p+from.length+14);
+  return (a>0?'…':'')+esc(t.slice(a,p))+'<mark>'+esc(from)+'</mark>'+esc(t.slice(p+from.length,b))+(b<t.length?'…':''); };
+$('#rpprev').addEventListener('click', ()=>{
+  const from=$('#rpfrom').value; if(!from){ toast('探す文字を入れてください'); return; }
+  const h=replFind(from);
+  $('#rpres').innerHTML = h.length
+    ? `<b>${h.reduce((s,x)=>s+x.n,0)}か所(${h.length}項目)</b><br>` + h.slice(0,40).map(x=>`${esc(fullTrad(x.i))} ${esc(x.label)}: ${replSnip(x.text,from)}`).join('<br>') + (h.length>40?`<br>…ほか ${h.length-40} 項目`:'')
+    : '見つかりませんでした';
+});
+$('#rpgo').addEventListener('click', ()=>{
+  const from=$('#rpfrom').value, to=$('#rpto').value;
+  if(!from){ toast('探す文字を入れてください'); return; }
+  if(from===to){ toast('置き換える文字が、同じです'); return; }
+  const h=replFind(from); if(!h.length){ toast('見つかりませんでした'); return; }
+  const n=h.reduce((s,x)=>s+x.n,0);
+  if(!confirm(`解説文の ${n} か所(${h.length} 項目)を置換します。\n「${from}」 → 「${to}」\n(直後なら、取り消せます)`)) return;
+  const r=replApply(from,to); refreshSecs();
+  $('#rpres').innerHTML=`<b>${r.n}か所(${r.items}項目)を置換しました。</b>まちがえたときは、「直前の置換を取り消す」を押します。`;
+  toast(`${r.n} か所を置換しました`);
+});
+$('#rpundo').addEventListener('click', ()=>{
+  const c=replUndoLast(); refreshSecs();
+  $('#rpres').textContent = c ? `${c}項目を、置換の前に戻しました` : '取り消せる置換が、ありません';
+  toast(c ? '取り消しました' : '取り消せる置換がありません');
+});
 $('#gengo').addEventListener('click', ()=>{
   const t=$('#gentext').value; if(!t.trim()){ toast('原文が空です'); return; }
   const items=parseLib(t).filter(it=>it.label!=='概要');
@@ -1981,12 +2040,14 @@ if(cloud) cloudSync();
   const paint=()=>{ const t=LS.get('eki.theme')||'auto';
     if(t==='light'||t==='dark') root.dataset.theme=t; else root.removeAttribute('data-theme');
     sel.value = (t==='light'||t==='dark') ? t : 'auto';
+    const btn=$('#themebtn'); if(btn) btn.textContent = t==='light' ? '☼ ライト' : t==='dark' ? '☾ ダーク' : '◐ 自動';
     const m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', getComputedStyle(root).getPropertyValue('--bg').trim()||'#faf8f3'); };
   sel.addEventListener('change', ()=>{ LS.set('eki.theme', sel.value); paint(); });
+  const tb=$('#themebtn'); if(tb) tb.addEventListener('click', ()=>{ const cur=LS.get('eki.theme')||'auto'; LS.set('eki.theme', cur==='auto'?'light':cur==='light'?'dark':'auto'); paint(); });
   if(mq && mq.addEventListener) mq.addEventListener('change', paint);
   paint(); }
 // テスト用フック
-window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, replFind, replApply, replUndoLast, fullTrad };
 })();
 </script>
 </body>
