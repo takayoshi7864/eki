@@ -127,6 +127,9 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .orig-box{margin:6px 0}
 .orig{white-space:pre-wrap;font-size:1.05rem;letter-spacing:.04em;border-left:3px solid var(--line);padding-left:10px;margin:4px 0 8px;overflow-wrap:anywhere}
 .expl{margin:8px 0}
+.quote .para{white-space:pre-wrap;margin:0 0 4px}
+.quote .tip{white-space:pre-wrap;margin:4px 0;padding:4px 8px;border-radius:6px;background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.quote .tip .tip-l{display:inline-block;margin-right:.6em;padding:0 .5em;border-radius:4px;font-size:.85em;font-weight:bold;color:var(--accent);border:1px solid var(--accent)}
 .expl .quote,.sec-d .quote{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:10px;overflow-wrap:anywhere;margin:6px 0 10px}
 .bookbox{margin:6px 0;padding:4px 8px;border:1px dashed var(--line);border-radius:8px}
 .bookbox summary{color:var(--sub);font-size:.85rem}
@@ -214,6 +217,7 @@ body:not(.help) .exp{display:none !important}
           <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
           <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
+          <div class="hint" id="libres"></div>
         </details>
         <details><summary>原文をまとめて登録する(固定。本の読み込みは不要)</summary>
           <div class="hint exp">見出しは解説文と同じ「乾為天　初爻」の形です。見出しの下の文章が、その項目の原文として登録されます。すでに登録した原文は、同じ項目なら置き換わります。</div>
@@ -1532,7 +1536,7 @@ state.lib = {}; state.lastSrc = '';
 const POSLAB = ['初爻','二爻','三爻','四爻','五爻','上爻'];
 // 卦の正式名: 上卦と下卦から「乾為天」「水雷屯」のように作る
 const fullTrad = i => HT[i][0]===HT[i][1] ? `${HEX[i][0]}為${TIMG[HT[i][0]]}` : `${TIMG[HT[i][0]]}${TIMG[HT[i][1]]}${HEX[i][0]}`;
-const libLabels = i => ['概要','卦辞','彖伝','象伝',...POSLAB,...(i===0?['用九','文言伝']:i===1?['用六','文言伝']:[])];
+const libLabels = i => ['概要','卦辞','彖伝','象伝',...POSLAB,...(i===0?['用九']:i===1?['用六']:[]),...(i<2?['文言伝']:[])];
 const LIBTOTAL = HEX.reduce((s,_,i)=>s+libLabels(i).length, 0);
 const hasLib = i => libLabels(i).some(l=>(state.lib[i+'|'+l]||[]).length>0);
 const libCount = () => Object.keys(state.lib).filter(k=>(state.lib[k]||[]).length>0).length;
@@ -1628,9 +1632,11 @@ function parseLib(text){
   const ok = new Set(['概要','卦辞','彖伝','象伝','文言伝',...POSLAB,'用九','用六']);
   const out=[]; let cur=null, buf=[];
   const flush=()=>{ if(cur){ const t=buf.join('\n').trim(); if(t) out.push({i:cur.i, label:cur.label, text:t}); } cur=null; buf=[]; };
+  const NOISE = /^(```|おすすめ\s*[·・•]|追加$|まとめ$|はじめに$|クイズ$)/;   // Notebookの画面部品の文字(次の見出しまで読み飛ばす)
   for(const raw of String(text).replace(/\r\n?/g,'\n').split('\n')){
     const head = raw.trim().replace(/^[#>\-\s*]+/,'').replace(/^[【\[]/,'');
-    let hit=null;
+    let hit=null, inline='';
+    if(NOISE.test(head)){ flush(); continue; }
     if(head && head.length<=24){
       const compact = head.replace(/\s+/g,''), nc = mapV(compact);
       for(let i=0;i<64 && !hit;i++){                                 // 例: 乾為天　初爻 / 水雷屯 卦辞
@@ -1645,7 +1651,17 @@ function parseLib(text){
                if(n>=0 && n<64 && ok.has(rest)) hit={i:n, label:rest}; }
       }
     }
-    if(hit){ flush(); cur=hit; } else if(cur) buf.push(raw);
+    if(!hit){                                                        // 例: 乾為天　概要 概要: 本文…(見出しと本文が同じ行)
+      const m = head.match(/^(\S+?)[\s　]+([^\s　:：]+)[\s　:：]+(.+)$/);
+      if(m){
+        const nm = mapV(m[1]), lab = toLibLabel(m[2]), i = names.indexOf(nm);
+        if(i>=0 && ok.has(lab)){
+          hit={i, label:lab};
+          inline = m[3].replace(new RegExp('^'+lab+'\\s*[:：]\\s*'),'').replace(/\s+(心構え|行動)[:：]/g,'\n$1:');
+        }
+      }
+    }
+    if(hit){ flush(); cur=hit; if(inline) buf.push(inline); } else if(cur) buf.push(raw);
   }
   flush(); return out;
 }
@@ -1659,7 +1675,15 @@ function importLib(text, src){
   const items=parseLib(text); let add=0, dup=0;
   items.forEach(it=>{ if(libAdd(it.i,it.label,it.text,src)) add++; else dup++; });
   if(add) saveUser();
-  return {found:items.length, add, dup};
+  return {found:items.length, add, dup, items};
+}
+// 貼った文章に入っていた卦について、見つからなかった項目を知らせる(出力の抜けに気づくため)
+function importMissing(items){
+  const hexes=[...new Set(items.map(x=>x.i))].sort((a,b)=>a-b);
+  return hexes.map(i=>{
+    const miss=libLabels(i).filter(l=>!items.some(x=>x.i===i && x.label===l));
+    return miss.length ? `${fullTrad(i)}:${miss.join('・')}` : '';
+  }).filter(Boolean);
 }
 function updateStatus(){ $('#status').innerHTML = `解説 <b>${libCount()}</b> / ${LIBTOTAL} 項目 ／ 記録 <b>${state.log.length}</b> 件${cloud?` ／ ☁ ${cloudMsg||'未同期'}`:''}`; }
 function renderLibProg(){
@@ -1669,10 +1693,17 @@ function renderLibProg(){
 
 /* 表示 */
 function secTitle(i,l){ const k=POSLAB.indexOf(l); return k>=0 ? `${l}(${yaoName(k,hexLines(i)[k])})` : l; }
+// 解説文の見た目を整える(保存した文章は変えない): 「心構え:」「行動:」を別の行にして、ラベルを付ける
+function fmtLib(text){
+  return String(text).replace(/([^\n])[ \t　]+(心構え|行動)[:：]/g,'$1\n$2:').split('\n').map(ln=>{
+    const m = ln.match(/^\s*(心構え|行動)[:：]\s*(.*)$/);
+    return m ? `<div class="tip"><span class="tip-l">${m[1]}</span>${esc(m[2])}</div>` : (ln.trim() ? `<div class="para">${esc(ln)}</div>` : '');
+  }).join('');
+}
 function entriesHtml(i,l){
   const arr=state.lib[i+'|'+l]||[];
   if(!arr.length) return '';
-  return arr.map(x=>`<div class="quote">${esc(x.text)}<div class="hint">${x.src?esc(x.src)+' ・ ':''}
+  return arr.map(x=>`<div class="quote">${fmtLib(x.text)}<div class="hint">${x.src?esc(x.src)+' ・ ':''}
     <button data-libedit="${x.id}" data-i="${i}" data-lab="${l}">編集</button> <button data-libdel="${x.id}" data-i="${i}" data-lab="${l}">削除</button></div></div>`).join('');
 }
 function secBlock(i,l){
@@ -1696,7 +1727,7 @@ function bookDetails(i,label){
 function readBlock(i,label,title,noOrig){
   const lab=toLibLabel(label), arr=state.lib[i+'|'+lab]||[];
   const body = arr.length
-    ? arr.map(x=>`<div class="quote">${esc(x.text)}${x.src?`<div class="hint">${esc(x.src)}</div>`:''}</div>`).join('')
+    ? arr.map(x=>`<div class="quote">${fmtLib(x.text)}${x.src?`<div class="hint">${esc(x.src)}</div>`:''}</div>`).join('')
     : `<p><button type="button" data-golib="${i}|${lab}">＋ 解説文を追加</button></p>`;
   return `<div class="expl">${noOrig?'':origBlock(i,lab)}<div class="hint"><b>解説文</b></div>${body}</div>`;
 }
@@ -1765,6 +1796,9 @@ $('#libgo').addEventListener('click', ()=>{
   if(!r.found){ toast('見出しが見つかりません。「乾為天　初爻」のような見出し行が必要です'); return; }
   $('#libtext').value=''; renderLibProg(); renderHexTable(); refreshSecs();
   toast(`${r.add} 件を追加しました${r.dup?`(重複 ${r.dup} 件はスキップ)`:''}`);
+  const miss=importMissing(r.items);
+  $('#libres').innerHTML = `<b>${r.found}項目を読み取りました</b>(${[...new Set(r.items.map(x=>fullTrad(x.i)))].join('・')})` +
+    (miss.length ? `<br>見つからなかった項目: ${miss.map(esc).join(' ／ ')}` : '<br>この卦の項目は、すべて読み取れました');
 });
 $('#gengo').addEventListener('click', ()=>{
   const t=$('#gentext').value; if(!t.trim()){ toast('原文が空です'); return; }
@@ -1937,7 +1971,7 @@ if(cloud) cloudSync();
 { const on = LS.get('eki.help')==='1'; document.body.classList.toggle('help', on); $('#helpt').checked = on;
   $('#helpt').addEventListener('change', e=>{ document.body.classList.toggle('help', e.target.checked); LS.set('eki.help', e.target.checked?'1':'0'); }); }
 // テスト用フック
-window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, fullTrad };
 })();
 </script>
 </body>
