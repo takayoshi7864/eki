@@ -1531,7 +1531,22 @@ function classicalLines(c, label){
   const KANA=/[ぁ-んァ-ヶ]/, KANJI=/[一-龥]/;
   // 行の中のふりがな(空白で区切られた、かなだけの語)を取り除く。例「けん おお とお ただ 乾は、元いに亨る。」
   const clean = l => l.replace(/(^|\s)[ぁ-んー・]+(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
-  const ls = c.text.split('\n').map(l=>({raw:l.trim(), t:clean(l)}));
+  const JP='ぁ-んァ-ヶ一-龥々〔〕、。';
+  const tidy = t => t.replace(new RegExp('(?<=['+JP+'])\\s+(?=['+JP+'])','g'),'');          // OCRで入った、文字の間の空白を詰める
+  const ls = [];
+  c.text.split('\n').forEach(l=>{
+    let t = clean(l); const raw=l.trim();
+    // 漢文の末尾と読み下しが1行につながっている場合は、漢文の部分を切り離す(例「…萬國咸寧。 象に曰く、…」)
+    const k1 = t.search(/[ぁ-んァ-ヶ]/);
+    if(k1>0){
+      const head = t.slice(0,k1), cut = head.lastIndexOf('。');
+      if(cut>=3 && /[一-龥]/.test(head.slice(0,cut))){
+        ls.push({raw:'', t:head.slice(0,cut+1).trim()});
+        t = t.slice(cut+1).trim();
+      }
+    }
+    ls.push({raw, t: tidy(t)});
+  });
   const isClassic = x => x.t && /。/.test(x.t) && !KANA.test(x.t);
   const cnt = t => (t.match(/。/g)||[]).length;
   const k = ls.findIndex(isClassic);
