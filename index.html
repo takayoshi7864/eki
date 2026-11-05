@@ -243,7 +243,7 @@ body:not(.help) .exp{display:none !important}
     <div id="viewLog" hidden>
       <div id="logtop"></div>
       <p>
-        <button class="primary" data-lact="new" data-kind="day">＋ 新しい記録</button>
+        <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
         <button id="lmd">Markdownで書き出す</button>
         <button id="lbak">バックアップ(JSON)</button>
       </p>
@@ -1189,7 +1189,8 @@ const RES = {hit:'読み通り', part:'一部そのとおり', miss:'ずれた',
 const DUE = {event:30, month:31, year:366};   // 振り返りを促すまでの日数(今日の心構えは対象外)
 const pad2 = n => String(n).padStart(2,'0');
 function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
-const fmtDT = s => String(s).replace('T',' ');
+const fmtDT = s => String(s).replace('T00:00','').replace('T',' ');
+const kindOfTitle = t => /今日/.test(t)?'day':/今月/.test(t)?'month':/今年/.test(t)?'year':'event';
 const hexName = i => HEX[i][0];
 const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
 function deriveSet(i, ch){
@@ -1202,14 +1203,13 @@ const yaoNames = (i,ch) => ch.length ? [...ch].sort((a,b)=>b-a).map(k=>yaoName(k
 /* 入力フォーム */
 function openLogForm(entry, kind){
   const base = entry ? JSON.parse(JSON.stringify(entry))
-    : {id:null, kind:kind||'day', ts:nowLocal(), title:'', hex:0, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
+    : {id:null, kind:kind||'event', ts:nowLocal().slice(0,10)+'T00:00', title:(kind&&KINDS[kind]&&kind!=='event')?KINDS[kind]:'', hex:0, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
   state.draft = base;
   const box = $('#logform'); box.hidden = false;
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
-      <label>種別 <select id="lkind">${Object.entries(KINDS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
-      <label>日時 <input id="lts" type="datetime-local"></label>
-      <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: ○○の件で迷っている(同じ目的は同じ書き方にすると、まとまって並びます)"></label><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+      <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
+      <div class="formgrid2" style="display:flex;gap:10px;flex-wrap:wrap"><label>日付 <input id="lts" type="date"></label><label>時間(なくてもかまいません) <input id="ltime" type="time"></label></div><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
@@ -1225,7 +1225,7 @@ function openLogForm(entry, kind){
       </details>
     </div>
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
-  $('#lkind').value=base.kind; $('#lts').value=base.ts; $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
+  $('#lts').value=base.ts.slice(0,10); $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16); $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
   $('#lstat').value=base.status||''; $('#ltags').value=(base.tags||[]).join(', '); $('#lresult').value=base.result||'';
   $('#lmemo').value=base.memo; $('#ladvice').value=base.advice; $('#laction').value=base.action; $('#lreview').value=base.review;
   if(entry) $('#lmore').open = true;   // 編集時は、解説・行動・振り返りの欄を最初から開く
@@ -1244,7 +1244,7 @@ function saveLog(){
   const e=state.draft;
   const rec = {
     id: e.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
-    kind:$('#lkind').value, ts:$('#lts').value || nowLocal(), title:$('#ltitle').value.trim(),
+    kind:$('#ltitle').value.trim() ? kindOfTitle($('#ltitle').value) : (e.kind||'event'), ts:(($('#lts').value || nowLocal().slice(0,10))+'T'+($('#ltime').value||'00:00')), title:$('#ltitle').value.trim(),
     hex:e.hex, ch:[...e.ch].sort((a,b)=>a-b), rel:deriveSet(e.hex,e.ch),
     memo:$('#lmemo').value.trim(), advice:$('#ladvice').value.trim(), action:$('#laction').value.trim(), review:$('#lreview').value.trim(),
     status:$('#lstat').value, tags:$('#ltags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean), result:$('#lresult').value, imp:e.imp||false,
@@ -1322,9 +1322,9 @@ function logCard(e){
   const open = state.lopen===e.id;
   const z = e.ch.length ? ` → ${hexName(e.rel.zhi)}` : '';
   return `<article class="card logitem" data-lid="${e.id}">
-    <header><span class="tag">${KINDS[e.kind]}</span><span>${fmtDT(e.ts)}</span><span class="lab">${hexName(e.hex)}${z}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}</header>
+    <header><span>${fmtDT(e.ts)}</span><span class="lab">${hexName(e.hex)}${z}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}</header>
     ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
-    ${e.title?`<div class="body"><b>${esc(e.title)}</b></div>`:''}
+    <div class="body"><b>${esc(purposeOf(e))}</b></div>
     ${!open && (e.action||e.memo) ? `<div class="hint">${esc((e.action||e.memo).slice(0,80))}</div>` : ''}
     ${open ? entryDetail(e) : ''}
     <footer><button data-lact="open" data-id="${e.id}">${open?'閉じる':'解説を見る'}</button><button data-lact="edit" data-id="${e.id}">編集</button><button data-lact="del" data-id="${e.id}">削除</button></footer>
@@ -1332,7 +1332,7 @@ function logCard(e){
 }
 const purposeOf = e => e.title || KINDS[e.kind];
 const purposeKey = e => purposeOf(e).normalize('NFKC').replace(/\s+/g,'');
-function purposeList(){ const m=new Map(); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
+function purposeList(){ const m=new Map(); ['今日の心構え','今月の心構え','今年の心構え'].forEach(t=>m.set(t,t)); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
 state.lf.mode = 'date';
 function logFiltered(){
   const f=state.lf, q=normStr(f.q||'');
@@ -1372,8 +1372,7 @@ function purposeHead(a){
 }
 function renderLogList(){
   const f=state.lf, cnt = {}; state.log.forEach(e=>cnt[e.kind]=(cnt[e.kind]||0)+1);
-  $('#lkinds').innerHTML = `<span class="chip${f.kind?'':' on'}" data-lkind="">すべて<b>${state.log.length}</b></span>` +
-    Object.entries(KINDS).map(([k,v])=>`<span class="chip${f.kind===k?' on':''}" data-lkind="${k}">${v}<b>${cnt[k]||0}</b></span>`).join('');
+  $('#lkinds').innerHTML = '';   // 種別の絞り込みは使わない(目的で分ける)
   $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['date','日付順(新しい順)'],['purpose','目的ごと(日付順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
   const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
@@ -1403,7 +1402,7 @@ function renderLog(){ renderLogTop(); renderPending(); renderLogList(); }
 function logMd(){
   return '# 易の記録\n\n' + state.log.map(e=>{
     const d=e.rel;
-    return `## ${fmtDT(e.ts)} ${KINDS[e.kind]}${e.title?':'+e.title:''}\n\n- 本卦: ${fullName(e.hex)}\n- 変爻: ${yaoNames(e.hex,e.ch)}\n` +
+    return `## ${fmtDT(e.ts)} ${purposeOf(e)}\n\n- 本卦: ${fullName(e.hex)}\n- 変爻: ${yaoNames(e.hex,e.ch)}\n` +
       (d.zhi!=null?`- 之卦: ${fullName(d.zhi)}\n`:'') + `- 互卦: ${fullName(d.hu)}\n- 錯卦: ${fullName(d.cuo)}\n- 綜卦: ${fullName(d.zong)}\n` +
       (e.status||(e.tags&&e.tags.length)||e.result?`- 目的の状態: ${e.status?STATUS[e.status]:'未設定'}${(e.tags&&e.tags.length)?' / タグ: '+e.tags.join(', '):''}${e.result?' / 結果: '+RES[e.result]:''}\n`:'') + (e.memo?`\n### メモ\n${e.memo}\n`:'') + (e.advice?`\n### 解説・アドバイス\n${e.advice}\n`:'') +
       (e.action?`\n### 行動\n${e.action}\n`:'') + (e.review?`\n### 振り返り\n${e.review}\n`:'');
