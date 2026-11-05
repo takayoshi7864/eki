@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#12141d">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="易 検索">
+<meta name="apple-mobile-web-app-title" content="易 解説">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>易 検索</title>
+<title>易 解説</title>
 <style>
 :root{--bg:#faf8f3;--panel:#fff;--ink:#242220;--sub:#6e685b;--line:#e3ded1;--accent:#8a3b2b;--mark:#ffe28a;--chip:#efeadc;--ok:#2d6a3f;--warn:#9a5b00}
 @media (prefers-color-scheme:dark){:root{--bg:#17181a;--panel:#202226;--ink:#e9e7e2;--sub:#a49f92;--line:#34373c;--accent:#e6957f;--mark:#6d5a10;--chip:#2c2f35;--ok:#7fcf95;--warn:#e0b060}}
@@ -72,7 +72,7 @@ code{background:var(--chip);padding:0 4px;border-radius:4px}
 .hc.sel{border-color:var(--accent);background:var(--accent);color:#fff}
 .hc.sel small{color:#fff}
 .yao{display:flex;align-items:center;gap:10px;margin:2px 0}
-.yao b{width:3.2em}
+.yao b{min-width:5.6em;white-space:nowrap}
 .yao svg{color:var(--ink)}
 .note .quote{white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px;color:var(--sub);overflow-wrap:anywhere}
 .note .memo{white-space:pre-wrap;margin:6px 0}
@@ -107,36 +107,63 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .jc.j0{color:var(--sub)}
 .jc.dim{opacity:.22}
 .jnone{color:var(--sub);opacity:.5}
+.today{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.lcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.lcard button{min-height:32px!important;padding:2px 10px;font-size:.82rem}
+.lcard .hint{font-size:.78rem;overflow-wrap:anywhere}
+.lcard.empty{opacity:.85}
+.lname{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:1rem;color:var(--accent)}
+.formgrid{display:grid;gap:10px;margin-top:8px}
+.formgrid>label,#lmore label{display:flex;flex-direction:column;gap:2px;font-size:.85rem;color:var(--sub);margin:6px 0}
+.formgrid input,.formgrid select,.formgrid textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink);min-height:0}
+.formgrid textarea{min-height:90px}
+.yaos{display:flex;gap:10px;flex-wrap:wrap}
+.sec{margin:8px 0}
+.sec b{font-size:.82rem;color:var(--sub)}
+.sec div{white-space:pre-wrap;overflow-wrap:anywhere}
+.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.tabs button{flex:0 0 auto;white-space:nowrap}
+.tabs button[data-view="search"]{opacity:.7}
+.orig-box{margin:6px 0}
+.orig{white-space:pre-wrap;font-size:1.05rem;letter-spacing:.04em;border-left:3px solid var(--line);padding-left:10px;margin:4px 0 8px;overflow-wrap:anywhere}
+.expl{margin:8px 0}
+.expl .quote,.sec-d .quote{white-space:pre-wrap;border-left:3px solid var(--accent);padding-left:10px;overflow-wrap:anywhere;margin:6px 0 10px}
+.bookbox{margin:6px 0;padding:4px 8px;border:1px dashed var(--line);border-radius:8px}
+.bookbox summary{color:var(--sub);font-size:.85rem}
+.sec-d{border-bottom:1px solid var(--line);padding:4px 0}
+.sec-d summary{cursor:pointer;font-weight:bold}
 @media (max-width:560px){body{font-size:15px}}
 </style>
 </head>
 <body>
 <header class="top">
-  <h1>易 検索</h1>
-  <div class="sub">本田濟『易』(朝日選書1010) 個人用の全文検索。本文データはこの端末のブラウザ内だけに保存され、外部へ送信されません。</div>
+  <h1>易 解説</h1>
+  <div class="sub">易を立てた記録と、その解説。データはこの端末のブラウザ内だけに保存され、外部へ送信されません。</div>
   <div class="status" id="status"></div>
 </header>
 
 <main>
   <!-- 初回:本文の読み込み -->
   <section id="setup" class="panel" hidden>
-    <h2 style="margin:.2em 0;font-size:1.1rem">① 本文テキストを読み込む</h2>
+    <h2 style="margin:.2em 0;font-size:1.1rem">① 原典(本の本文)を読み込む ― 任意</h2>
+    <div class="hint">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます(「原典なしで始める」)。</div>
     <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
       <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
     <div class="hint">書き出した「内蔵版HTML」を選ぶこともできます(本文・ノート・校正がそのまま移ります)。</div>
     <div class="hint">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
     <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
-    <p><button class="primary" id="build">この本文で索引を作る</button>
+    <p><button class="primary" id="build">この本文で索引を作る</button> <button id="nobook">原典なしで始める</button>
     <span class="hint">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
   </section>
 
   <!-- 検索画面 -->
   <section id="app" hidden>
     <nav class="tabs">
-      <button data-view="search" class="on">検索</button>
+      <button data-view="log" class="on">記録</button>
+      <button data-view="hex">解説</button>
       <button data-view="notes" id="tabNotes">ノート</button>
-      <button data-view="hex">六十四卦</button>
       <button data-view="judge">吉凶表</button>
+      <button data-view="search" title="本の本文(原典)の検索">原典</button>
     </nav>
     <div id="viewSearch">
     <div class="stick">
@@ -172,9 +199,20 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
     </div>
 
     <div id="viewHex" hidden>
+      <div class="panel" id="libpanel">
+        <b>解説をためる</b>
+        <div class="hint" id="libprog"></div>
+        <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
+          <div class="hint">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・大象・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
+          <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
+          <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
+          <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
+        </details>
+        <div class="hint">1項目ずつ足すときは、下の表で卦を選び、各項目の「＋ 解説を追加」から入力できます。解説は、あとからいくつでも追加できます(出典と日付つきで貯まります)。</div>
+      </div>
       <div class="panel">
         <b>六十四卦の一覧表</b>
-        <div class="hint">縦が上卦、横が下卦です。卦を選ぶと、六爻の図と、本書の該当箇所への入口が出ます。</div>
+        <div class="hint">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
         <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
       </div>
       <div id="hexdetail"></div>
@@ -188,6 +226,43 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
         <div class="hint" id="jnote"></div>
       </div>
       <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
+    </div>
+
+    <div id="viewLog" hidden>
+      <div id="logtop"></div>
+      <p>
+        <button class="primary" data-lact="new" data-kind="day">＋ 新しい記録</button>
+        <button id="lmd">Markdownで書き出す</button>
+        <button id="lbak">バックアップ(JSON)</button>
+      </p>
+      <div class="hint">バックアップの読み込み(復元)は「ノート」タブにあります。スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
+      <div id="lpend"></div>
+      <details class="panel" id="limp">
+        <summary><b>これまでの記録をまとめて取り込む</b></summary>
+        <div class="hint">1行に1件。「日付 | 立てた目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
+        <textarea id="limptext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
+        <p><button class="primary" id="limpgo">取り込む</button></p>
+        <div id="limpres" class="hint"></div>
+      </details>
+      <div id="logform" hidden></div>
+      <div class="panel">
+        <div class="searchbar"><input id="lq" type="search" placeholder="記録の中を検索(卦の名前・メモ・解説など)"></div>
+        <div class="facets" id="lkinds"></div>
+        <div class="facets" id="lmode"></div>
+        <details id="lfil"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
+          <div class="formgrid">
+            <label>本卦 <select id="fhex"></select></label>
+            <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
+            <label>期間(から) <input type="date" id="ffrom"></label>
+            <label>期間(まで) <input type="date" id="fto"></label>
+            <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
+          </div>
+          <div class="facets" id="ltagchips"></div>
+          <p><button id="fclear" type="button">絞り込みを解除</button></p>
+        </details>
+      </div>
+      <div class="summary" id="lsum"></div>
+      <div id="loglist"></div>
     </div>
   </section>
   <div id="toast" class="toast" hidden></div>
@@ -526,6 +601,7 @@ function rebuild(){
   state.chunks = res.chunks;
   buildIndex(state.chunks);
   computeJudge();
+  refreshGen();
   const hexSeen = new Set(state.chunks.filter(c=>c.hex>=0).map(c=>c.hex));
   const withPage = state.chunks.filter(c=>c.page).length;
   state.diag = { hexSeen, markers:res.markers, withPage, lines:res.lines };
@@ -536,13 +612,16 @@ function rebuild(){
 }
 function renderStatus(){
   const d=state.diag;
-  $('#status').innerHTML = `本文 ${state.raw.length.toLocaleString()} 文字 ／ ${state.chunks.length} 区画 ／ 卦 <b class="${d.hexSeen.size===64?'ok':'warn'}">${d.hexSeen.size}/64</b> を認識 ／ ページ推定 ${d.withPage} 区画`;
+  state.bookStat = state.chunks.length
+    ? `原典: 本文 ${state.raw.length.toLocaleString()} 文字 ／ ${state.chunks.length} 区画 ／ 卦 <b class="${d.hexSeen.size===64?'ok':'warn'}">${d.hexSeen.size}/64</b> を認識 ／ ページ推定 ${d.withPage} 区画`
+    : '原典: なし(解説と記録だけで使っています)';
+  updateStatus();
 }
 function renderDiag(){
   const d=state.diag;
   const miss = HEX.map((h,i)=>d.hexSeen.has(i)?null:h[0]).filter(Boolean);
   $('#diag').innerHTML =
-    `ページ番号の検出: ${d.markers} 箇所(ページは推定値です。引用時は必ず原書で確認してください)<br>` +
+    (state.bookStat||'') + '<br>' + `ページ番号の検出: ${d.markers} 箇所(ページは推定値です。引用時は必ず原書で確認してください)<br>` +
     (miss.length ? `<span class="warn">卦として認識できなかった: ${miss.join('、')}</span><br>OCRで卦辞の書き出しが崩れている可能性があります。該当卦は「すべて」の範囲で語を直接検索してください。` : '<span class="ok">64卦すべて認識できました。</span>');
 }
 function fillScope(){
@@ -727,14 +806,15 @@ function start(raw){
   state.base = raw; state.raw = applyFixes(raw);
   $('#setup').hidden = true; $('#app').hidden = false;
   rebuild();
-  $('#q').focus();
+  switchView('log');
 }
 $('#build').addEventListener('click', ()=>{
   const raw = $('#paste').value;
   if(raw.trim().length<200){ alert('本文が短すぎます。全文を貼り付けるか、テキストファイルを選んでください。'); return; }
+  LS.del('eki.nobook');
   if(!LS.set('eki.raw', raw)) alert('この環境ではブラウザに本文を保存できませんでした。今回だけ使えます(次回は再度読み込みが必要です)。');
   if(state.pendingUser){
-    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || [];
+    state.fixes = state.pendingUser.fixes || []; state.notes = state.pendingUser.notes || []; state.log = state.pendingUser.log || []; state.lib = state.pendingUser.lib || {}; state.gen = state.pendingUser.gen || {};
     if(state.pendingUser.vdict){ $('#vdict').value = state.pendingUser.vdict; LS.set('eki.vdict', state.pendingUser.vdict); }
     saveUser(); renderFixes(); state.pendingUser = null;
   }
@@ -743,7 +823,7 @@ $('#build').addEventListener('click', ()=>{
 $('#vsave').addEventListener('click', ()=>{ LS.set('eki.vdict',$('#vdict').value); rebuild(); });
 $('#vreset').addEventListener('click', ()=>{ $('#vdict').value=DEFAULT_VDICT; LS.del('eki.vdict'); rebuild(); });
 $('#replace').addEventListener('click', ()=>{ $('#paste').value=state.base; $('#app').hidden=true; $('#setup').hidden=false; });
-$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文を削除しますか?')){ LS.del('eki.raw'); location.reload(); } });
+$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文(原典)を削除しますか?(解説・記録・ノートは消えません)')){ LS.del('eki.raw'); LS.del('eki.nobook'); location.reload(); } });
 
 /* ---------- 校正・ノート ---------- */
 function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.split(f.from).join(f.to); } return raw; }
@@ -751,8 +831,8 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; cle
 function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
 function updateTabs(){ $('#tabNotes').textContent = 'ノート' + (state.notes.length ? `(${state.notes.length})` : ''); }
 function saveUser(){
-  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes}))) toast('この環境では記録を保存できませんでした');
-  updateTabs();
+  if(!LS.set('eki.user', JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen}))) toast('この環境では記録を保存できませんでした');
+  updateTabs(); updateStatus();
 }
 function download(name, text, type){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name;
@@ -857,17 +937,21 @@ $('#viewNotes').addEventListener('click', e=>{
 });
 $('#nmd').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } download('eki-notes.md', notesMd(), 'text/markdown'); });
 $('#nmdcopy').addEventListener('click', ()=>{ if(!filteredNotes().length){ toast('ノートがありません'); return; } copyText(notesMd()); toast('コピーしました'); });
-$('#nbak').addEventListener('click', ()=>download('eki-backup.json', JSON.stringify({fixes:state.fixes, notes:state.notes, vdict:$('#vdict').value}), 'application/json'));
+$('#nbak').addEventListener('click', backupShare);
 $('#nrestore').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
   try{
     const d=JSON.parse(await f.text()); let nn=0, nf=0;
     (d.notes||[]).forEach(n=>{ if(n && n.id && !state.notes.some(x=>x.id===n.id)){ state.notes.push(n); nn++; } });
     (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); nf++; } });
+    let nl=0; (d.log||[]).forEach(x=>{ if(x && x.id && x.ts && !state.log.some(y=>y.id===x.id)){ state.log.push(x); nl++; } });
+    let nb=0; Object.entries(d.lib||{}).forEach(([k,arr])=>{ const cur=state.lib[k]||(state.lib[k]=[]); (arr||[]).forEach(x=>{ if(x && x.id && x.text && !cur.some(y=>y.id===x.id)){ cur.push(x); nb++; } }); });
+    Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]) state.gen[k]=v; });
+    state.log.sort((a,b)=>b.ts.localeCompare(a.ts));
     state.notes.sort((a,b)=>b.ts-a.ts);
     saveUser();
     if(nf){ state.raw=applyFixes(state.base); rebuild(); renderFixes(); }
-    renderNotes(); toast(`ノート ${nn} 件、校正 ${nf} 件を読み込みました`);
+    renderNotes(); toast(`ノート ${nn} 件、校正 ${nf} 件、記録 ${nl} 件、解説 ${nb} 件を読み込みました`);
   }catch(err){ toast('読み込めませんでした'); }
   e.target.value='';
 });
@@ -898,7 +982,8 @@ function renderHexTable(){
     h += `<tr><th>${u}<br>${TIMG[u]}</th>`;
     for(const l of TORD){
       const i=HEXAT[u+l];
-      h += `<td><button class="hc${have.has(i)?'':' dim'}${state.hexSel===i?' sel':''}" data-hex="${i}">${hexSvg(i,22,22)}<span>${HEX[i][0]}</span><small>${i+1}</small></button></td>`;
+      const lit = !state.chunks.length || have.has(i) || hasLib(i);
+      h += `<td><button class="hc${lit?'':' dim'}${state.hexSel===i?' sel':''}" data-hex="${i}">${hexSvg(i,22,22)}<span>${HEX[i][0]}</span><small>${i+1}${hasLib(i)?' ●':''}</small></button></td>`;
     }
     h += '</tr>';
   }
@@ -910,16 +995,20 @@ function renderHexDetail(i){
   const chunks = state.chunks.filter(c=>c.hex===i);
   const has = name => chunks.some(c=>c.label.startsWith(name));
   let rows='';
-  for(let k=5;k>=0;k--){ const nm=yaoName(k,L[k]);
-    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b>${nm}</b>${lineSvg(L[k])}${has(nm)?`<button data-jump="${nm}">読む</button>`:'<span class="hint">(区画なし)</span>'}</div>`; }
-  const extra = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
-  $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${HEX[i][0]} <span class="hint">(${HEX[i][1]}経)</span></h3>
+  for(let k=5;k>=0;k--){
+    const n = (state.lib[i+'|'+POSLAB[k]]||[]).length;
+    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b>${POSLAB[k]}<small class="hint">(${yaoName(k,L[k])})</small></b>${lineSvg(L[k])}<button data-sec="${POSLAB[k]}">解説${n?`(${n})`:'(未)'}</button></div>`;
+  }
+  const bookBtns = ['卦辞','彖伝','大象','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
+  const book = chunks.length ? `<details class="bookbox"><summary>原典(本の本文)を見る</summary><p>${bookBtns} <button class="primary" data-jump="">この卦を最初から</button></p><div class="hint">「原典」タブの検索画面で開きます。</div></details>` : '';
+  $('#hexdetail').innerHTML = `<div class="panel"><h3 style="margin:.1em 0">第${i+1}卦 ${fullTrad(i)} <span class="hint">(${HEX[i][1]}経)</span></h3>
     <div class="hint">上卦 ${u}(${TIMG[u]}) ／ 下卦 ${l}(${TIMG[l]})</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;margin-top:8px">
       <div style="color:var(--accent)">${hexSvg(i,84,84)}</div><div style="flex:1 1 220px">${rows}</div></div>
-    <p>${extra} <button class="primary" data-jump="">この卦を最初から読む</button></p>
-    ${chunks.length?'':'<p class="warn">本文からこの卦の区画を認識できていません。「診断」を確認してください。</p>'}
-    <div id="hexrel"></div><div id="hexreading" class="read"></div></div>`;
+    <div id="hexrel"></div><div id="hexreading" class="read"></div>
+    <h4 style="margin:.9em 0 .2em">この卦の解説</h4>
+    <div id="hexsecs">${libLabels(i).map(lb=>secBlock(i,lb)).join('')}</div>
+    ${book}</div>`;
   state.changed = new Set();
   renderRel(i); renderReading();
 }
@@ -935,6 +1024,9 @@ function jumpTo(i,label){
 $('#viewHex').addEventListener('click', e=>{
   const hb=e.target.closest('[data-hex]');
   if(hb){ renderHexDetail(+hb.dataset.hex); $('#hexdetail').scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  const sb=e.target.closest('[data-sec]');
+  if(sb){ const d=document.querySelector(`#hexsecs details[data-lab="${sb.dataset.sec}"]`); if(d){ d.open=true; d.scrollIntoView({block:'center'}); } return; }
+  if(libAction(e)) return;
   const jb=e.target.closest('[data-jump]'); if(jb) jumpTo(jb.dataset.jhex!=null ? +jb.dataset.jhex : state.hexSel, jb.dataset.jump);
 });
 $('#viewHex').addEventListener('change', e=>{
@@ -978,8 +1070,8 @@ function renderReading(){
   const [lab,why]=readingTarget(i,ch);
   let h='<h4 style="margin:.9em 0 .2em">変爻と之卦</h4><div class="hint">上の「変」にチェックすると、之卦を計算し、読む箇所を示します。</div>';
   if(ch.size) h += `<p>本卦 <b>${HEX[i][0]}</b> → 之卦 <button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span></button></p>`;
-  h += `<div class="hint">${why}</div>` + chunkBox(i,lab,'読む箇所');
-  if(ch.size) h += chunkBox(j,'卦辞','之卦の卦辞(参考)');
+  h += `<div class="hint">${why}</div>` + readBlock(i,lab,'読む箇所');
+  if(ch.size) h += readBlock(j,'概要','之卦の概要(参考)');
   $('#hexreading').innerHTML = h;
 }
 
@@ -1047,13 +1139,557 @@ $('#viewJudge').addEventListener('click', e=>{
   const n=e.target.closest('[data-jn]'); if(n){ switchView('hex'); renderHexDetail(+n.dataset.jn); $('#hexdetail').scrollIntoView({block:'start'}); }
 });
 
+/* ---------- 易の記録 ---------- */
+state.log = []; state.lf = {kind:'', q:''}; state.draft = null; state.lopen = null;
+const KINDS = {day:'今日の心構え', month:'今月の心構え', year:'今年の心構え', event:'気になったこと'};
+const STATUS = {open:'検討中', decided:'決定', done:'終了'};
+const RES = {hit:'読み通り', part:'一部そのとおり', miss:'ずれた', wait:'まだ分からない'};
+const DUE = {event:30, month:31, year:366};   // 振り返りを促すまでの日数(今日の心構えは対象外)
+const pad2 = n => String(n).padStart(2,'0');
+function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+const fmtDT = s => String(s).replace('T',' ');
+const hexName = i => HEX[i][0];
+const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
+function deriveSet(i, ch){
+  const L=hexLines(i);
+  const [zong,cuo,hu] = relHex(i).map(x=>x[1]);
+  return {zhi: ch.length ? idxOf(L.map((v,k)=>ch.includes(k)?1-v:v)) : null, hu, cuo, zong};
+}
+const yaoNames = (i,ch) => ch.length ? [...ch].sort((a,b)=>b-a).map(k=>yaoName(k,hexLines(i)[k])).join('・') : 'なし';
+
+/* 入力フォーム */
+function openLogForm(entry, kind){
+  const base = entry ? JSON.parse(JSON.stringify(entry))
+    : {id:null, kind:kind||'day', ts:nowLocal(), title:'', hex:0, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
+  state.draft = base;
+  const box = $('#logform'); box.hidden = false;
+  box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
+    <div class="formgrid">
+      <label>種別 <select id="lkind">${Object.entries(KINDS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+      <label>日時 <input id="lts" type="datetime-local"></label>
+      <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: ○○の件で迷っている(同じ目的は同じ書き方にすると、まとまって並びます)"></label><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+      <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+      <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
+      <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
+      <div><div class="hint">変爻(該当する爻にチェック。上の爻が上に並びます)</div><div id="lyao" class="yaos"></div></div>
+      <div id="ldrv"></div>
+      <div id="lread" class="read"></div>
+      <label>メモ(状況・気づき) <textarea id="lmemo"></textarea></label>
+      <details id="lmore"><summary>解説・行動・振り返り(あとから入力できます)</summary>
+        <label>解説・アドバイス(Geminiなどで得た文章を貼り付け) <textarea id="ladvice"></textarea></label>
+        <label>行動(やること・やったこと) <textarea id="laction"></textarea></label>
+        <label>結果(読みと現実の合い方) <select id="lresult"><option value="">(未入力)</option>${Object.entries(RES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label>振り返り(結果・気づき) <textarea id="lreview"></textarea></label>
+      </details>
+    </div>
+    <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
+  $('#lkind').value=base.kind; $('#lts').value=base.ts; $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
+  $('#lstat').value=base.status||''; $('#ltags').value=(base.tags||[]).join(', '); $('#lresult').value=base.result||'';
+  $('#lmemo').value=base.memo; $('#ladvice').value=base.advice; $('#laction').value=base.action; $('#lreview').value=base.review;
+  if(entry) $('#lmore').open = true;   // 編集時は、解説・行動・振り返りの欄を最初から開く
+  updateLogDerived();
+  box.scrollIntoView({block:'start'});
+}
+function updateLogDerived(){
+  const e=state.draft, L=hexLines(e.hex), d=deriveSet(e.hex,e.ch);
+  $('#lyao').innerHTML = [5,4,3,2,1,0].map(k=>`<label class="chg"><input type="checkbox" data-lch="${k}"${e.ch.includes(k)?' checked':''}>${yaoName(k,L[k])}</label>`).join(' ');
+  const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}</small></button>`;
+  $('#ldrv').innerHTML = `<div class="hint">自動で求めた関連の卦(押すと卦の詳細へ)</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
+  const [lab,why] = readingTarget(e.hex,new Set(e.ch));
+  $('#lread').innerHTML = `<div class="hint">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要(参考)') : '');
+}
+function saveLog(){
+  const e=state.draft;
+  const rec = {
+    id: e.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+    kind:$('#lkind').value, ts:$('#lts').value || nowLocal(), title:$('#ltitle').value.trim(),
+    hex:e.hex, ch:[...e.ch].sort((a,b)=>a-b), rel:deriveSet(e.hex,e.ch),
+    memo:$('#lmemo').value.trim(), advice:$('#ladvice').value.trim(), action:$('#laction').value.trim(), review:$('#lreview').value.trim(),
+    status:$('#lstat').value, tags:$('#ltags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean), result:$('#lresult').value, imp:e.imp||false,
+    upd:Date.now()
+  };
+  const i = state.log.findIndex(x=>x.id===rec.id);
+  if(i>=0) state.log[i]=rec; else state.log.push(rec);
+  if(rec.title) state.log.forEach(x=>{ if(x!==rec && x.title && purposeKey(x)===purposeKey(rec)){ x.status=rec.status; x.tags=rec.tags; } });   // 状態とタグは、目的ごとにそろえる
+  state.log.sort((a,b)=>b.ts.localeCompare(a.ts));
+  saveUser();
+  $('#logform').hidden=true; $('#logform').innerHTML=''; state.draft=null; state.lopen=rec.id;
+  renderLog(); toast('記録を保存しました');
+}
+
+/* 一覧・今日/今月/今年 */
+function latestOf(kind, prefix){ return state.log.filter(e=>e.kind===kind && e.ts.startsWith(prefix))[0]; }
+function renderLogTop(){
+  const n=nowLocal();
+  const defs=[['day','今日',n.slice(0,10)],['month','今月',n.slice(0,7)],['year','今年',n.slice(0,4)]];
+  $('#logtop').innerHTML = '<div class="today">' + defs.map(([k,lab,pre])=>{
+    const e = latestOf(k,pre);
+    if(!e) return `<div class="lcard empty"><div class="hint">${lab}</div><div>未記録</div><button data-lact="new" data-kind="${k}">記録する</button></div>`;
+    const z = e.ch.length ? ` <span style="white-space:nowrap">→ ${hexName(e.rel.zhi)}</span>` : '';
+    const act = (e.action||e.memo||'').trim().slice(0,70);
+    return `<div class="lcard"><div class="hint">${lab}(${e.ts.slice(5,10)})</div>
+      <div class="lname">${hexSvg(e.hex,28,28)}<b>${hexName(e.hex)}</b>${z}</div>
+      ${act?`<div class="hint">${esc(act)}</div>`:''}
+      <button data-lact="open" data-id="${e.id}">開く</button></div>`;
+  }).join('') + '</div>';
+}
+/* 登録した卦から、関連する解説文をまとめて確認する */
+function entryExplain(e,primary){
+  const d=e.rel, seen=new Set(), items=[];
+  const add=(role,i,lab,open)=>{ const k=i+'|'+toLibLabel(lab); if(i==null||seen.has(k)) return; seen.add(k); items.push({role,i,lab,open}); };
+  add('本卦・読む箇所',e.hex,primary,true);
+  e.ch.forEach(k=>add('本卦・変爻',e.hex,POSLAB[k],false));
+  add('本卦',e.hex,'卦辞',false); add('本卦',e.hex,'概要',false);
+  if(d.zhi!=null){ add('之卦',d.zhi,'概要',false); add('之卦',d.zhi,'卦辞',false); }
+  add('互卦',d.hu,'概要',false); add('錯卦',d.cuo,'概要',false); add('綜卦',d.zong,'概要',false);
+  const n=it=>(state.lib[it.i+'|'+toLibLabel(it.lab)]||[]).length;
+  // 登録のある項目だけを出す(読む箇所は、未登録でも追加できるよう残す)
+  const shown=items.filter((it,k)=>n(it)>0 || k===0);
+  const hidden=items.length-shown.length;
+  let first=true;
+  return shown.map(it=>{
+    const o = n(it)>0 && first; if(o) first=false;
+    return `<details class="sec-d"${o?' open':''}><summary>【${it.role}】${fullTrad(it.i)}　${toLibLabel(it.lab)} <span class="hint">${n(it)?`(解説文 ${n(it)}件)`:'(未登録)'}</span></summary>${readBlock(it.i,it.lab,it.role)}</details>`;
+  }).join('') + (hidden?`<div class="hint">ほかの${hidden}項目は、解説文が未登録のため省略しています(「解説」タブから登録できます)。</div>`:'');
+}
+function sameHexHistory(e){
+  const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,8);
+  if(!h.length) return '';
+  return `<div class="sec"><b>同じ本卦(${hexName(e.hex)})の過去の記録</b>`+h.map(x=>{
+    const same=x.ch.join()===e.ch.join() && x.ch.length;
+    return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts.slice(0,10)}</button> ${esc(purposeOf(x))} ／ 変爻: ${yaoNames(x.hex,x.ch)}${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
+  }).join('')+'</div>';
+}
+function entryDetail(e){
+  const d=e.rel, L=hexLines(e.hex);
+  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}</small></button>`;
+  const sec = (t,v) => `<div class="sec"><b>${t}</b><div>${v?esc(v):'<span class="hint">未入力</span>'}</div></div>`;
+  const [lab,why] = readingTarget(e.hex,new Set(e.ch));
+  return `<div class="rels" style="margin:6px 0">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>
+    <div class="hint">変爻: ${yaoNames(e.hex,e.ch)}</div>
+    <div class="read"><div class="hint">${why}</div>${entryExplain(e,lab)}</div>
+    ${sameHexHistory(e)}${e.result?`<div class="hint">結果: ${RES[e.result]}</div>`:''}${sec('メモ',e.memo)}${sec('解説・アドバイス',e.advice)}${sec('行動',e.action)}${sec('振り返り',e.review)}`;
+}
+function logCard(e){
+  const open = state.lopen===e.id;
+  const z = e.ch.length ? ` → ${hexName(e.rel.zhi)}` : '';
+  return `<article class="card logitem" data-lid="${e.id}">
+    <header><span class="tag">${KINDS[e.kind]}</span><span>${fmtDT(e.ts)}</span><span class="lab">${hexName(e.hex)}${z}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}</header>
+    ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
+    ${e.title?`<div class="body"><b>${esc(e.title)}</b></div>`:''}
+    ${!open && (e.action||e.memo) ? `<div class="hint">${esc((e.action||e.memo).slice(0,80))}</div>` : ''}
+    ${open ? entryDetail(e) : ''}
+    <footer><button data-lact="open" data-id="${e.id}">${open?'閉じる':'解説を見る'}</button><button data-lact="edit" data-id="${e.id}">編集</button><button data-lact="del" data-id="${e.id}">削除</button></footer>
+  </article>`;
+}
+const purposeOf = e => e.title || KINDS[e.kind];
+const purposeKey = e => purposeOf(e).normalize('NFKC').replace(/\s+/g,'');
+function purposeList(){ const m=new Map(); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
+state.lf.mode = 'date';
+function logFiltered(){
+  const f=state.lf, q=normStr(f.q||'');
+  return state.log.filter(e=>(!f.kind || e.kind===f.kind) &&
+    (f.hex==null||f.hex===''|| e.hex===+f.hex) &&
+    (!f.chg || (f.chg==='yes') === (e.ch.length>0)) &&
+    (!f.from || e.ts.slice(0,10)>=f.from) && (!f.to || e.ts.slice(0,10)<=f.to) &&
+    (!f.st || (f.st==='-' ? !e.status : e.status===f.st)) &&
+    (!f.tag || (e.tags||[]).includes(f.tag)) &&
+    (!q || normStr([e.title,e.memo,e.advice,e.action,e.review,KINDS[e.kind],fullName(e.hex),(e.tags||[]).join(' ')].join(' ')).includes(q)));
+}
+function statsHtml(list){
+  const bar=(lab,n,max)=>`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="min-width:7.5em;font-size:.9em">${esc(lab)}</span><div style="flex:1;background:rgba(128,128,128,.25);border-radius:3px"><div style="width:${Math.max(3,n/max*100)}%;background:#5b8def;height:12px;border-radius:3px"></div></div><b style="min-width:2em;text-align:right">${n}</b></div>`;
+  const count=(fn)=>{ const m=new Map(); list.forEach(e=>{ const k=fn(e); if(k==null) return; m.set(k,(m.get(k)||0)+1); }); return [...m.entries()].sort((a,b)=>b[1]-a[1]); };
+  const block=(t,rows)=>rows.length?`<div class="panel"><b>${t}</b>${rows.map(([k,n])=>bar(k,n,rows[0][1])).join('')}</div>`:'';
+  const months=count(e=>e.ts.slice(0,7)).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+  const mx=Math.max(1,...months.map(x=>x[1]));
+  const withCh=list.filter(e=>e.ch.length).length;
+  return `<div class="panel"><b>集計(対象 ${list.length}件)</b><div class="hint">変爻あり ${withCh}件 / なし ${list.length-withCh}件 ／ 目的 ${new Set(list.map(purposeKey)).size}種類</div></div>`+
+    block('よく出る本卦(上位10)', count(e=>fullName(e.hex)).slice(0,10)) +
+    block('よく変わる爻の位置', POSLAB.map((l,k)=>[l,list.filter(e=>e.ch.includes(k)).length]).filter(x=>x[1]).sort((x,y)=>y[1]-x[1])) +
+    block('目的別の件数(上位10)', count(e=>purposeOf(e)).slice(0,10)) +
+    (months.length?`<div class="panel"><b>月ごとの件数(直近12か月)</b>${months.map(([k,n])=>bar(k,n,mx)).join('')}</div>`:'') +
+    block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
+    block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
+}
+function purposeHead(a){
+  const last=a[a.length-1], pk=purposeKey(last), st=last.status, tg=last.tags||[];
+  const flow=a.map(e=>`${e.ts.slice(0,10)} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
+  const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
+      <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
+      <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
+      <label>タグ(カンマ区切り) <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
+      <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
+  return `<h3 style="margin:14px 0 2px">${esc(purposeOf(last))} <small class="hint">${a.length}件</small> ${st?`<span class="tag">${STATUS[st]}</span>`:''} <button data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button></h3>
+    ${tg.length?`<div class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</div>`:''}<div class="hint" style="margin-bottom:6px">${esc(flow)}</div>${ed}`;
+}
+function renderLogList(){
+  const f=state.lf, cnt = {}; state.log.forEach(e=>cnt[e.kind]=(cnt[e.kind]||0)+1);
+  $('#lkinds').innerHTML = `<span class="chip${f.kind?'':' on'}" data-lkind="">すべて<b>${state.log.length}</b></span>` +
+    Object.entries(KINDS).map(([k,v])=>`<span class="chip${f.kind===k?' on':''}" data-lkind="${k}">${v}<b>${cnt[k]||0}</b></span>`).join('');
+  $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['date','日付順(新しい順)'],['purpose','目的ごと(日付順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
+  const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
+  $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
+  const list = logFiltered();
+  $('#lsum').textContent = state.log.length ? `${list.length} 件 / 全 ${state.log.length} 件` : 'まだ記録がありません。「＋ 新しい記録」から始めましょう。';
+  if(f.mode==='stats'){ $('#loglist').innerHTML = statsHtml(list); return; }
+  if(f.mode==='purpose'){
+    const g=new Map();
+    list.forEach(e=>{ const k=purposeKey(e); if(!g.has(k)) g.set(k,[]); g.get(k).push(e); });
+    const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>x.ts.localeCompare(y.ts)));
+    groups.sort((x,y)=>y[y.length-1].ts.localeCompare(x[x.length-1].ts));
+    $('#loglist').innerHTML = groups.map(a=>`<section class="lgroup">${purposeHead(a)}${a.map(logCard).join('')}</section>`).join('');
+  } else $('#loglist').innerHTML = list.map(logCard).join('');
+}
+/* 振り返り待ち */
+function pendingReviews(){
+  const now=Date.now();
+  return state.log.filter(e=>DUE[e.kind] && !e.imp && !e.review && !e.result && (now-Date.parse(e.ts))/864e5 >= DUE[e.kind]).sort((a,b)=>a.ts.localeCompare(b.ts));
+}
+function renderPending(){
+  const p=pendingReviews(), box=$('#lpend');
+  box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
+    p.slice(0,20).map(e=>`<div class="hint" style="margin:4px 0"><b>${e.ts.slice(0,10)}</b> ${esc(purposeOf(e))} ／ ${hexName(e.hex)} <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`).join('')+'</details>' : '';
+}
+function renderLog(){ renderLogTop(); renderPending(); renderLogList(); }
+
+function logMd(){
+  return '# 易の記録\n\n' + state.log.map(e=>{
+    const d=e.rel;
+    return `## ${fmtDT(e.ts)} ${KINDS[e.kind]}${e.title?':'+e.title:''}\n\n- 本卦: ${fullName(e.hex)}\n- 変爻: ${yaoNames(e.hex,e.ch)}\n` +
+      (d.zhi!=null?`- 之卦: ${fullName(d.zhi)}\n`:'') + `- 互卦: ${fullName(d.hu)}\n- 錯卦: ${fullName(d.cuo)}\n- 綜卦: ${fullName(d.zong)}\n` +
+      (e.status||(e.tags&&e.tags.length)||e.result?`- 目的の状態: ${e.status?STATUS[e.status]:'未設定'}${(e.tags&&e.tags.length)?' / タグ: '+e.tags.join(', '):''}${e.result?' / 結果: '+RES[e.result]:''}\n`:'') + (e.memo?`\n### メモ\n${e.memo}\n`:'') + (e.advice?`\n### 解説・アドバイス\n${e.advice}\n`:'') +
+      (e.action?`\n### 行動\n${e.action}\n`:'') + (e.review?`\n### 振り返り\n${e.review}\n`:'');
+  }).join('\n---\n\n');
+}
+async function backupShare(){
+  const json = JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, vdict:$('#vdict').value});
+  const file = new File([json], 'eki-backup.json', {type:'application/json'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:'易 検索 バックアップ'}); return; }
+    catch(err){ if(err && err.name==='AbortError') return; }
+  }
+  download('eki-backup.json', json, 'application/json');
+}
+
+/* まとめて取り込み: 「日付 | 目的 | 卦 | 変爻」 */
+function findHexByName(t){
+  const c=t.replace(/^[第\d\s.、]+卦?[\s.、]*/,'').replace(/[\s　]/g,'');
+  if(!c) return null;
+  for(let i=0;i<HEX.length;i++) if(c===fullTrad(i) || c===HEX[i][0] || c===fullName(i).replace(/[\s　]/g,'')) return i;
+  return null;
+}
+function parseChTok(t){
+  const c=t.replace(/[\s　]/g,'');
+  if(/^(なし|無し?|無|ー|-|―|変爻なし|不変)$/.test(c)) return {pos:[],names:[]};
+  const toks=c.split(/[・,、，\/／+＋]/).filter(Boolean); if(!toks.length) return null;
+  const pos=[], names=[];
+  for(const x of toks){
+    if(x==='用九'||x==='用六'){ for(let k=0;k<6;k++) pos.push(k); continue; }
+    const lab=YAOALIAS[x] || (POSLAB.includes(x)?x:null);
+    if(!lab) return null;
+    pos.push(POSLAB.indexOf(lab)); if(/[九六]/.test(x)) names.push([POSLAB.indexOf(lab),x]);
+  }
+  return {pos:[...new Set(pos)].sort((a,b)=>a-b), names};
+}
+function importLogText(text){
+  const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})\s*日?(?:\s*(\d{1,2}):(\d{2}))?/;
+  const out={added:0,dup:0,skip:[],warn:[]};
+  text.split(/\r?\n/).forEach((raw,n)=>{
+    const line=raw.trim(); if(!line || line[0]==='#') return;
+    const parts=line.split(/\t|\||｜|／|\s\/\s/).map(x=>x.trim()).filter(Boolean);
+    let ts=null,hex=null,chv=null; const purpose=[];
+    for(const q of parts){
+      const m=ts==null && q.match(DATE);
+      if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
+      if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
+      if(chv==null){ const c=parseChTok(q); if(c){ chv=c; continue; } }
+      purpose.push(q);
+    }
+    if(ts==null || hex==null){ out.skip.push(`${n+1}行目: ${ts==null?'日付':'卦'}が読み取れません → ${line.slice(0,40)}`); return; }
+    const ch=chv?chv.pos:[], title=purpose.join(' ');
+    if(chv) chv.names.forEach(([k,x])=>{ if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${n+1}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です(「${x}」と書かれています。位置を優先しました)`); });
+    const rec={id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), kind:/今日/.test(title)?'day':/今月/.test(title)?'month':/今年/.test(title)?'year':'event',
+      ts, title, hex, ch, rel:deriveSet(hex,ch), memo:'', advice:'', action:'', review:'', status:'', tags:[], result:'', imp:true, upd:Date.now()};
+    { const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,'')); if(same){ rec.status=same.status||''; rec.tags=same.tags||[]; } }
+    const key=e=>[e.ts.slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, e.ch.join('')].join('|');
+    if(state.log.some(e=>key(e)===key(rec))){ out.dup++; return; }
+    state.log.push(rec); out.added++;
+  });
+  if(out.added){ state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); saveUser(); renderLog(); }
+  return out;
+}
+$('#limpgo').addEventListener('click', ()=>{
+  const t=$('#limptext').value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
+  const r=importLogText(t);
+  $('#limpres').innerHTML = `<b>${r.added}件を取り込みました</b>${r.dup?`(重複 ${r.dup}件は除外)`:''}` +
+    (r.skip.length?`<br>読み取れなかった行: ${r.skip.length}件<br>`+r.skip.map(esc).join('<br>'):'') +
+    (r.warn.length?`<br>確認: <br>`+r.warn.map(esc).join('<br>'):'');
+  if(r.added && !r.skip.length) $('#limptext').value='';
+});
+
+/* イベント */
+$('#viewLog').addEventListener('click', e=>{
+  const t=e.target;
+  const g=t.closest('[data-ghex]');
+  if(g){ switchView('hex'); renderHexDetail(+g.dataset.ghex); $('#hexdetail').scrollIntoView({block:'start'}); return; }
+  const j=t.closest('[data-jump]');
+  if(j){ jumpTo(j.dataset.jhex!=null ? +j.dataset.jhex : state.hexSel, j.dataset.jump); return; }
+  const k=t.closest('[data-lkind]'); if(k){ state.lf.kind=k.dataset.lkind; renderLogList(); return; }
+  const tg=t.closest('[data-ltag]'); if(tg){ state.lf.tag = state.lf.tag===tg.dataset.ltag ? '' : tg.dataset.ltag; renderLogList(); return; }
+  const md=t.closest('[data-lmode]'); if(md){ state.lf.mode=md.dataset.lmode; renderLogList(); return; }
+  const a=t.closest('[data-lact]'); if(!a) return;
+  const id=a.dataset.id, ent=state.log.find(x=>x.id===id);
+  switch(a.dataset.lact){
+    case 'new': openLogForm(null, a.dataset.kind); break;
+    case 'cancel': $('#logform').hidden=true; $('#logform').innerHTML=''; state.draft=null; break;
+    case 'save': saveLog(); break;
+    case 'open':
+      state.lopen = state.lopen===id ? null : id; renderLogList();
+      { const el=document.querySelector(`[data-lid="${id}"]`); if(el) el.scrollIntoView({block:'nearest'}); }
+      break;
+    case 'edit': if(ent) openLogForm(ent); break;
+    case 'pedit': state.pedit=a.dataset.pk; renderLogList(); break;
+    case 'pcancel': state.pedit=null; renderLogList(); break;
+    case 'psave': {
+      const pk=a.dataset.pk, name=$('#pname').value.trim(), st=$('#pstat').value, tg=$('#ptags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean);
+      state.log.forEach(x=>{ if(purposeKey(x)===pk){ if(name) x.title=name; x.status=st; x.tags=tg; x.upd=Date.now(); } });
+      state.pedit=null; saveUser(); renderLog(); toast('目的を更新しました'); break; }
+    case 'del': if(ent && confirm('この記録を削除しますか?')){ state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
+  }
+});
+$('#viewLog').addEventListener('change', e=>{
+  const t=e.target;
+  if(t.id==='ltitle'){
+    const key=t.value.normalize('NFKC').replace(/\s+/g,''), m=key && state.log.find(x=>x.title && purposeKey(x)===key);
+    if(m){ if(!$('#lstat').value) $('#lstat').value=m.status||''; if(!$('#ltags').value.trim()) $('#ltags').value=(m.tags||[]).join(', '); }
+  }
+  else if(t.id==='lhex'){ state.draft.hex=+t.value; state.draft.ch=[]; updateLogDerived(); }
+  else if(t.dataset && t.dataset.lch!=null){
+    const s=new Set(state.draft.ch), k=+t.dataset.lch; if(t.checked) s.add(k); else s.delete(k);
+    state.draft.ch=[...s].sort((a,b)=>a-b); updateLogDerived();
+  }
+});
+$('#fhex').innerHTML = '<option value="">すべて</option>'+HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('');
+$('#lfil').addEventListener('change', e=>{
+  const m={fhex:'hex',fchg:'chg',ffrom:'from',fto:'to',fst:'st'}[e.target.id]; if(!m) return;
+  state.lf[m]=e.target.value; renderLogList();
+});
+$('#fclear').addEventListener('click', ()=>{ Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:''}); ['fhex','fchg','ffrom','fto','fst'].forEach(id=>$('#'+id).value=''); renderLogList(); });
+$('#lq').addEventListener('input', e=>{ state.lf.q=e.target.value; renderLogList(); });
+$('#lmd').addEventListener('click', ()=>{ if(!state.log.length){ toast('記録がありません'); return; } download('eki-log.md', logMd(), 'text/markdown'); });
+$('#lbak').addEventListener('click', backupShare);
+
+/* ---------- 解説ライブラリ(ためる) ---------- */
+// 保存形式: state.lib["卦番号|項目"] = [{id, text, src(出典), ts}, ...]  ※1項目にいくつでも貯められる
+state.lib = {}; state.lastSrc = '';
+const POSLAB = ['初爻','二爻','三爻','四爻','五爻','上爻'];
+// 卦の正式名: 上卦と下卦から「乾為天」「水雷屯」のように作る
+const fullTrad = i => HT[i][0]===HT[i][1] ? `${HEX[i][0]}為${TIMG[HT[i][0]]}` : `${TIMG[HT[i][0]]}${TIMG[HT[i][1]]}${HEX[i][0]}`;
+const libLabels = i => ['概要','卦辞','彖伝','大象',...POSLAB,...(i===0?['用九']:i===1?['用六']:[])];
+const LIBTOTAL = HEX.reduce((s,_,i)=>s+libLabels(i).length, 0);
+const hasLib = i => libLabels(i).some(l=>(state.lib[i+'|'+l]||[]).length>0);
+const libCount = () => Object.keys(state.lib).filter(k=>(state.lib[k]||[]).length>0).length;
+
+/* 原文(易の本より): 本の本文から、卦名の副題と経文の読み下し文だけを取り出して保存する(通釈・注は含めない) */
+state.gen = {};   // "卦番号|項目" -> 原文(経文)
+function classicalLines(c, label){
+  const ls=c.text.split('\n').map(l=>l.trim());
+  const KANA=/[ぁ-んァ-ヶ]/, FURI=/^[ぁ-んァ-ヶー・\s]+$/;
+  const isClassic=l=>/。/.test(l) && !KANA.test(l);
+  const k=ls.findIndex(isClassic);
+  if(k<0) return '';
+  const out=[];
+  // 卦辞: 卦名の下の副題(例「おろかな者、啓蒙、教育」)を先頭に付ける
+  if(label==='卦辞'){
+    for(let j=Math.max(0,k-5);j<k;j++){ const l=ls[j]; if(l && KANA.test(l) && /[一-龥]/.test(l) && !FURI.test(l) && !/[乾坤震巽坎離艮兌][下上]/.test(l)) out.push(l); }
+  }
+  // 漢文の経文のあとに続く読み下し文(ふりがな行は除く)を原文として使う
+  let j=k, blocks=0;
+  while(j<ls.length && blocks<2){
+    if(blocks>0 && !(isClassic(ls[j]) && /^象曰/.test(ls[j]))) break;   // 2つ目は小象(象曰)のみ
+    const need=Math.max(1,(ls[j].match(/。/g)||[]).length-2); let n=0, got=0;
+    while(j<ls.length && isClassic(ls[j])) { n+=(ls[j].match(/。/g)||[]).length; j++; }
+    for(let m=0;j<ls.length && m<4;m++,j++){
+      const l=ls[j]; if(!l) break;
+      if(FURI.test(l)) continue;
+      if(!KANA.test(l)) break;
+      out.push(l); got+=(l.match(/。/g)||[]).length;
+      if(got>=Math.max(1,need) && /。$/.test(l)) { j++; break; }
+    }
+    blocks++;
+  }
+  return out.join('\n');
+}
+function extractGen(){
+  const out={};
+  for(const c of state.chunks){
+    if(c.hex<0) continue;
+    const base=c.label.replace(/（.*$/,'');
+    const lab = YAOALIAS[base] || (['卦辞','彖伝','大象','文言伝','用九','用六'].includes(base) ? base : null);
+    if(!lab) continue;
+    const key=c.hex+'|'+lab; if(out[key]) continue;             // 長くて分割された区画は、最初の部分だけ使う
+    const g=classicalLines(c,lab); if(g) out[key]=g;
+  }
+  return out;
+}
+function refreshGen(){
+  if(!state.chunks.length) return;                              // 本の本文がないときは、保存済みの原文をそのまま使う
+  const before=JSON.stringify(state.gen);
+  state.gen = extractGen();
+  if(JSON.stringify(state.gen)!==before) saveUser();
+}
+const origBlock = (i,label) => { const g=state.gen[i+'|'+label]; return g ? `<div class="orig-box"><div class="hint"><b>原文</b>(易の本より)</div><div class="orig">${esc(g)}</div></div>` : ''; };
+const mapV = s => [...s].map(c=>state.vmap.get(c)||c).join('');      // 旧字体・表記ゆれをそろえる(1文字ずつ)
+const YAOALIAS = {'初九':'初爻','初六':'初爻','九二':'二爻','六二':'二爻','九三':'三爻','六三':'三爻','九四':'四爻','六四':'四爻','九五':'五爻','六五':'五爻','上九':'上爻','上六':'上爻','初':'初爻','二':'二爻','三':'三爻','四':'四爻','五':'五爻','上':'上爻'};
+const LABALIAS = {'彖':'彖伝','彖辞':'彖伝','象伝':'大象','大象伝':'大象','象':'大象','総論':'概要','概説':'概要','全体':'概要','解説':'概要'};
+function toLibLabel(s){
+  s = String(s).replace(/\s+/g,'').replace(/[（(][^）)]*[）)]/g,'').replace(/^[:：\-ー]+/,'').replace(/[*:：】\]]+$/,'');
+  return YAOALIAS[s] || LABALIAS[s] || s;
+}
+// 見出し付きの文章を、(卦, 項目, 本文) の並びに分ける
+function parseLib(text){
+  const names = HEX.map((_,i)=>mapV(fullTrad(i)));
+  const ok = new Set(['概要','卦辞','彖伝','大象','文言伝',...POSLAB,'用九','用六']);
+  const out=[]; let cur=null, buf=[];
+  const flush=()=>{ if(cur){ const t=buf.join('\n').trim(); if(t) out.push({i:cur.i, label:cur.label, text:t}); } cur=null; buf=[]; };
+  for(const raw of String(text).replace(/\r\n?/g,'\n').split('\n')){
+    const head = raw.trim().replace(/^[#>\-\s*]+/,'').replace(/^[【\[]/,'');
+    let hit=null;
+    if(head && head.length<=24){
+      const compact = head.replace(/\s+/g,''), nc = mapV(compact);
+      for(let i=0;i<64 && !hit;i++){                                 // 例: 乾為天　初爻 / 水雷屯 卦辞
+        if(nc.startsWith(names[i])){
+          const rest = toLibLabel(compact.slice(names[i].length).replace(/^[】\]：:\-ー・、,]+/,''));
+          if(ok.has(rest)) hit={i, label:rest};
+        }
+      }
+      if(!hit){                                                      // 例: 【第1卦 乾】初九
+        const m = head.match(/^第\s*([0-9０-９]+)\s*卦[^】\]]*[】\]]\s*(.*)$/);
+        if(m){ const n=parseInt(m[1].replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)),10)-1, rest=toLibLabel(m[2]);
+               if(n>=0 && n<64 && ok.has(rest)) hit={i:n, label:rest}; }
+      }
+    }
+    if(hit){ flush(); cur=hit; } else if(cur) buf.push(raw);
+  }
+  flush(); return out;
+}
+function libAdd(i,label,text,src){
+  const key=i+'|'+label, arr = state.lib[key] || (state.lib[key]=[]);
+  if(arr.some(x=>x.text===text)) return false;                       // 同じ文章は重複して入れない
+  arr.push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, src:src||'', ts:Date.now()});
+  return true;
+}
+function importLib(text, src){
+  const items=parseLib(text); let add=0, dup=0;
+  items.forEach(it=>{ if(libAdd(it.i,it.label,it.text,src)) add++; else dup++; });
+  if(add) saveUser();
+  return {found:items.length, add, dup};
+}
+function updateStatus(){ $('#status').innerHTML = `解説 <b>${libCount()}</b> / ${LIBTOTAL} 項目 ／ 記録 <b>${state.log.length}</b> 件`; }
+function renderLibProg(){
+  const el=$('#libprog'); if(!el) return;
+  el.textContent = `登録済みの項目: ${libCount()} / ${LIBTOTAL}(解説のある卦: ${HEX.filter((_,i)=>hasLib(i)).length} / 64)。表の ● が、解説のある卦です。`;
+}
+
+/* 表示 */
+function secTitle(i,l){ const k=POSLAB.indexOf(l); return k>=0 ? `${l}(${yaoName(k,hexLines(i)[k])})` : l; }
+function entriesHtml(i,l){
+  const arr=state.lib[i+'|'+l]||[];
+  if(!arr.length) return '<div class="hint">まだ登録されていません。</div>';   // 解説文
+  return arr.map(x=>`<div class="quote">${esc(x.text)}<div class="hint">${esc(x.src||'出典なし')} ・ ${new Date(x.ts).toLocaleDateString('ja-JP')}
+    <button data-libedit="${x.id}" data-i="${i}" data-lab="${l}">編集</button> <button data-libdel="${x.id}" data-i="${i}" data-lab="${l}">削除</button></div></div>`).join('');
+}
+function secBlock(i,l){
+  const n=(state.lib[i+'|'+l]||[]).length;
+  return `<details class="sec-d" data-lab="${l}"${l==='概要'?' open':''}><summary>${secTitle(i,l)} <span class="hint">${n?`(解説文 ${n}件)`:'(解説文 未登録)'}</span></summary>
+    ${origBlock(i,l)}<div class="hint"><b>解説文</b></div>
+    ${entriesHtml(i,l)}<div class="libform-slot"></div><p><button data-libadd="${l}">＋ 解説文を追加</button></p></details>`;
+}
+function refreshSecs(){
+  const i=state.hexSel; if(i<0 || !$('#hexsecs')) return;
+  const open=new Set([...document.querySelectorAll('#hexsecs details[open]')].map(d=>d.dataset.lab));
+  $('#hexsecs').innerHTML = libLabels(i).map(l=>secBlock(i,l)).join('');
+  document.querySelectorAll('#hexsecs details').forEach(d=>{ d.open = open.has(d.dataset.lab); });
+  renderReading(); renderLibProg(); renderHexTable(); updateStatus();
+}
+function bookDetails(i,label){
+  const c=state.chunks.find(c=>c.hex===i && c.label.startsWith(label));
+  return c ? `<details class="bookbox"><summary>原典(本の該当箇所)を見る</summary>${chunkBox(i,label,'原典')}</details>` : '';
+}
+function readBlock(i,label,title){
+  const lab=toLibLabel(label), arr=state.lib[i+'|'+lab]||[];
+  const head=`<div class="hint"><b>${title}:${fullTrad(i)}　${lab}${lab!==label?`(${label})`:''}</b></div>`;
+  const body = arr.length
+    ? arr.map(x=>`<div class="quote">${esc(x.text)}<div class="hint">${esc(x.src||'出典なし')}</div></div>`).join('')
+    : `<div class="hint">解説文は、まだ登録されていません。</div><p><button type="button" data-golib="${i}|${lab}">＋ 解説文を追加する</button></p>`;
+  return `<div class="expl">${head}${origBlock(i,lab)}<div class="hint"><b>解説文</b></div>${body}${bookDetails(i, lab==='概要'?'卦辞':label)}</div>`;
+}
+
+/* 1項目ずつ「ためる」フォーム */
+function openLibForm(det, i, lab, entry){
+  const slot=det.querySelector('.libform-slot');
+  slot.innerHTML = `<div class="editor" data-i="${i}" data-lab="${lab}" data-id="${entry?entry.id:''}">
+    <label class="hint">出典(任意・例: ○○講義 / Notebook)<input class="lib-src"></label>
+    <textarea class="lib-text" placeholder="解説文を貼り付けてください"></textarea>
+    <button class="primary" data-libsave>保存</button> <button data-libcancel>閉じる</button></div>`;
+  slot.querySelector('.lib-src').value = entry ? entry.src : state.lastSrc;
+  slot.querySelector('.lib-text').value = entry ? entry.text : '';
+  slot.querySelector('.lib-text').focus();
+}
+function saveLibForm(ed){
+  const i=+ed.dataset.i, lab=ed.dataset.lab, id=ed.dataset.id;
+  const text=ed.querySelector('.lib-text').value.trim(), src=ed.querySelector('.lib-src').value.trim();
+  if(!text){ toast('解説文が空です'); return; }
+  state.lastSrc=src;
+  const key=i+'|'+lab, arr=state.lib[key] || (state.lib[key]=[]);
+  const x = id ? arr.find(y=>y.id===id) : null;
+  if(x){ x.text=text; x.src=src; }
+  else arr.push({id:'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), text, src, ts:Date.now()});
+  saveUser(); refreshSecs(); toast('解説を保存しました');
+}
+function libAction(e){
+  const t=e.target;
+  const add=t.closest('[data-libadd]');
+  if(add){ openLibForm(add.closest('details'), state.hexSel, add.dataset.libadd, null); return true; }
+  const ed=t.closest('[data-libedit]');
+  if(ed){ const i=+ed.dataset.i, lab=ed.dataset.lab, x=(state.lib[i+'|'+lab]||[]).find(y=>y.id===ed.dataset.libedit); if(x) openLibForm(ed.closest('details'), i, lab, x); return true; }
+  const del=t.closest('[data-libdel]');
+  if(del){
+    const key=del.dataset.i+'|'+del.dataset.lab;
+    if(confirm('この解説を削除しますか?')){ state.lib[key]=(state.lib[key]||[]).filter(y=>y.id!==del.dataset.libdel); if(!state.lib[key].length) delete state.lib[key]; saveUser(); refreshSecs(); }
+    return true;
+  }
+  const sv=t.closest('[data-libsave]'); if(sv){ saveLibForm(sv.closest('.editor')); return true; }
+  const cn=t.closest('[data-libcancel]'); if(cn){ cn.closest('.libform-slot').innerHTML=''; return true; }
+  return false;
+}
+function goLib(i,lab){
+  switchView('hex'); renderHexDetail(i);
+  const d=document.querySelector(`#hexsecs details[data-lab="${lab}"]`);
+  if(d){ d.open=true; openLibForm(d,i,lab,null); d.scrollIntoView({block:'center'}); }
+}
+document.addEventListener('click', e=>{ const g=e.target.closest('[data-golib]'); if(g){ const [i,lab]=g.dataset.golib.split('|'); goLib(+i,lab); } });
+$('#libgo').addEventListener('click', ()=>{
+  const t=$('#libtext').value;
+  if(!t.trim()){ toast('解説文が空です'); return; }
+  const r=importLib(t, $('#libsrc').value.trim());
+  if(!r.found){ toast('見出しが見つかりません。「乾為天　初爻」のような見出し行が必要です'); return; }
+  $('#libtext').value=''; renderLibProg(); renderHexTable(); refreshSecs();
+  toast(`${r.add} 件を追加しました${r.dup?`(重複 ${r.dup} 件はスキップ)`:''}`);
+});
+$('#libfile').addEventListener('change', async e=>{ const f=e.target.files[0]; if(f){ $('#libtext').value=await readFile(f); toast('読み込みました。「取り込む」を押してください'); } e.target.value=''; });
+$('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start(''); });
+
 /* タブ切り替え */
 function switchView(v){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
   $('#viewSearch').hidden = v!=='search'; $('#viewNotes').hidden = v!=='notes'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
+  $('#viewLog').hidden = v!=='log';
+  if(v==='log') renderLog();
   if(v==='judge') renderJudge();
   if(v==='notes') renderNotes();
-  if(v==='hex') renderHexTable();
+  if(v==='hex'){ renderHexTable(); renderLibProg(); }
+  if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典(本の本文)は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
 }
 document.querySelector('.tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b) switchView(b.dataset.view); });
 
@@ -1067,7 +1703,7 @@ function toB64(s){
 $('#export').addEventListener('click', ()=>{
   const clone = document.documentElement.cloneNode(true);
   clone.querySelector('#embedded').textContent = toB64(state.base);
-  clone.querySelector('#embeddedUser').textContent = toB64(JSON.stringify({fixes:state.fixes, notes:state.notes, vdict:$('#vdict').value}));
+  clone.querySelector('#embeddedUser').textContent = toB64(JSON.stringify({fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, vdict:$('#vdict').value}));
   const html = '<!doctype html>\n' + clone.outerHTML;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([html],{type:'text/html'}));
@@ -1082,7 +1718,7 @@ let embRaw = '', embUser = null;
   if(u){ try{ embUser = JSON.parse(fromB64(u)); }catch(err){} } }
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
-if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; }
+if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; }
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 updateTabs(); renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
@@ -1097,9 +1733,10 @@ $('#appupdate').addEventListener('click', async ()=>{
 const saved = LS.get('eki.raw');
 if(embRaw.length>200){ $('#wipe').hidden = true; start(embRaw); }
 else if(saved && saved.length>200) start(saved);
+else if(LS.get('eki.nobook')==='1') start('');
 else $('#setup').hidden=false;
 // テスト用フック
-window.__eki = { state, parse, normStr, runSearch };
+window.__eki = { importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, fullTrad };
 })();
 </script>
 </body>

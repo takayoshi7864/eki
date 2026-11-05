@@ -1,7 +1,7 @@
 {
-  "name": "易 検索",
-  "short_name": "易検索",
-  "description": "個人用の全文検索アプリ(本文は端末内にのみ保存)",
+  "name": "易 解説",
+  "short_name": "易解説",
+  "description": "易を立てた記録と解説(データは端末内にのみ保存)",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
