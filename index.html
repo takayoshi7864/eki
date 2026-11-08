@@ -245,6 +245,15 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .bookbox summary{color:var(--sub);font-size:.85rem}
 .sec-d{border-bottom:1px solid var(--line);padding:4px 0}
 .sec-d summary{cursor:pointer;font-weight:bold}
+/* ドラムロールピッカー */
+.drum-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.68);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px)}
+.drum-modal-card{background:var(--card,#1c2128);border:1px solid var(--accent,#d9534f);border-radius:12px;padding:16px 18px;width:90%;max-width:320px;box-shadow:0 16px 40px rgba(0,0,0,0.6);text-align:center;box-sizing:border-box}
+.drum-wheels-container{position:relative;display:flex;justify-content:center;gap:6px;height:180px;margin:10px 0;border:1px solid var(--line,#3a4150);border-radius:8px;background:rgba(0,0,0,0.25);overflow:hidden}
+.drum-selection-highlight{position:absolute;top:72px;left:0;right:0;height:36px;background:rgba(217,83,79,0.12);border-top:1px solid var(--accent,#d9534f);border-bottom:1px solid var(--accent,#d9534f);pointer-events:none;z-index:2}
+.drum-col{flex:1;height:180px;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch;padding:72px 0;scrollbar-width:none;-ms-overflow-style:none;z-index:1;box-sizing:border-box}
+.drum-col::-webkit-scrollbar{display:none}
+.drum-item{height:36px;line-height:36px;scroll-snap-align:center;text-align:center;font-size:1rem;color:var(--text,#eee);cursor:pointer;user-select:none;transition:color .12s,font-weight .12s}
+.drum-item:hover{color:var(--accent,#ff7b72)}
 @media (max-width:560px){body{font-size:15px}}
 body:not(.help) .exp{display:none !important}
 </style>
@@ -442,16 +451,14 @@ body:not(.help) .exp{display:none !important}
             <label>期間(から)
               <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
                 <input type="text" id="ffrom_text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:32px">
-                <input type="date" id="ffrom_picker" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
-                <span style="position:absolute;right:8px;font-size:1rem;pointer-events:none;z-index:1">📅</span>
+                <button type="button" class="date-drum-btn" data-drum="ffrom" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
                 <input type="hidden" id="ffrom">
               </div>
             </label>
             <label>期間(まで)
               <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
                 <input type="text" id="fto_text" placeholder="例: 2026/12/31 や 12/31" style="width:100%;box-sizing:border-box;padding-right:32px">
-                <input type="date" id="fto_picker" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
-                <span style="position:absolute;right:8px;font-size:1rem;pointer-events:none;z-index:1">📅</span>
+                <button type="button" class="date-drum-btn" data-drum="fto" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
                 <input type="hidden" id="fto">
               </div>
             </label>
@@ -466,6 +473,30 @@ body:not(.help) .exp{display:none !important}
     </div>
   </section>
   <div id="toast" class="toast" hidden></div>
+
+  <div id="drumModal" class="drum-modal-backdrop" hidden>
+    <div class="drum-modal-card">
+      <div class="drum-modal-header">
+        <b style="font-size:1.02rem">日付をドラムロールで選択</b>
+        <div id="drumPreview" class="hint" style="font-weight:600;color:var(--accent);font-size:.9rem;margin-top:3px"></div>
+      </div>
+      <div class="drum-wheels-container">
+        <div class="drum-selection-highlight"></div>
+        <div class="drum-col" id="drumColY"></div>
+        <div class="drum-col" id="drumColM"></div>
+        <div class="drum-col" id="drumColD"></div>
+      </div>
+      <div style="display:flex;gap:6px;justify-content:center;margin:8px 0 12px">
+        <button type="button" class="chip" id="drumBtnToday" style="padding:2px 8px;font-size:.8rem">今日</button>
+        <button type="button" class="chip" id="drumBtnYesterday" style="padding:2px 8px;font-size:.8rem">昨日</button>
+        <button type="button" class="chip" id="drumBtnClear" style="padding:2px 8px;font-size:.8rem">日付なし</button>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" id="drumBtnCancel">キャンセル</button>
+        <button type="button" class="primary" id="drumBtnDone" style="font-weight:600">決定</button>
+      </div>
+    </div>
+  </div>
 
   </details>
 </main>
@@ -1378,50 +1409,32 @@ function parseEasyDate(val, refYear){
   return null;
 }
 function syncFormDate(source){
-  const hidden = $('#lts'), textInp = $('#lts_text'), picker = $('#lts_picker'), preview = $('#lts_preview');
+  const hidden = $('#lts'), textInp = $('#lts_text'), preview = $('#lts_preview');
   if(!hidden || !textInp) return;
 
   if(source === 'text'){
     const val = textInp.value.trim();
     if(!val){
       hidden.value = '';
-      if(picker) picker.value = '';
       if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
       return;
     }
     const res = parseEasyDate(val);
     if(res){
       hidden.value = res;
-      if(picker) picker.value = res;
       const [y, m, d] = res.split('-');
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
       if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
     } else {
       hidden.value = '';
-      if(picker) picker.value = '';
       if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません (例: 1/1, 2017/1/1)</span>';
-    }
-  } else if(source === 'picker'){
-    const val = picker ? picker.value : '';
-    if(val){
-      hidden.value = val;
-      const [y, m, d] = val.split('-');
-      textInp.value = `${y}/${+m}/${+d}`;
-      const dt = new Date(+y, +m - 1, +d);
-      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
-    } else {
-      hidden.value = '';
-      textInp.value = '';
-      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
     }
   } else if(source === 'init'){
     const cur = hidden.value;
     if(cur && cur.length >= 10){
       const d10 = cur.slice(0,10);
       hidden.value = d10;
-      if(picker) picker.value = d10;
       const [y, m, d] = d10.split('-');
       textInp.value = `${y}/${+m}/${+d}`;
       const dt = new Date(+y, +m - 1, +d);
@@ -1430,7 +1443,6 @@ function syncFormDate(source){
     } else {
       hidden.value = '';
       textInp.value = '';
-      if(picker) picker.value = '';
       if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
     }
   }
@@ -1438,7 +1450,6 @@ function syncFormDate(source){
 
 function syncFilterDate(which, source){
   const textInp = $('#f' + which + '_text');
-  const picker = $('#f' + which + '_picker');
   const hidden = $('#f' + which);
   if(!hidden || !textInp) return;
 
@@ -1446,28 +1457,220 @@ function syncFilterDate(which, source){
     const val = textInp.value.trim();
     if(!val){
       hidden.value = '';
-      if(picker) picker.value = '';
       state.lf[which] = '';
     } else {
       const res = parseEasyDate(val);
       if(res){
         hidden.value = res;
-        if(picker) picker.value = res;
         state.lf[which] = res;
       } else {
         hidden.value = '';
-        if(picker) picker.value = '';
         state.lf[which] = '';
       }
     }
     renderLogList();
-  } else if(source === 'picker'){
-    const val = picker ? picker.value : '';
-    hidden.value = val;
-    textInp.value = val ? val.replace(/-/g, '/') : '';
-    state.lf[which] = val;
+  }
+}
+
+/* ドラムロールピッカー（PC・スマホ両対応） */
+let currentDrumTarget = null;
+const drumState = { y: 2026, m: 11, d: 8 };
+const DRUM_YEARS = [];
+for(let y = 1980; y <= (new Date()).getFullYear() + 5; y++) DRUM_YEARS.push(y);
+const DRUM_MONTHS = Array.from({length: 12}, (_, i) => i + 1);
+
+function updateDrumDays(keepD){
+  const daysInMo = new Date(drumState.y, drumState.m, 0).getDate();
+  const colD = $('#drumColD');
+  if(!colD) return;
+  colD.innerHTML = Array.from({length: daysInMo}, (_, i) => i + 1).map(d => `<div class="drum-item" data-val="${d}">${d}日</div>`).join('');
+  let d = keepD != null ? keepD : drumState.d;
+  if(d > daysInMo) d = daysInMo;
+  if(d < 1) d = 1;
+  drumState.d = d;
+  colD.scrollTop = (d - 1) * 36;
+}
+
+function updateDrumPreview(){
+  const dt = new Date(drumState.y, drumState.m - 1, drumState.d);
+  const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+  const prev = $('#drumPreview');
+  if(prev) prev.textContent = `${drumState.y}年${drumState.m}月${drumState.d}日 (${dow})`;
+}
+
+function applyDrumSelection(val){
+  if(!currentDrumTarget) return;
+  const target = currentDrumTarget;
+  if(target === 'lts'){
+    $('#lts').value = val;
+    syncFormDate('init');
+  } else if(target === 'ffrom'){
+    $('#ffrom').value = val;
+    $('#ffrom_text').value = val ? val.replace(/-/g, '/') : '';
+    state.lf.from = val;
+    renderLogList();
+  } else if(target === 'fto'){
+    $('#fto').value = val;
+    $('#fto_text').value = val ? val.replace(/-/g, '/') : '';
+    state.lf.to = val;
     renderLogList();
   }
+}
+
+function closeDrumModal(){
+  const modal = $('#drumModal');
+  if(modal) modal.hidden = true;
+  currentDrumTarget = null;
+}
+
+function setupDrumEvents(){
+  const modal = $('#drumModal');
+  if(!modal || modal._drumEvents) return;
+  modal._drumEvents = true;
+
+  const colY = $('#drumColY');
+  const colM = $('#drumColM');
+  const colD = $('#drumColD');
+
+  let scrollTimerY = null;
+  colY.addEventListener('scroll', () => {
+    clearTimeout(scrollTimerY);
+    scrollTimerY = setTimeout(() => {
+      const idx = Math.round(colY.scrollTop / 36);
+      if(DRUM_YEARS[idx] && drumState.y !== DRUM_YEARS[idx]){
+        drumState.y = DRUM_YEARS[idx];
+        updateDrumDays();
+        updateDrumPreview();
+      }
+    }, 40);
+  });
+
+  let scrollTimerM = null;
+  colM.addEventListener('scroll', () => {
+    clearTimeout(scrollTimerM);
+    scrollTimerM = setTimeout(() => {
+      const idx = Math.round(colM.scrollTop / 36);
+      const m = idx + 1;
+      if(m >= 1 && m <= 12 && drumState.m !== m){
+        drumState.m = m;
+        updateDrumDays();
+        updateDrumPreview();
+      }
+    }, 40);
+  });
+
+  let scrollTimerD = null;
+  colD.addEventListener('scroll', () => {
+    clearTimeout(scrollTimerD);
+    scrollTimerD = setTimeout(() => {
+      const d = Math.round(colD.scrollTop / 36) + 1;
+      const daysInMo = new Date(drumState.y, drumState.m, 0).getDate();
+      if(d >= 1 && d <= daysInMo && drumState.d !== d){
+        drumState.d = d;
+        updateDrumPreview();
+      }
+    }, 40);
+  });
+
+  modal.addEventListener('click', e => {
+    const item = e.target.closest('.drum-item');
+    if(item){
+      const col = item.parentElement;
+      const items = Array.from(col.children);
+      const idx = items.indexOf(item);
+      const val = +item.dataset.val;
+      if(col === colY){ drumState.y = val; updateDrumDays(); }
+      else if(col === colM){ drumState.m = val; updateDrumDays(); }
+      else if(col === colD){ drumState.d = val; }
+      updateDrumPreview();
+      if(idx >= 0){
+        col.scrollTo({ top: idx * 36, behavior: 'smooth' });
+      }
+      return;
+    }
+    if(e.target.id === 'drumBtnToday'){
+      const today = new Date();
+      drumState.y = today.getFullYear();
+      drumState.m = today.getMonth() + 1;
+      drumState.d = today.getDate();
+      const yIdx = DRUM_YEARS.indexOf(drumState.y);
+      colY.scrollTo({ top: (yIdx >= 0 ? yIdx : 0) * 36, behavior: 'smooth' });
+      colM.scrollTo({ top: (drumState.m - 1) * 36, behavior: 'smooth' });
+      updateDrumDays(drumState.d);
+      colD.scrollTo({ top: (drumState.d - 1) * 36, behavior: 'smooth' });
+      updateDrumPreview();
+      return;
+    }
+    if(e.target.id === 'drumBtnYesterday'){
+      const yDate = new Date(Date.now() - 864e5);
+      drumState.y = yDate.getFullYear();
+      drumState.m = yDate.getMonth() + 1;
+      drumState.d = yDate.getDate();
+      const yIdx = DRUM_YEARS.indexOf(drumState.y);
+      colY.scrollTo({ top: (yIdx >= 0 ? yIdx : 0) * 36, behavior: 'smooth' });
+      colM.scrollTo({ top: (drumState.m - 1) * 36, behavior: 'smooth' });
+      updateDrumDays(drumState.d);
+      colD.scrollTo({ top: (drumState.d - 1) * 36, behavior: 'smooth' });
+      updateDrumPreview();
+      return;
+    }
+    if(e.target.id === 'drumBtnClear'){
+      applyDrumSelection('');
+      closeDrumModal();
+      return;
+    }
+    if(e.target.id === 'drumBtnCancel' || e.target === modal){
+      closeDrumModal();
+      return;
+    }
+    if(e.target.id === 'drumBtnDone'){
+      const pad2 = n => String(n).padStart(2, '0');
+      const val = `${drumState.y}-${pad2(drumState.m)}-${pad2(drumState.d)}`;
+      applyDrumSelection(val);
+      closeDrumModal();
+      return;
+    }
+  });
+}
+
+function openDrumModal(targetKey){
+  currentDrumTarget = targetKey;
+  const modal = $('#drumModal');
+  if(!modal) return;
+  setupDrumEvents();
+
+  let curVal = '';
+  if(targetKey === 'lts') curVal = $('#lts')?.value || '';
+  else if(targetKey === 'ffrom') curVal = $('#ffrom')?.value || '';
+  else if(targetKey === 'fto') curVal = $('#fto')?.value || '';
+
+  const today = new Date();
+  if(curVal && curVal.length >= 10){
+    const [y, m, d] = curVal.slice(0, 10).split('-').map(Number);
+    drumState.y = (y >= 1980 && y <= today.getFullYear() + 5) ? y : today.getFullYear();
+    drumState.m = (m >= 1 && m <= 12) ? m : (today.getMonth() + 1);
+    drumState.d = d || today.getDate();
+  } else {
+    drumState.y = today.getFullYear();
+    drumState.m = today.getMonth() + 1;
+    drumState.d = today.getDate();
+  }
+
+  const colY = $('#drumColY');
+  colY.innerHTML = DRUM_YEARS.map(y => `<div class="drum-item" data-val="${y}">${y}年</div>`).join('');
+  const colM = $('#drumColM');
+  colM.innerHTML = DRUM_MONTHS.map(m => `<div class="drum-item" data-val="${m}">${m}月</div>`).join('');
+  updateDrumDays(drumState.d);
+
+  modal.hidden = false;
+
+  const yIdx = DRUM_YEARS.indexOf(drumState.y);
+  colY.scrollTop = (yIdx >= 0 ? yIdx : 0) * 36;
+  colM.scrollTop = (drumState.m - 1) * 36;
+  const colD = $('#drumColD');
+  colD.scrollTop = (drumState.d - 1) * 36;
+
+  updateDrumPreview();
 }
 
 /* 入力フォーム */
@@ -1491,8 +1694,7 @@ function openLogForm(entry, kind){
           </div>
           <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
             <input id="lts_text" type="text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:34px">
-            <input id="lts_picker" type="date" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
-            <span style="position:absolute;right:8px;font-size:1.05rem;pointer-events:none;z-index:1">📅</span>
+            <button type="button" class="date-drum-btn" data-drum="lts" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
             <input id="lts" type="hidden">
           </div>
           <div id="lts_preview" style="margin-top:3px;font-size:.8rem;min-height:1.2rem"></div>
@@ -2900,6 +3102,13 @@ $('#viewLog').addEventListener('click', e=>{
     case 'del': if(ent && confirm('この記録を削除しますか?')){ tombAdd(ent.id); state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
   }
 });
+document.addEventListener('click', e => {
+  const drumBtn = e.target.closest('[data-drum]');
+  if(drumBtn){
+    e.preventDefault();
+    openDrumModal(drumBtn.dataset.drum);
+  }
+});
 $('#viewLog').addEventListener('input', e=>{
   if(e.target && e.target.id === 'lts_text'){
     syncFormDate('text');
@@ -2913,10 +3122,6 @@ $('#viewLog').addEventListener('keydown', e=>{
 });
 $('#viewLog').addEventListener('change', e=>{
   const t=e.target;
-  if(t.id==='lts_picker'){
-    syncFormDate('picker');
-    return;
-  }
   if(t.id==='lts_text'){
     syncFormDate('text');
     return;
@@ -2951,8 +3156,6 @@ $('#lfil').addEventListener('input', e=>{
 });
 $('#lfil').addEventListener('change', e=>{
   const t = e.target;
-  if(t.id==='ffrom_picker'){ syncFilterDate('from', 'picker'); return; }
-  if(t.id==='fto_picker'){ syncFilterDate('to', 'picker'); return; }
   if(t.id==='ffrom_text'){ syncFilterDate('from', 'text'); return; }
   if(t.id==='fto_text'){ syncFilterDate('to', 'text'); return; }
   const m={fhex:'hex',fchg:'chg',fst:'st'}[t.id]; if(!m) return;
@@ -2960,7 +3163,7 @@ $('#lfil').addEventListener('change', e=>{
 });
 $('#fclear').addEventListener('click', ()=>{
   Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:'',purpose:''});
-  ['fhex','fchg','fst','ffrom','fto','ffrom_text','fto_text','ffrom_picker','fto_picker'].forEach(id=>{
+  ['fhex','fchg','fst','ffrom','fto','ffrom_text','fto_text'].forEach(id=>{
     const el=$('#'+id); if(el) el.value='';
   });
   renderLogList();
