@@ -1514,6 +1514,21 @@ function applyDrumSelection(val){
     $('#fto_text').value = val ? val.replace(/-/g, '/') : '';
     state.lf.to = val;
     renderLogList();
+  } else if(target === 'caljump'){
+    const inp = document.querySelector('input[data-caljump="date"]');
+    if(inp) inp.value = val ? val.replace(/-/g, '/') : '';
+    if(val) jumpToCalDate(val);
+  } else if(target.startsWith('bulk:')){
+    const idx = +target.slice(5);
+    if(currentBulkStaging && currentBulkStaging.items[idx]){
+      const it = currentBulkStaging.items[idx];
+      it.dateStr = val ? val.replace(/-/g, '/') : '';
+      it.selected = true;
+      const norm = val;
+      const key = e => [(e.ts||'').slice(0,10), (e.title||'').normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
+      it.isDup = state.log.some(e => key(e) === key({ ts: norm, title: it.title, hex: it.hex, ch: it.ch }));
+      renderBulkStaging(currentBulkStaging, currentBulkStaging.resId);
+    }
   }
 }
 
@@ -1643,6 +1658,16 @@ function openDrumModal(targetKey){
   if(targetKey === 'lts') curVal = $('#lts')?.value || '';
   else if(targetKey === 'ffrom') curVal = $('#ffrom')?.value || '';
   else if(targetKey === 'fto') curVal = $('#fto')?.value || '';
+  else if(targetKey === 'caljump'){
+    const inp = document.querySelector('input[data-caljump="date"]');
+    curVal = state.calSelDate || (inp ? parseEasyDate(inp.value) : '') || '';
+  } else if(targetKey.startsWith('bulk:')){
+    const idx = +targetKey.slice(5);
+    if(currentBulkStaging && currentBulkStaging.items[idx]){
+      const it = currentBulkStaging.items[idx];
+      curVal = it.dateStr ? parseEasyDate(it.dateStr) : '';
+    }
+  }
 
   const today = new Date();
   if(curVal && curVal.length >= 10){
@@ -1651,8 +1676,8 @@ function openDrumModal(targetKey){
     drumState.m = (m >= 1 && m <= 12) ? m : (today.getMonth() + 1);
     drumState.d = d || today.getDate();
   } else {
-    drumState.y = today.getFullYear();
-    drumState.m = today.getMonth() + 1;
+    drumState.y = (state.calY != null) ? state.calY : today.getFullYear();
+    drumState.m = (state.calM != null) ? (state.calM + 1) : (today.getMonth() + 1);
     drumState.d = today.getDate();
   }
 
@@ -2238,7 +2263,10 @@ function calendarHtml(list){
       </div>
       <div class="cal-jump-area">
         <span class="hint">日付へ飛ぶ:</span>
-        <input type="text" class="cal-jump-input" data-caljump="date" value="${state.calSelDate ? state.calSelDate.replace(/-/g,'/') : ''}" placeholder="例: 2017/1/1" title="日付を入力して移動(全角でもOK)">
+        <div class="date-input-wrap" style="position:relative;display:inline-flex;align-items:center">
+          <input type="text" class="cal-jump-input" data-caljump="date" value="${state.calSelDate ? state.calSelDate.replace(/-/g,'/') : ''}" placeholder="例: 2017/1/1" title="日付を入力して移動(全角でもOK)" style="padding-right:26px">
+          <button type="button" class="date-drum-btn" data-drum="caljump" title="ドラムロールで選択" style="position:absolute;right:3px;background:none;border:none;cursor:pointer;font-size:1rem;padding:0;line-height:1">📅</button>
+        </div>
         <button class="chip" data-lact="caljumpgo">移動</button>
       </div>
     </div>
@@ -2741,7 +2769,10 @@ function renderBulkStaging(staging, resId){
         <input type="checkbox" class="bulk-item-check" data-bidx="${idx}" ${it.selected ? 'checked' : ''}>
       </td>
       <td style="padding:6px 8px">
-        <input type="text" class="bulk-item-date" data-bidx="${idx}" value="${esc(it.dateStr)}" placeholder="例: 2017/1/1" style="width:115px;font-size:.85rem;padding:3px 6px;box-sizing:border-box">
+        <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+          <input type="text" class="bulk-item-date" data-bidx="${idx}" value="${esc(it.dateStr)}" placeholder="例: 2017/1/1" style="width:125px;font-size:.85rem;padding:3px 26px 3px 6px;box-sizing:border-box">
+          <button type="button" class="date-drum-btn" data-drum="bulk:${idx}" title="ドラムロールで選択" style="position:absolute;right:3px;background:none;border:none;cursor:pointer;font-size:.95rem;padding:0;line-height:1">📅</button>
+        </div>
       </td>
       <td style="padding:6px 8px">
         <input type="text" class="bulk-item-title" data-bidx="${idx}" list="lpurp" value="${esc(it.title)}" placeholder="目的" style="width:100%;min-width:130px;font-size:.85rem;padding:3px 6px;box-sizing:border-box">
