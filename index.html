@@ -239,6 +239,7 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec div{white-space:pre-wrap;overflow-wrap:anywhere}
 .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .tabs button{flex:0 0 auto;white-space:nowrap}
+.view-stage{position:relative;width:100%}
 .orig-box{margin:6px 0}
 .orig{white-space:pre-wrap;font-size:1.05rem;letter-spacing:.04em;border-left:3px solid var(--line);padding-left:10px;margin:4px 0 8px;overflow-wrap:anywhere}
 .expl{margin:8px 0}
@@ -320,6 +321,7 @@ body:not(.help) .exp{display:none !important}
       <button data-view="search" title="本の本文（原典）の検索">原典</button>
       <button data-view="settings">設定</button>
     </nav>
+    <div id="viewStage" class="view-stage">
     <div id="viewSearch">
     <div class="stick">
     <div class="searchbar">
@@ -504,6 +506,7 @@ body:not(.help) .exp{display:none !important}
       </div>
       <div class="summary" id="lsum"></div>
       <div id="loglist"></div>
+    </div>
     </div>
   </section>
   <div id="toast" class="toast" hidden></div>
@@ -4087,71 +4090,222 @@ $('#libfile').addEventListener('change', async e=>{ const f=e.target.files[0]; i
 $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start(''); });
 
 /* タブ切り替え */
-function switchView(v){
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
-  $('#viewSearch').hidden = v!=='search'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
-  $('#viewLog').hidden = v!=='log'; $('#viewSettings').hidden = v!=='settings';
+function prepareView(v){
   if(v==='settings') feOpen();
   if(v==='log') renderLog();
   if(v==='judge') renderJudge();
   if(v==='hex'){ renderHexTable(); renderLibProg(); }
   if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典（本の本文）は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
 }
+function switchView(v){
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  $('#viewSearch').hidden = v!=='search'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
+  $('#viewLog').hidden = v!=='log'; $('#viewSettings').hidden = v!=='settings';
+  prepareView(v);
+}
 document.querySelector('.tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b) switchView(b.dataset.view); });
 
-/* ================= 画面スワイプで画面切り替え ================= */
+/* ================= 画面スワイプで画面移動・切り替え ================= */
 (function(){
   const VIEWS = ['log', 'hex', 'judge', 'search', 'settings'];
+  const VIEW_MAP = {
+    log: () => $('#viewLog'),
+    hex: () => $('#viewHex'),
+    judge: () => $('#viewJudge'),
+    search: () => $('#viewSearch'),
+    settings: () => $('#viewSettings')
+  };
+
   let startX = 0, startY = 0, startTime = 0;
-  let isTracking = false;
+  let isTracking = false, directionLocked = false, isAnimating = false;
+  let curView = null, curIdx = -1, fromEl = null;
+  let targetView = null, targetDir = 0, toEl = null;
+  let stage = null, stageWidth = 0;
+
+  function resetStyles(el){
+    if(!el) return;
+    el.style.transform = '';
+    el.style.transition = '';
+    el.style.position = '';
+    el.style.top = '';
+    el.style.left = '';
+    el.style.width = '';
+    el.style.minHeight = '';
+    el.style.boxSizing = '';
+    el.style.zIndex = '';
+  }
+
+  function cleanup(){
+    resetStyles(fromEl);
+    resetStyles(toEl);
+    if(toEl && toEl !== fromEl){
+      const curBtn = document.querySelector('.tabs button.on');
+      const active = curBtn ? curBtn.dataset.view : 'log';
+      if(targetView !== active) toEl.hidden = true;
+    }
+    if(stage){
+      stage.style.overflow = '';
+      stage.style.minHeight = '';
+    }
+    fromEl = null; toEl = null; targetView = null; targetDir = 0;
+    isTracking = false; directionLocked = false; isAnimating = false;
+  }
 
   document.addEventListener('touchstart', e => {
+    if(isAnimating) return;
     if($('#app')?.hidden) return;
     const modal = $('#drumModal');
     if(modal && !modal.hidden && modal.classList.contains('open')) return;
-    if(e.touches.length !== 1) { isTracking = false; return; }
+    if(e.touches.length !== 1){ cleanup(); return; }
     const t = e.touches[0];
     if(e.target.closest('input, select, textarea, button, a, details, summary, .drum-col, [data-view], .tblwrap')) {
-      isTracking = false;
-      return;
+      cleanup(); return;
     }
     const edgeMargin = 20;
     if(t.clientX < edgeMargin || t.clientX > window.innerWidth - edgeMargin){
-      isTracking = false;
-      return;
+      cleanup(); return;
     }
+
+    const curBtn = document.querySelector('.tabs button.on');
+    curView = curBtn ? curBtn.dataset.view : 'log';
+    curIdx = VIEWS.indexOf(curView);
+    if(curIdx === -1){ cleanup(); return; }
+
+    fromEl = VIEW_MAP[curView] ? VIEW_MAP[curView]() : null;
+    if(!fromEl){ cleanup(); return; }
+
+    stage = $('#viewStage') || $('#app');
+    stageWidth = stage.clientWidth || window.innerWidth;
+
     startX = t.clientX;
     startY = t.clientY;
     startTime = Date.now();
     isTracking = true;
+    directionLocked = false;
   }, { passive: true });
 
-  document.addEventListener('touchend', e => {
-    if(!isTracking) return;
-    isTracking = false;
-    if(!e.changedTouches || e.changedTouches.length !== 1) return;
-    const t = e.changedTouches[0];
+  document.addEventListener('touchmove', e => {
+    if(!isTracking || isAnimating || !fromEl) return;
+    if(!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
-    const dt = Date.now() - startTime;
 
-    const minDistance = 45;
-    if(Math.abs(dx) >= minDistance && Math.abs(dx) > Math.abs(dy) * 1.4 && dt < 800){
-      const curBtn = document.querySelector('.tabs button.on');
-      const curView = curBtn ? curBtn.dataset.view : 'log';
-      const curIdx = VIEWS.indexOf(curView);
-      if(curIdx === -1) return;
-
-      if(dx < 0 && curIdx < VIEWS.length - 1){
-        switchView(VIEWS[curIdx + 1]);
-      } else if(dx > 0 && curIdx > 0){
-        switchView(VIEWS[curIdx - 1]);
+    if(!directionLocked){
+      if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if(Math.abs(dy) >= Math.abs(dx)){
+        cleanup();
+        return;
       }
+      directionLocked = true;
+    }
+
+    if(e.cancelable) e.preventDefault();
+
+    let desiredDir = 0, desiredTarget = null;
+    if(dx < 0 && curIdx < VIEWS.length - 1){
+      desiredDir = 1;
+      desiredTarget = VIEWS[curIdx + 1];
+    } else if(dx > 0 && curIdx > 0){
+      desiredDir = -1;
+      desiredTarget = VIEWS[curIdx - 1];
+    }
+
+    if(desiredTarget !== targetView){
+      if(toEl && toEl !== fromEl){
+        resetStyles(toEl);
+        toEl.hidden = true;
+      }
+      targetView = desiredTarget;
+      targetDir = desiredDir;
+      toEl = targetView && VIEW_MAP[targetView] ? VIEW_MAP[targetView]() : null;
+
+      if(toEl){
+        prepareView(targetView);
+        toEl.hidden = false;
+        toEl.style.position = 'absolute';
+        toEl.style.left = '0';
+        toEl.style.width = '100%';
+        toEl.style.boxSizing = 'border-box';
+        toEl.style.zIndex = '2';
+
+        const stageRect = stage.getBoundingClientRect();
+        const scrollOffset = Math.max(0, -stageRect.top);
+        toEl.style.top = scrollOffset + 'px';
+
+        stage.style.overflow = 'hidden';
+        const neededHeight = Math.max(fromEl.offsetHeight, toEl.offsetHeight + scrollOffset);
+        stage.style.minHeight = neededHeight + 'px';
+      }
+    }
+
+    stageWidth = stage.clientWidth || window.innerWidth;
+
+    if(!toEl){
+      const rubberDx = dx * 0.25;
+      fromEl.style.transform = `translate3d(${rubberDx}px,0,0)`;
+      return;
+    }
+
+    fromEl.style.position = 'relative';
+    fromEl.style.zIndex = '1';
+    fromEl.style.transform = `translate3d(${dx}px,0,0)`;
+    const toOffset = targetDir > 0 ? (stageWidth + dx) : (-stageWidth + dx);
+    toEl.style.transform = `translate3d(${toOffset}px,0,0)`;
+  }, { passive: false });
+
+  document.addEventListener('touchend', e => {
+    if(!isTracking || !fromEl){ cleanup(); return; }
+    if(!directionLocked){ cleanup(); return; }
+
+    const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+    const dx = t ? (t.clientX - startX) : 0;
+    const dy = t ? (t.clientY - startY) : 0;
+    const dt = Math.max(1, Date.now() - startTime);
+    const vx = dx / dt;
+
+    const w = stageWidth || window.innerWidth;
+    const isHorizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+    const isFlick = Math.abs(vx) >= 0.35 && Math.abs(dx) >= 30;
+    const isPastHalf = Math.abs(dx) >= Math.min(w * 0.3, 80);
+    const shouldSwitch = Boolean(toEl && isHorizontal && (isFlick || isPastHalf) && ((targetDir > 0 && dx < 0) || (targetDir < 0 && dx > 0)));
+
+    isAnimating = true;
+
+    if(shouldSwitch && toEl && targetView){
+      const duration = 220;
+      const ease = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
+      fromEl.style.transition = `transform ${duration}ms ${ease}`;
+      toEl.style.transition = `transform ${duration}ms ${ease}`;
+
+      const fromEnd = targetDir > 0 ? -w : w;
+      fromEl.style.transform = `translate3d(${fromEnd}px,0,0)`;
+      toEl.style.transform = `translate3d(0,0,0)`;
+
+      const finalTarget = targetView;
+      setTimeout(() => {
+        cleanup();
+        switchView(finalTarget);
+      }, duration + 10);
+    } else {
+      const duration = 200;
+      fromEl.style.transition = `transform ${duration}ms ease-out`;
+      fromEl.style.transform = `translate3d(0,0,0)`;
+      if(toEl){
+        toEl.style.transition = `transform ${duration}ms ease-out`;
+        const toEnd = targetDir > 0 ? w : -w;
+        toEl.style.transform = `translate3d(${toEnd}px,0,0)`;
+      }
+      setTimeout(() => {
+        cleanup();
+      }, duration + 10);
     }
   }, { passive: true });
 
-  document.addEventListener('touchcancel', () => { isTracking = false; }, { passive: true });
+  document.addEventListener('touchcancel', () => {
+    cleanup();
+  }, { passive: true });
 })();
 
 /* ---------- 起動 ---------- */
