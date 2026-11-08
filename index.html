@@ -70,8 +70,14 @@ details>summary+*{margin-top:10px}
 .lhex .arrow{color:var(--sub)}
 .lhex small{color:var(--sub);margin-left:auto}
 .lrows{display:grid;gap:5px;margin:8px 0 4px;padding-top:8px;border-top:1px dashed var(--line)}
-.lgroup{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0}
-.lgroup-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.lgroup{margin:10px 0;border:none;padding:0;background:transparent}
+.lgroup-sum{display:flex;flex-direction:column;gap:5px;padding:10px 4.8em 10px 2.8em!important}
+.lgroup-topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lgroup-name{font-size:1.05rem;color:var(--ink)}
+.lgroup-sub{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.84rem}
+.lgroup-body{margin-top:10px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.lgroup-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px}
+.lgroup-toolbar{display:flex;justify-content:space-between;align-items:center;margin:8px 2px;flex-wrap:wrap;gap:8px}
 .lgroup .card{background:var(--bg);border:1px solid var(--line);margin:10px 0}
 .lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
 .lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
@@ -1390,21 +1396,56 @@ function statsHtml(list){
     block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
     block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
 }
-function purposeHead(a){
-  const last=a[a.length-1], pk=purposeKey(last), st=last.status, tg=last.tags||[];
-  const flow=a.map(e=>{
-    const L=hexLines(e.hex);
-    const yao=e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
-    const z=e.ch.length ? '→'+fullTrad(e.rel.zhi) : '';
+function purposeGroupHtml(a, openPks){
+  const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
+  const isOpen = (openPks && openPks.has(pk)) || state.pedit === pk;
+  const lastL = hexLines(last.hex);
+  const lastYao = last.ch.length ? last.ch.map(k=>`${POSLAB[k]}(${yaoName(k,lastL[k])})`).join('・') : '';
+  const lastZhi = last.ch.length ? fullTrad(last.rel.zhi) : null;
+  const latestDate = last.ts ? last.ts.slice(0,10) : (last.memo || '日付なし');
+
+  const flow = a.map(e=>{
+    const L = hexLines(e.hex);
+    const yao = e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+    const z = e.ch.length ? '→'+fullTrad(e.rel.zhi) : '';
     return `${e.ts ? e.ts.slice(0,10) : (e.memo || '日付なし')} ${fullTrad(e.hex)}${yao}${z}`;
   }).join(' / ');
+
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
       <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
       <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
-  return `<div class="lgroup-head"><h3 style="margin:4px 0">${esc(purposeOf(last))} <small class="hint">${a.length}件</small> ${st?`<span class="tag">${STATUS[st]}</span>`:''}</h3><button data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button></div>
-    ${tg.length?`<div class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</div>`:''}<div class="hint" style="margin-bottom:6px">${esc(flow)}</div>${ed}`;
+
+  return `<details class="lgroup"${isOpen ? ' open' : ''} data-pk="${esc(pk)}">
+    <summary class="lgroup-sum">
+      <div class="lgroup-topline">
+        <b class="lgroup-name">${esc(purposeOf(last))}</b>
+        <span class="chip on">${a.length}件</span>
+        ${st ? `<span class="tag">${STATUS[st]}</span>` : ''}
+        ${tg.length ? `<span class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</span>` : ''}
+      </div>
+      <div class="lgroup-sub hint">
+        <span>直近: ${latestDate}</span>
+        ${hexSvg(last.hex,18,18)}<b>${fullTrad(last.hex)}</b>
+        ${lastYao ? `<b>${lastYao}</b>` : ''}
+        ${lastZhi ? `<span class="arrow">→</span>${hexSvg(last.rel.zhi,18,18)}<b>${lastZhi}</b>` : ''}
+      </div>
+    </summary>
+    <div class="lgroup-body">
+      <div class="lgroup-flow-bar">
+        <div class="hint" style="flex:1;min-width:200px">${esc(flow)}</div>
+        <button data-lact="pedit" data-pk="${esc(pk)}" style="flex:none">目的を編集</button>
+      </div>
+      ${ed}
+      <div class="lgroup-cards">
+        ${a.map(logCard).join('')}
+      </div>
+      <div style="text-align:center;margin:10px 0 2px">
+        <button class="chip" data-lact="pclose">▲ ${esc(purposeOf(last))}を閉じる</button>
+      </div>
+    </div>
+  </details>`;
 }
 function renderLogList(){
   const f=state.lf, cnt = {}; state.log.forEach(e=>cnt[e.kind]=(cnt[e.kind]||0)+1);
@@ -1421,7 +1462,15 @@ function renderLogList(){
     list.forEach(e=>{ const k=purposeKey(e); if(!g.has(k)) g.set(k,[]); g.get(k).push(e); });
     const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>(x.ts||'').localeCompare(y.ts||'') || ((x.upd||0)-(y.upd||0))));
     groups.sort((x,y)=>(y[y.length-1].ts||'').localeCompare(x[x.length-1].ts||''));
-    $('#loglist').innerHTML = groups.map(a=>`<section class="lgroup">${purposeHead(a)}${a.map(logCard).join('')}</section>`).join('');
+    const openPks = new Set(Array.from(document.querySelectorAll('#loglist details.lgroup[open]')).map(d=>d.dataset.pk));
+    const toolbar = groups.length ? `<div class="lgroup-toolbar">
+      <span class="hint">目的 <b>${groups.length}</b> 種類 ／ 対象 <b>${list.length}</b> 件</span>
+      <div style="display:flex;gap:6px">
+        <button class="chip" data-lact="expandall">すべて展開</button>
+        <button class="chip" data-lact="collapseall">すべて閉じる</button>
+      </div>
+    </div>` : '';
+    $('#loglist').innerHTML = toolbar + groups.map(a=>purposeGroupHtml(a, openPks)).join('');
   } else $('#loglist').innerHTML = list.map(logCard).join('');
 }
 /* 振り返り待ち */
@@ -1686,6 +1735,17 @@ $('#viewLog').addEventListener('click', e=>{
       { const el=document.querySelector(`[data-lid="${id}"]`); if(el) el.scrollIntoView({block:'nearest'}); }
       break;
     case 'edit': if(ent) openLogForm(ent); break;
+    case 'expandall':
+      document.querySelectorAll('#loglist details.lgroup').forEach(d=>d.open=true);
+      break;
+    case 'collapseall':
+      document.querySelectorAll('#loglist details.lgroup').forEach(d=>d.open=false);
+      break;
+    case 'pclose': {
+      const grp = a.closest('details.lgroup');
+      if(grp){ grp.open = false; grp.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+      break;
+    }
     case 'pedit': state.pedit=a.dataset.pk; renderLogList(); break;
     case 'pcancel': state.pedit=null; renderLogList(); break;
     case 'psave': {
