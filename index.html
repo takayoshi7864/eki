@@ -972,11 +972,11 @@ $('#nrestore').addEventListener('change', async e=>{
     const d=JSON.parse(await f.text()); relabelAll(d); let nn=0, nf=0;
     (d.notes||[]).forEach(n=>{ if(n && n.id && !state.notes.some(x=>x.id===n.id)){ state.notes.push(n); nn++; } });
     (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); nf++; } });
-    let nl=0; (d.log||[]).forEach(x=>{ if(x && x.id && x.ts && !state.log.some(y=>y.id===x.id)){ state.log.push(x); nl++; } });
+    let nl=0; (d.log||[]).forEach(x=>{ if(x && x.id && x.ts!=null && !state.log.some(y=>y.id===x.id)){ state.log.push(x); nl++; } });
     let nb=0; Object.entries(d.lib||{}).forEach(([k,arr])=>{ const cur=state.lib[k]||(state.lib[k]=[]); (arr||[]).forEach(x=>{ if(x && x.id && x.text && !cur.some(y=>y.id===x.id)){ cur.push(x); nb++; } }); });
     Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]) state.gen[k]=v; });
     Object.entries(d.genFix||{}).forEach(([k,v])=>{ if(v && !(state.genFix[k] && state.genFix[k].upd>=v.upd)) state.genFix[k]=v; });
-    state.log.sort((a,b)=>b.ts.localeCompare(a.ts));
+    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
     state.notes.sort((a,b)=>b.ts-a.ts);
     saveUser();
     if(nf){ state.raw=applyFixes(state.base); rebuild(); renderFixes(); }
@@ -1174,7 +1174,7 @@ const RES = {hit:'読み通り', part:'一部そのとおり', miss:'ずれた',
 const DUE = {event:30, month:31, year:366};   // 振り返りを促すまでの日数(今日の心構えは対象外)
 const pad2 = n => String(n).padStart(2,'0');
 function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
-const fmtDT = s => String(s).replace('T00:00','').replace('T',' ');
+const fmtDT = s => s ? String(s).replace('T00:00','').replace('T',' ') : '日付なし';
 const kindOfTitle = t => /今日/.test(t)?'day':/今月/.test(t)?'month':/今年/.test(t)?'year':'event';
 const hexName = i => HEX[i][0];
 const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
@@ -1194,7 +1194,7 @@ function openLogForm(entry, kind){
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
       <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
-      <div class="formgrid2" style="display:flex;gap:10px;flex-wrap:wrap"><label>日付 <input id="lts" type="date"></label><label>時間(なくてもかまいません) <input id="ltime" type="time"></label></div><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+      <div class="formgrid2" style="display:flex;gap:10px;flex-wrap:wrap"><label>日付(空欄で日付なし) <input id="lts" type="date"></label><label>時間(なくてもかまいません) <input id="ltime" type="time"></label></div><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
@@ -1210,7 +1210,7 @@ function openLogForm(entry, kind){
       </details>
     </div>
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
-  $('#lts').value=base.ts.slice(0,10); $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16); $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
+  $('#lts').value=base.ts ? base.ts.slice(0,10) : ''; $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16); $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
   $('#lstat').value=base.status||''; $('#ltags').value=(base.tags||[]).join(', '); $('#lresult').value=base.result||'';
   $('#lmemo').value=base.memo; $('#ladvice').value=base.advice; $('#laction').value=base.action; $('#lreview').value=base.review;
   if(entry) $('#lmore').open = true;   // 編集時は、解説・行動・振り返りの欄を最初から開く
@@ -1227,9 +1227,11 @@ function updateLogDerived(){
 }
 function saveLog(){
   const e=state.draft;
+  const dVal=$('#lts').value; const tVal=$('#ltime').value;
+  const ts = dVal ? (dVal+'T'+(tVal||'00:00')) : '';
   const rec = {
     id: e.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
-    kind:$('#ltitle').value.trim() ? kindOfTitle($('#ltitle').value) : (e.kind||'event'), ts:(($('#lts').value || nowLocal().slice(0,10))+'T'+($('#ltime').value||'00:00')), title:$('#ltitle').value.trim(),
+    kind:$('#ltitle').value.trim() ? kindOfTitle($('#ltitle').value) : (e.kind||'event'), ts, title:$('#ltitle').value.trim(),
     hex:e.hex, ch:[...e.ch].sort((a,b)=>a-b), rel:deriveSet(e.hex,e.ch),
     memo:$('#lmemo').value.trim(), advice:$('#ladvice').value.trim(), action:$('#laction').value.trim(), review:$('#lreview').value.trim(),
     status:$('#lstat').value, tags:$('#ltags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean), result:$('#lresult').value, imp:e.imp||false,
@@ -1238,14 +1240,14 @@ function saveLog(){
   const i = state.log.findIndex(x=>x.id===rec.id);
   if(i>=0) state.log[i]=rec; else state.log.push(rec);
   if(rec.title) state.log.forEach(x=>{ if(x!==rec && x.title && purposeKey(x)===purposeKey(rec)){ x.status=rec.status; x.tags=rec.tags; } });   // 状態とタグは、目的ごとにそろえる
-  state.log.sort((a,b)=>b.ts.localeCompare(a.ts));
+  state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
   saveUser();
   $('#logform').hidden=true; $('#logform').innerHTML=''; state.draft=null; state.lopen=rec.id;
   renderLog(); toast('記録を保存しました');
 }
 
 /* 一覧・今日/今月/今年 */
-function latestOf(kind, prefix){ return state.log.filter(e=>e.kind===kind && e.ts.startsWith(prefix))[0]; }
+function latestOf(kind, prefix){ return state.log.filter(e=>e.kind===kind && e.ts && e.ts.startsWith(prefix))[0]; }
 function renderLogTop(){
   const n=nowLocal();
   const defs=[['day','今日',n.slice(0,10)],['month','今月',n.slice(0,7)],['year','今年',n.slice(0,4)]];
@@ -1254,7 +1256,7 @@ function renderLogTop(){
     if(!e) return `<div class="lcard empty"><div class="hint">${lab}</div><div>未記録</div><button data-lact="new" data-kind="${k}">記録する</button></div>`;
     const z = e.ch.length ? ` <span style="white-space:nowrap">→ ${hexName(e.rel.zhi)}</span>` : '';
     const act = (e.action||e.memo||'').trim().slice(0,70);
-    return `<div class="lcard"><div class="hint">${lab}(${e.ts.slice(5,10)})</div>
+    return `<div class="lcard"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : '日付なし'})</div>
       <div class="lname">${hexSvg(e.hex,28,28)}<b>${hexName(e.hex)}</b>${z}</div>
       ${act?`<div class="hint">${esc(act)}</div>`:''}
       <button data-lact="open" data-id="${e.id}">開く</button></div>`;
@@ -1286,11 +1288,11 @@ function entryExplain(e,primary){
   }).join('') + '';
 }
 function sameHexHistory(e){
-  const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>b.ts.localeCompare(a.ts)).slice(0,8);
+  const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))).slice(0,8);
   if(!h.length) return '';
   return `<div class="sec"><b>同じ本卦(${hexName(e.hex)})の過去の記録</b>`+h.map(x=>{
     const same=x.ch.join()===e.ch.join() && x.ch.length;
-    return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts.slice(0,10)}</button> ${esc(purposeOf(x))} ／ 変爻: ${yaoNames(x.hex,x.ch)}${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
+    return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts ? x.ts.slice(0,10) : '日付なし'}</button> ${esc(purposeOf(x))} ／ 変爻: ${yaoNames(x.hex,x.ch)}${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
   }).join('')+'</div>';
 }
 function entryDetail(e){
@@ -1327,7 +1329,7 @@ function logFiltered(){
   return state.log.filter(e=>(!f.kind || e.kind===f.kind) &&
     (f.hex==null||f.hex===''|| e.hex===+f.hex) &&
     (!f.chg || (f.chg==='yes') === (e.ch.length>0)) &&
-    (!f.from || e.ts.slice(0,10)>=f.from) && (!f.to || e.ts.slice(0,10)<=f.to) &&
+    (!f.from || (e.ts && e.ts.slice(0,10)>=f.from)) && (!f.to || (e.ts && e.ts.slice(0,10)<=f.to)) &&
     (!f.st || (f.st==='-' ? !e.status : e.status===f.st)) &&
     (!f.tag || (e.tags||[]).includes(f.tag)) &&
     (!q || normStr([e.title,e.memo,e.advice,e.action,e.review,KINDS[e.kind],fullName(e.hex),(e.tags||[]).join(' ')].join(' ')).includes(q)));
@@ -1336,7 +1338,7 @@ function statsHtml(list){
   const bar=(lab,n,max)=>`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="min-width:7.5em;font-size:.9em">${esc(lab)}</span><div style="flex:1;background:rgba(128,128,128,.25);border-radius:3px"><div style="width:${Math.max(3,n/max*100)}%;background:#5b8def;height:12px;border-radius:3px"></div></div><b style="min-width:2em;text-align:right">${n}</b></div>`;
   const count=(fn)=>{ const m=new Map(); list.forEach(e=>{ const k=fn(e); if(k==null) return; m.set(k,(m.get(k)||0)+1); }); return [...m.entries()].sort((a,b)=>b[1]-a[1]); };
   const block=(t,rows)=>rows.length?`<div class="panel"><b>${t}</b>${rows.map(([k,n])=>bar(k,n,rows[0][1])).join('')}</div>`:'';
-  const months=count(e=>e.ts.slice(0,7)).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+  const months=count(e=>e.ts ? e.ts.slice(0,7) : null).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
   const mx=Math.max(1,...months.map(x=>x[1]));
   const withCh=list.filter(e=>e.ch.length).length;
   return `<div class="panel"><b>集計(対象 ${list.length}件)</b><div class="hint">変爻あり ${withCh}件 / なし ${list.length-withCh}件 ／ 目的 ${new Set(list.map(purposeKey)).size}種類</div></div>`+
@@ -1349,7 +1351,7 @@ function statsHtml(list){
 }
 function purposeHead(a){
   const last=a[a.length-1], pk=purposeKey(last), st=last.status, tg=last.tags||[];
-  const flow=a.map(e=>`${e.ts.slice(0,10)} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
+  const flow=a.map(e=>`${e.ts ? e.ts.slice(0,10) : '日付なし'} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
       <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
@@ -1371,20 +1373,20 @@ function renderLogList(){
   if(f.mode==='purpose'){
     const g=new Map();
     list.forEach(e=>{ const k=purposeKey(e); if(!g.has(k)) g.set(k,[]); g.get(k).push(e); });
-    const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>x.ts.localeCompare(y.ts)));
-    groups.sort((x,y)=>y[y.length-1].ts.localeCompare(x[x.length-1].ts));
+    const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>(x.ts||'').localeCompare(y.ts||'') || ((x.upd||0)-(y.upd||0))));
+    groups.sort((x,y)=>(y[y.length-1].ts||'').localeCompare(x[x.length-1].ts||''));
     $('#loglist').innerHTML = groups.map(a=>`<section class="lgroup">${purposeHead(a)}${a.map(logCard).join('')}</section>`).join('');
   } else $('#loglist').innerHTML = list.map(logCard).join('');
 }
 /* 振り返り待ち */
 function pendingReviews(){
   const now=Date.now();
-  return state.log.filter(e=>DUE[e.kind] && !e.imp && !e.review && !e.result && (now-Date.parse(e.ts))/864e5 >= DUE[e.kind]).sort((a,b)=>a.ts.localeCompare(b.ts));
+  return state.log.filter(e=>DUE[e.kind] && !e.imp && !e.review && !e.result && e.ts && (now-Date.parse(e.ts))/864e5 >= DUE[e.kind]).sort((a,b)=>(a.ts||'').localeCompare(b.ts||''));
 }
 function renderPending(){
   const p=pendingReviews(), box=$('#lpend');
   box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint exp">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
-    p.slice(0,20).map(e=>`<div class="hint" style="margin:4px 0"><b>${e.ts.slice(0,10)}</b> ${esc(purposeOf(e))} ／ ${hexName(e.hex)} <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`).join('')+'</details>' : '';
+    p.slice(0,20).map(e=>`<div class="hint" style="margin:4px 0"><b>${e.ts ? e.ts.slice(0,10) : '日付なし'}</b> ${esc(purposeOf(e))} ／ ${hexName(e.hex)} <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`).join('')+'</details>' : '';
 }
 function renderLog(){ renderLogTop(); renderPending(); renderLogList(); }
 
@@ -1445,7 +1447,7 @@ function importLogText(text){
       const fullTitle=[baseTitle, curSubTitle].filter(Boolean).join(' ') || '心構え';
       items.push({
         lineNum: curLineNum,
-        ts: curTs || `${new Date().getFullYear()}-01-01T00:00`,
+        ts: curTs != null ? curTs : '',
         title: fullTitle,
         hex: curHex,
         ch: curCh,
@@ -1465,6 +1467,7 @@ function importLogText(text){
       flush(n);
       let ts=null,hex=null,chv=null; const purpose=[];
       for(const q of parts){
+        if(/^(なし|無し|日付なし|未設定|不明|ー|-)$/.test(q)){ ts=''; continue; }
         const m=ts==null && q.match(DATE);
         if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
         if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
@@ -1477,7 +1480,7 @@ function importLogText(text){
       }
       items.push({
         lineNum: n,
-        ts: ts || `${new Date().getFullYear()}-01-01T00:00`,
+        ts: ts != null ? ts : '',
         title: purpose.join(' ') || baseTitle || '',
         hex,
         ch: chv ? chv.pos : [],
@@ -1518,10 +1521,14 @@ function importLogText(text){
       const y=+mYear[1];
       const rest=mYear[2].trim();
       const isToji=/冬至/.test(rest);
-      const d=isToji ? tojiDay(y) : 1;
-      const m=isToji ? 12 : 1;
-      curTs=`${y}-${pad2(m)}-${pad2(d)}T00:00`;
-      if(rest) curSubTitle=rest;
+      if(isToji){
+        const d=tojiDay(y);
+        curTs=`${y}-12-${pad2(d)}T00:00`;
+        curSubTitle=rest;
+      } else {
+        curTs='';
+        curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
+      }
       return;
     }
 
@@ -1545,12 +1552,12 @@ function importLogText(text){
       const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,''));
       if(same){ rec.status=same.status||''; rec.tags=same.tags||[]; }
     }
-    const key=e=>[e.ts.slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, e.ch.join('')].join('|');
+    const key=e=>[(e.ts||'').slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, e.ch.join('')].join('|');
     if(state.log.some(e=>key(e)===key(rec))){ out.dup++; return; }
     state.log.push(rec); out.added++;
   });
 
-  if(out.added){ state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); saveUser(); renderLog(); }
+  if(out.added){ state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))); saveUser(); renderLog(); }
   return out;
 }
 const handleBulkImport = (taId, resId) => {
