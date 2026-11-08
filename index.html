@@ -101,7 +101,7 @@ details>summary+*{margin-top:10px}
 .lrow-date{font-weight:600;font-size:.85rem;color:var(--sub);min-width:6.8em;white-space:nowrap}
 .lrow-hex{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:1.02rem}
 .lrow-hex b{color:var(--ink);font-weight:600}
-.lrow-hex .yao-name{color:var(--accent);font-weight:600}
+.lrow-hex .yao-name{color:var(--ink);font-weight:600}
 .lrow-acts{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .lrow-detail{margin:6px 0 10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .cal-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
@@ -139,8 +139,8 @@ details>summary+*{margin-top:10px}
 .purpose-card-title{font-size:.95rem;color:var(--ink);line-height:1.35;flex:1;min-width:0;word-break:break-word}
 .purpose-card-head .chip{flex-shrink:0;align-self:flex-start;margin-top:1px;font-size:.78rem;padding:2px 8px;line-height:1.2}
 .purpose-card-sub{display:flex;align-items:center;gap:6px;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.purpose-card-hex{color:var(--ink);font-size:.92rem}
-.purpose-card-yao{color:var(--accent);font-size:.88rem}
+.purpose-card-hex{color:var(--ink);font-size:.92rem;font-weight:600}
+.purpose-card-yao{color:var(--ink);font-size:.92rem;font-weight:600}
 .purpose-card-date{margin-top:auto;text-align:right;font-size:.76rem;color:var(--sub);line-height:1}
 /* カレンダーの目的別色分け */
 .cal-event.p-day{border-left:3px solid #4fc3f7}
@@ -3120,7 +3120,7 @@ function renderBulkStaging(staging, resId){
         <input type="text" class="bulk-item-title" data-bidx="${idx}" list="lpurp" value="${esc(it.title)}" placeholder="目的" style="width:100%;min-width:130px;font-size:.85rem;padding:3px 6px;box-sizing:border-box">
       </td>
       <td style="padding:6px 8px;white-space:nowrap">
-        <b>${fullTrad(it.hex)}</b> <span class="hint" style="font-size:.78rem">${esc(yName)}</span>
+        <b>${fullTrad(it.hex)}</b> <b style="font-weight:600;color:var(--ink)">${esc(yName)}</b>
       </td>
       <td style="padding:6px 8px;text-align:center;white-space:nowrap">
         ${it.isDup ? '<span class="chip" style="background:#552222;color:#ff9999;font-size:.72rem;padding:2px 5px">既存重複</span>' : '<span class="chip" style="background:#1b3d2f;color:#7fe3ad;font-size:.72rem;padding:2px 5px">新規</span>'}
