@@ -89,10 +89,10 @@ details>summary+*{margin-top:10px}
 .lrow-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px;border-radius:6px;transition:background .15s}
 .lrow-item:hover{background:rgba(128,128,128,.06)}
 .lrow-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1}
-.lrow-date{font-weight:600;font-size:.88rem;color:var(--sub);min-width:4.8em;white-space:nowrap}
-.lrow-hex{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.92rem}
-.lrow-hex b{color:var(--ink)}
-.lrow-hex .arrow{color:var(--sub);margin:0 2px}
+.lrow-date{font-weight:600;font-size:.85rem;color:var(--sub);min-width:6.8em;white-space:nowrap}
+.lrow-hex{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:1.02rem}
+.lrow-hex b{color:var(--ink);font-weight:600}
+.lrow-hex .yao-name{color:var(--accent);font-weight:600}
 .lrow-acts{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .lrow-detail{margin:6px 0 10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .cal-wrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0}
@@ -1463,21 +1463,34 @@ function statsHtml(list){
     block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
     block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
 }
-function logRowItem(e, showPurpose){
+function logRowItem(e){
   const open = state.lopen===e.id;
-  const zhi = e.ch.length ? e.rel.zhi : null;
   const pend = !!(state._pend && state._pend.has(e.id));
   const L = hexLines(e.hex);
   const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
-  const dateStr = e.memo || (e.ts ? (e.kind==='day' ? e.ts.slice(5,10).replace('-','/') : e.ts.slice(0,10)) : '日付なし');
+  
+  let dateStr = '';
+  const yr = e.ts ? e.ts.slice(0,4) : '';
+  if(e.memo && /冬至占/.test(e.memo)){
+    dateStr = (yr && !e.memo.includes(yr)) ? `${yr}年 ${e.memo}` : e.memo;
+  } else if(e.kind==='day' && e.ts){
+    dateStr = e.ts.slice(5,10).replace('-','/');
+  } else if(e.kind==='month' && e.ts){
+    dateStr = `${e.ts.slice(0,4)}年${parseInt(e.ts.slice(5,7),10)}月`;
+  } else if(e.ts){
+    dateStr = e.ts.slice(0,10);
+  } else {
+    dateStr = e.memo || '日付なし';
+  }
+
   return `<div class="lrow-wrap" data-lid="${e.id}">
     <div class="lrow-item">
       <div class="lrow-left">
         <span class="lrow-date">${esc(dateStr)}</span>
-        ${showPurpose ? `<span class="tag" style="font-weight:600">${esc(purposeOf(e))}</span>` : ''}
         <span class="lrow-hex">
-          ${hexSvg(e.hex,20,20)}<b>${fullTrad(e.hex)}</b>
-          ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
+          ${hexSvg(e.hex,22,22)}
+          <b>${fullTrad(e.hex)}</b>
+          ${yaoStr ? `<b class="yao-name">${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
         </span>
         ${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}
         ${e.result?`<span class="tag">${RES[e.result]}</span>`:''}
@@ -1645,7 +1658,7 @@ function calendarHtml(list){
           <b>${state.calSelDate} の記録 (${dayItems.length}件)</b>
           <button class="chip" data-lact="calnew" data-date="${state.calSelDate}">＋ この日に追加</button>
         </div>
-        ${dayItems.map(e => logRowItem(e, true)).join('')}
+        ${dayItems.map(logRowItem).join('')}
       </div>`;
     } else {
       detailHtml = `<div class="panel" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
@@ -1704,19 +1717,32 @@ function purposeSummaryCards(groups, activePk){
       const last = a[a.length - 1];
       const pk = purposeKey(last);
       const title = purposeOf(last);
-      const latestDate = last.ts ? (last.kind === 'day' ? last.ts.slice(5, 10).replace('-', '/') : last.ts.slice(0, 10)) : (last.memo || '日付なし');
+      const yr = last.ts ? last.ts.slice(0, 4) : '';
+      let latestDate = '';
+      if(last.memo && /冬至占/.test(last.memo)){
+        latestDate = (yr && !last.memo.includes(yr)) ? `${yr}年 ${last.memo}` : last.memo;
+      } else if(last.kind === 'day' && last.ts){
+        latestDate = last.ts.slice(5, 10).replace('-', '/');
+      } else if(last.kind === 'month' && last.ts){
+        latestDate = `${last.ts.slice(0, 4)}年${parseInt(last.ts.slice(5, 7), 10)}月`;
+      } else if(last.ts){
+        latestDate = last.ts.slice(0, 10);
+      } else {
+        latestDate = last.memo || '日付なし';
+      }
       const lastL = hexLines(last.hex);
-      const lastYao = last.ch.length ? last.ch.map(k => POSLAB[k]).join('') : '';
+      const lastYao = last.ch.length ? last.ch.map(k => `${POSLAB[k]}(${yaoName(k,lastL[k])})`).join('・') : '';
       const isAct = activePk === pk;
-      return `<div class="purpose-card${isAct ? ' active' : ''}" data-lpurpcard="${esc(pk)}" title="${esc(title)} を開いて移動">
+      return `<div class="purpose-card${isAct ? ' active' : ''}" data-lpurpcard="${esc(pk)}" title="${esc(title)} を表示">
         <div class="purpose-card-head">
           <b class="purpose-card-title">${esc(title)}</b>
           <span class="chip on">${a.length}件</span>
         </div>
         <div class="purpose-card-sub hint">
-          <span>直近: ${latestDate}</span>
-          ${hexSvg(last.hex, 16, 16)}<b>${fullTrad(last.hex)}</b>
-          ${lastYao ? `<b>${lastYao}</b>` : ''}
+          ${hexSvg(last.hex, 18, 18)}
+          <b style="color:var(--ink);font-size:.92rem">${fullTrad(last.hex)}</b>
+          ${lastYao ? `<b style="color:var(--accent);font-size:.9rem">${lastYao}</b>` : '<span class="hint">不変</span>'}
+          <span style="margin-left:auto;font-size:.76rem">${latestDate}</span>
         </div>
       </div>`;
     }).join('') +
