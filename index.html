@@ -1510,14 +1510,21 @@ async function backupShare(){
 
 /* まとめて取り込み: 「日付 | 目的 | 卦 | 変爻」 または 複数行のメモ */
 function findHexByName(t){
-  const c=t.replace(/^(本卦|之卦|卦)[:：\s　]*/,'').replace(/^[第\d\s.、]+卦?[\s.、]*/,'').replace(/[\s　]/g,'');
+  const clean = s => s.replace(/[\s　]/g,'').replace(/盻/g,'睽').replace(/旡/g,'无').replace(/晋/g,'晉').replace(/恒/g,'恆').replace(/剥/g,'剝');
+  const c=clean(t.replace(/^(本卦|之卦|卦)[:：\s　]*/,'').replace(/^[第\d\s.、]+卦?[\s.、]*/,''));
   if(!c) return null;
-  for(let i=0;i<HEX.length;i++) if(c===fullTrad(i) || c===HEX[i][0] || c===fullName(i).replace(/[\s　]/g,'')) return i;
+  for(let i=0;i<HEX.length;i++) if(c===clean(fullTrad(i)) || c===clean(HEX[i][0]) || c===clean(fullName(i))) return i;
   return null;
 }
 function parseChTok(t){
   let c=t.replace(/[\s　]/g,'');
-  if(/^(なし|無し?|無|ー|-|―|変爻なし|不変)$/.test(c)) return {pos:[],names:[]};
+  if(/^(なし|無し?|無|ー|-|―|変爻なし|不変|不明|未詳)$/.test(c)) return {pos:[],names:[]};
+  c=c.normalize('NFKC').replace(/ニ/g,'二');
+  c=c.replace(/第?([123456一二三四五六初上])爻?/g, (m, g1)=>{
+    if(g1==='1'||g1==='一') return '初爻';
+    if(g1==='6'||g1==='六') return '上爻';
+    return g1 + (g1.endsWith('爻')?'':'爻');
+  });
   c=c.replace(/第([一二三四五六123456])爻/g, '$1爻');
   const toks=c.split(/[・,、，\/／+＋]/).filter(Boolean); if(!toks.length) return null;
   const pos=[], names=[];
@@ -1540,6 +1547,7 @@ function importLogText(text){
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const items=[];
   let baseTitle='', curSubTitle='', curTs=null, curHex=null, curCh=[], curChv=null, curLineNum=1;
+  let currentYear=null;
 
   function flush(n){
     if(curHex!=null){
@@ -1604,7 +1612,7 @@ function importLogText(text){
         if(h!=null){ lineHex=h; continue; }
       }
       const c=parseChTok(t);
-      if(c && c.pos.length){ lineChv=c; continue; }
+      if(c && (c.pos.length || /不明|未詳|なし|無し/.test(t))){ lineChv=c; continue; }
     }
     if(lineHex!=null){
       curHex=lineHex;
@@ -1612,6 +1620,26 @@ function importLogText(text){
       curChv=lineChv;
       curLineNum=n;
       flush(n);
+      return;
+    }
+
+    if(line.startsWith('本卦')){
+      out.skip.push(`${n}行目: 本卦が読み取れません → ${line.slice(0,40)}`);
+      return;
+    }
+
+    const mHeader=line.match(/^(\d{4})\s*年?[\s　]+(.*心構え.*)$/);
+    if(mHeader){
+      currentYear=+mHeader[1];
+      baseTitle=mHeader[2].trim();
+      return;
+    }
+
+    const mMD=line.match(/^(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?$/);
+    if(mMD){
+      const yr=currentYear||(new Date()).getFullYear();
+      curTs=`${yr}-${pad2(+mMD[1])}-${pad2(+mMD[2])}T${pad2(+(mMD[3]||0))}:${mMD[4]||'00'}`;
+      curSubTitle='';
       return;
     }
 
@@ -1639,7 +1667,7 @@ function importLogText(text){
       return;
     }
 
-    baseTitle=line;
+    if(!line.startsWith('本卦') && !line.startsWith('之卦')) baseTitle=line;
   });
   flush();
 
@@ -1680,7 +1708,7 @@ const DEFAULT_LOG = (() => {
     { y: 2025, toji: true,  hex: 17, ch: [4], memo: '2025年 冬至占' },
     { y: 2026, toji: true,  hex: 33, ch: [4], memo: '2026年 冬至占' }
   ];
-  return data.map(e => ({
+  const yearLogs = data.map(e => ({
     id: `l_toji_${e.y}`,
     kind: 'year',
     ts: e.toji ? `${e.y}-12-${pad2(tojiDay(e.y))}T00:00` : '',
@@ -1698,6 +1726,26 @@ const DEFAULT_LOG = (() => {
     imp: true,
     upd: 1483200000000 + (e.y - 2017) * 31536000000
   }));
+  const days = [["10-10",32,[1]],["10-11",33,[2]],["10-12",1,[1]],["10-14",19,[1]],["10-16",34,[4]],["10-17",40,[1]],["10-18",10,[1]],["10-19",25,[2]],["10-20",28,[4]],["10-21",46,[4]],["10-22",49,[3]],["10-23",2,[0]],["10-24",60,[3]],["10-25",37,[2]],["10-26",9,[3]],["10-27",8,[1]],["10-28",1,[3]],["10-30",56,[1]],["10-31",43,[5]],["11-01",20,[5]],["11-02",14,[3]],["11-03",24,[1]],["11-04",60,[2]],["11-05",35,[4]],["11-07",44,[3]],["11-08",52,[4]],["11-09",1,[3]],["11-10",40,[5]],["11-11",21,[3]],["11-12",6,[3]],["11-13",57,[0]],["11-14",22,[0]],["11-15",55,[3]],["11-16",3,[0]],["11-17",32,[3]],["11-18",19,[3]],["11-19",46,[4]],["11-20",20,[0]],["11-21",18,[0]],["11-22",22,[2]],["11-23",3,[0]],["11-28",15,[5]],["11-30",7,[]],["12-01",29,[2]],["12-02",43,[1]],["12-04",31,[2]],["12-05",38,[2]],["12-06",50,[4]],["12-07",28,[5]],["12-08",52,[3]],["12-09",6,[3]],["12-10",7,[5]],["12-11",48,[4]],["12-12",22,[3]],["12-13",30,[4]],["12-14",6,[5]],["12-15",54,[3]],["12-16",36,[4]],["12-17",9,[2]],["12-19",25,[0]],["12-20",14,[4]],["12-21",22,[2]],["12-22",18,[2]],["12-23",32,[2]],["12-24",46,[1]],["12-25",51,[5]],["12-26",5,[1]],["12-27",59,[0]],["12-28",25,[4]],["12-29",46,[0]],["12-30",18,[3]],["12-31",40,[2]]];
+  const dayLogs = days.map(([md, hex, ch]) => ({
+    id: `l_day_2016${md.replace('-','')}`,
+    kind: 'day',
+    ts: `2016-${md}T00:00`,
+    title: '今日の心構え',
+    hex,
+    ch,
+    rel: deriveSet(hex, ch),
+    memo: '',
+    advice: '',
+    action: '',
+    review: '',
+    status: '',
+    tags: ['今日の心構え'],
+    result: '',
+    imp: true,
+    upd: 1476057600000 + parseInt(md.replace('-',''), 10) * 86400000
+  }));
+  return [...yearLogs, ...dayLogs];
 })();
 const handleBulkImport = (taId, resId) => {
   const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
@@ -2248,14 +2296,14 @@ function mergeIn(d){
     });
     return out;
   };
-  state.log = mergeList(state.log, (d.log||[]).filter(x=>x && x.ts));
+  state.log = mergeList(state.log, (d.log||[]).filter(x=>x && x.id));
   state.notes = mergeList(state.notes, d.notes);
   const keys=new Set([...Object.keys(state.lib), ...Object.keys(d.lib||{})]);
   keys.forEach(k=>{ const a=mergeList(state.lib[k]||[], (d.lib||{})[k]); if(a.length) state.lib[k]=a; else delete state.lib[k]; });
   (d.fixes||[]).forEach(x=>{ if(x && x.from && !state.fixes.some(y=>y.from===x.from && y.to===x.to)){ state.fixes.push(x); ch=true; } });
   Object.entries(d.gen||{}).forEach(([k,v])=>{ if(v && !state.gen[k]){ state.gen[k]=v; ch=true; } });
   Object.entries(d.genFix||{}).forEach(([k,v])=>{ if(v && (v.upd||0)>((state.genFix[k]||{}).upd||0)){ state.genFix[k]=v; ch=true; } });
-  state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); state.notes.sort((a,b)=>b.ts-a.ts);
+  state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))); state.notes.sort((a,b)=>b.ts-a.ts);
   return ch;
 }
 const snapshot = () => ({tomb:state.tomb, fixes:state.fixes, notes:state.notes, log:state.log, lib:state.lib, gen:state.gen, genFix:state.genFix, saved:Date.now()});
