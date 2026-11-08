@@ -248,6 +248,7 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec-d summary{cursor:pointer;font-weight:bold}
 /* ドラムロールピッカー */
 .drum-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.68);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px)}
+.drum-modal-backdrop[hidden]{display:none !important}
 .drum-modal-card{background:var(--card,#1c2128);border:1px solid var(--accent,#d9534f);border-radius:12px;padding:16px 18px;width:90%;max-width:320px;box-shadow:0 16px 40px rgba(0,0,0,0.6);text-align:center;box-sizing:border-box}
 .drum-wheels-container{position:relative;display:flex;justify-content:center;gap:6px;height:180px;margin:10px 0;border:1px solid var(--line,#3a4150);border-radius:8px;background:rgba(0,0,0,0.25);overflow:hidden}
 .drum-selection-highlight{position:absolute;top:72px;left:0;right:0;height:36px;background:rgba(217,83,79,0.12);border-top:1px solid var(--accent,#d9534f);border-bottom:1px solid var(--accent,#d9534f);pointer-events:none;z-index:2}
@@ -257,6 +258,26 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .drum-item:hover{color:var(--accent,#ff7b72)}
 @media (max-width:560px){body{font-size:15px}}
 body:not(.help) .exp{display:none !important}
+/* 記録一覧コントロール群のモダンレイアウト */
+.log-ctrl-panel{display:flex;flex-direction:column;gap:10px;padding:12px 14px}
+.log-ctrl-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mode-segmented{display:inline-flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg-btn{background:transparent;border:none;border-radius:999px;padding:6px 14px;font-size:.85rem;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s ease;white-space:nowrap;line-height:1.2}
+.seg-btn:hover{color:var(--ink)}
+.seg-btn.on{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.25)}
+.log-search-wrap{position:relative;display:flex;align-items:center;flex:1 1 220px}
+.log-search-icon{position:absolute;left:11px;font-size:.92rem;opacity:.55;pointer-events:none}
+.log-search-input{width:100%;height:38px;box-sizing:border-box;padding-left:34px;padding-right:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:.9rem;transition:border-color .15s}
+.log-search-input:focus{border-color:var(--accent);outline:none}
+.purp-rail-wrap{position:relative;width:100%;display:flex;align-items:center}
+.purp-rail{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 0;align-items:center;width:100%}
+.purp-rail::-webkit-scrollbar{display:none}
+.purp-rail-label{font-size:.8rem;font-weight:600;color:var(--sub);margin-right:4px;flex-shrink:0}
+.purp-rail .chip{flex-shrink:0;white-space:nowrap}
+.chip-count{display:inline-block;font-size:.74rem;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,0.1);margin-left:5px;font-weight:600;line-height:1.2}
+.chip.on .chip-count{background:rgba(255,255,255,0.28);color:#fff}
+.log-filter-details{margin:0}
+.log-filter-details summary{padding:8px 4.8em 8px 2.6em;font-size:.88rem;background:var(--bg);border-radius:8px}
 </style>
 </head>
 <body>
@@ -441,11 +462,18 @@ body:not(.help) .exp{display:none !important}
       </details>
       <div id="lpend"></div>
       <div id="logform" hidden></div>
-      <div class="panel">
-        <div class="searchbar"><input id="lq" type="search" placeholder="記録の中を検索(卦の名前・メモ・解説など)"></div>
-        <div class="facets" id="lkinds"></div>
-        <div class="facets" id="lmode"></div>
-        <details id="lfil"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
+      <div class="panel log-ctrl-panel">
+        <div class="log-ctrl-top">
+          <div class="mode-segmented" id="lmode"></div>
+          <div class="log-search-wrap">
+            <span class="log-search-icon" aria-hidden="true">🔍</span>
+            <input id="lq" class="log-search-input" type="search" placeholder="記録を検索 (卦・目的・メモ・解説など)">
+          </div>
+        </div>
+        <div class="purp-rail-wrap">
+          <div class="purp-rail" id="lkinds"></div>
+        </div>
+        <details id="lfil" class="log-filter-details"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
           <div class="formgrid">
             <label>本卦 <select id="fhex"></select></label>
             <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
@@ -2463,13 +2491,19 @@ function renderLogList(){
   });
   const pList = [...pMap.values()].sort((a,b) => b.count - a.count);
   const curP = f.purpose || '';
-  const pChips = pList.length > 1 ? `<span class="hint">目的</span> ` +
-    `<span class="chip${!curP ? ' on' : ''}" data-lpurp="">すべて <b>${state.log.length}</b></span>` +
-    pList.map(p => `<span class="chip${curP === p.pk ? ' on' : ''}" data-lpurp="${esc(p.pk)}">${esc(p.title)} <b>${p.count}</b></span>`).join('')
+  const pChips = pList.length > 1 ? `<span class="purp-rail-label">目的</span>` +
+    `<span class="chip${!curP ? ' on' : ''}" data-lpurp="">すべて <span class="chip-count">${state.log.length}</span></span>` +
+    pList.map(p => `<span class="chip${curP === p.pk ? ' on' : ''}" data-lpurp="${esc(p.pk)}">${esc(p.title)} <span class="chip-count">${p.count}</span></span>`).join('')
     : '';
   $('#lkinds').innerHTML = pChips;
 
-  $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['purpose','目的ごと(日付順)'],['cal','カレンダー'],['date','日付順(新しい順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
+  const modes = [
+    ['purpose', '目的ごと'],
+    ['cal', 'カレンダー'],
+    ['date', '日付順'],
+    ['stats', '集計']
+  ];
+  $('#lmode').innerHTML = modes.map(([k,v]) => `<button type="button" class="seg-btn${f.mode===k?' on':''}" data-lmode="${k}">${v}</button>`).join('');
   const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
   const list = logFiltered();
