@@ -120,10 +120,25 @@ details>summary+*{margin-top:10px}
 .cal-add{border-radius:50%;width:18px;height:18px;padding:0;font-size:11px;line-height:16px;text-align:center;opacity:0;transition:opacity .15s;border:none;background:var(--chip);color:var(--sub);cursor:pointer}
 .cal-cell:hover .cal-add{opacity:1}
 .cal-add:hover{background:var(--accent);color:#fff}
+/* 目的別のまとまりサマリーカード */
+.purpose-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:8px 0 12px}
+.purpose-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s;display:flex;flex-direction:column;gap:4px}
+.purpose-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.purpose-card.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
+.purpose-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.purpose-card-title{font-size:.98rem;color:var(--ink)}
+.purpose-card-sub{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.8rem}
+/* カレンダーの目的別色分け */
+.cal-event.p-day{border-left:3px solid #4fc3f7}
+.cal-event.p-month{border-left:3px solid #ba68c8}
+.cal-event.p-year{border-left:3px solid #ffb74d}
+.cal-event.p-other{border-left:3px solid #81c784}
+.cal-event-tag{font-size:.65rem;opacity:.85;margin-right:2px;font-weight:600}
 @media(max-width:640px){
   .cal-cell{min-height:56px;padding:2px}
   .cal-event{font-size:.66rem;padding:1px 2px}
   .cal-event svg{display:none}
+  .purpose-cards-grid{grid-template-columns:1fr}
 }
 .lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
 .lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
@@ -1420,6 +1435,7 @@ state.lf.mode = 'purpose';
 function logFiltered(){
   const f=state.lf, q=normStr(f.q||'');
   return state.log.filter(e=>(!f.kind || e.kind===f.kind) &&
+    (!f.purpose || purposeKey(e)===f.purpose) &&
     (f.hex==null||f.hex===''|| e.hex===+f.hex) &&
     (!f.chg || (f.chg==='yes') === (e.ch.length>0)) &&
     (!f.from || (e.ts && e.ts.slice(0,10)>=f.from)) && (!f.to || (e.ts && e.ts.slice(0,10)<=f.to)) &&
@@ -1442,7 +1458,7 @@ function statsHtml(list){
     block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
     block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
 }
-function logRowItem(e){
+function logRowItem(e, showPurpose){
   const open = state.lopen===e.id;
   const zhi = e.ch.length ? e.rel.zhi : null;
   const pend = !!(state._pend && state._pend.has(e.id));
@@ -1453,6 +1469,7 @@ function logRowItem(e){
     <div class="lrow-item">
       <div class="lrow-left">
         <span class="lrow-date">${esc(dateStr)}</span>
+        ${showPurpose ? `<span class="tag" style="font-weight:600">${esc(purposeOf(e))}</span>` : ''}
         <span class="lrow-hex">
           ${hexSvg(e.hex,20,20)}<b>${fullTrad(e.hex)}</b>
           ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
@@ -1543,8 +1560,16 @@ function calEventPill(e){
   const L = hexLines(e.hex);
   const yaoStr = e.ch.length ? e.ch.map(k=>POSLAB[k]).join('') : '';
   const isSel = state.lopen === e.id;
-  return `<div class="cal-event${isSel?' on':''}" data-lact="open" data-id="${e.id}" title="${esc(purposeOf(e))}: ${fullTrad(e.hex)} ${yaoStr}">
-    ${hexSvg(e.hex, 14, 14)}
+  const pk = purposeKey(e);
+  let pCls = 'p-other';
+  if(pk.includes('今日')) pCls = 'p-day';
+  else if(pk.includes('今月')) pCls = 'p-month';
+  else if(pk.includes('年') || pk.includes('冬至')) pCls = 'p-year';
+  const pName = purposeOf(e);
+  const shortTag = pName.replace(/の心構え|の件|について/, '').slice(0, 4);
+  return `<div class="cal-event ${pCls}${isSel?' on':''}" data-lact="open" data-id="${e.id}" title="${esc(pName)}: ${fullTrad(e.hex)} ${yaoStr}">
+    <span class="cal-event-tag">${esc(shortTag)}</span>
+    ${hexSvg(e.hex, 13, 13)}
     <b>${fullTrad(e.hex)}</b>
     <small>${yaoStr || '不変'}</small>
   </div>`;
@@ -1629,7 +1654,7 @@ function calendarHtml(list){
           <b>${state.calSelDate} の記録 (${dayItems.length}件)</b>
           <button class="chip" data-lact="calnew" data-date="${state.calSelDate}">＋ この日に追加</button>
         </div>
-        ${dayItems.map(logRowItem).join('')}
+        ${dayItems.map(e => logRowItem(e, true)).join('')}
       </div>`;
     } else {
       detailHtml = `<div class="panel" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
@@ -1663,9 +1688,48 @@ function calendarHtml(list){
     ${detailHtml}
   </div>`;
 }
+function purposeSummaryCards(groups, activePk){
+  if(!groups.length) return '';
+  return `<div class="purpose-cards-grid">` +
+    groups.map(a => {
+      const last = a[a.length - 1];
+      const pk = purposeKey(last);
+      const title = purposeOf(last);
+      const latestDate = last.ts ? (last.kind === 'day' ? last.ts.slice(5, 10).replace('-', '/') : last.ts.slice(0, 10)) : (last.memo || '日付なし');
+      const lastL = hexLines(last.hex);
+      const lastYao = last.ch.length ? last.ch.map(k => POSLAB[k]).join('') : '';
+      const isAct = activePk === pk;
+      return `<div class="purpose-card${isAct ? ' active' : ''}" data-lpurpcard="${esc(pk)}" title="${esc(title)} を開いて移動">
+        <div class="purpose-card-head">
+          <b class="purpose-card-title">${esc(title)}</b>
+          <span class="chip on">${a.length}件</span>
+        </div>
+        <div class="purpose-card-sub hint">
+          <span>直近: ${latestDate}</span>
+          ${hexSvg(last.hex, 16, 16)}<b>${fullTrad(last.hex)}</b>
+          ${lastYao ? `<b>${lastYao}</b>` : ''}
+        </div>
+      </div>`;
+    }).join('') +
+  `</div>`;
+}
 function renderLogList(){
-  const f=state.lf, cnt = {}; state.log.forEach(e=>cnt[e.kind]=(cnt[e.kind]||0)+1);
-  $('#lkinds').innerHTML = '';   // 種別の絞り込みは使わない(目的で分ける)
+  const f=state.lf;
+  // 目的別のまとまりセレクター（常設チップ）
+  const pMap = new Map();
+  state.log.forEach(e => {
+    const pk = purposeKey(e), title = purposeOf(e);
+    if(!pMap.has(pk)) pMap.set(pk, { pk, title, count: 0 });
+    pMap.get(pk).count++;
+  });
+  const pList = [...pMap.values()].sort((a,b) => b.count - a.count);
+  const curP = f.purpose || '';
+  const pChips = pList.length > 1 ? `<span class="hint">目的</span> ` +
+    `<span class="chip${!curP ? ' on' : ''}" data-lpurp="">すべて <b>${state.log.length}</b></span>` +
+    pList.map(p => `<span class="chip${curP === p.pk ? ' on' : ''}" data-lpurp="${esc(p.pk)}">${esc(p.title)} <b>${p.count}</b></span>`).join('')
+    : '';
+  $('#lkinds').innerHTML = pChips;
+
   $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['purpose','目的ごと(日付順)'],['cal','カレンダー'],['date','日付順(新しい順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
   const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
@@ -1680,13 +1744,14 @@ function renderLogList(){
     const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>(x.ts||'').localeCompare(y.ts||'') || ((x.upd||0)-(y.upd||0))));
     groups.sort((x,y)=>(y[y.length-1].ts||'').localeCompare(x[x.length-1].ts||''));
     const openPks = new Set(Array.from(document.querySelectorAll('#loglist details.lgroup[open]')).map(d=>d.dataset.pk));
+    const summaryCards = purposeSummaryCards(groups, f.purpose);
     const toolbar = groups.length ? `<div class="lgroup-toolbar">
       <div style="display:flex;gap:6px">
         <button class="chip" data-lact="expandall">すべて展開</button>
         <button class="chip" data-lact="collapseall">すべて閉じる</button>
       </div>
     </div>` : '';
-    $('#loglist').innerHTML = toolbar + groups.map(a=>purposeGroupHtml(a, openPks)).join('');
+    $('#loglist').innerHTML = summaryCards + toolbar + groups.map(a=>purposeGroupHtml(a, openPks)).join('');
   } else $('#loglist').innerHTML = list.map(logCard).join('');
 }
 /* 振り返り待ち */
@@ -2022,6 +2087,23 @@ $('#viewLog').addEventListener('click', e=>{
   if(g){ switchView('hex'); renderHexDetail(+g.dataset.ghex); $('#hexdetail').scrollIntoView({block:'start'}); return; }
   const j=t.closest('[data-jump]');
   if(j){ jumpTo(j.dataset.jhex!=null ? +j.dataset.jhex : state.hexSel, j.dataset.jump); return; }
+  const purp=t.closest('[data-lpurp]');
+  if(purp){
+    const pk = purp.dataset.lpurp;
+    state.lf.purpose = (state.lf.purpose === pk) ? '' : pk;
+    renderLogList();
+    return;
+  }
+  const pcard=t.closest('[data-lpurpcard]');
+  if(pcard){
+    const pk = pcard.dataset.lpurpcard;
+    const targetGroup = document.querySelector(`#loglist details.lgroup[data-pk="${CSS.escape(pk)}"]`);
+    if(targetGroup){
+      targetGroup.open = true;
+      targetGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    return;
+  }
   const k=t.closest('[data-lkind]'); if(k){ state.lf.kind=k.dataset.lkind; renderLogList(); return; }
   const tg=t.closest('[data-ltag]'); if(tg){ state.lf.tag = state.lf.tag===tg.dataset.ltag ? '' : tg.dataset.ltag; renderLogList(); return; }
   const md=t.closest('[data-lmode]'); if(md){ state.lf.mode=md.dataset.lmode; renderLogList(); return; }
@@ -2101,7 +2183,7 @@ $('#lfil').addEventListener('change', e=>{
   const m={fhex:'hex',fchg:'chg',ffrom:'from',fto:'to',fst:'st'}[e.target.id]; if(!m) return;
   state.lf[m]=e.target.value; renderLogList();
 });
-$('#fclear').addEventListener('click', ()=>{ Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:''}); ['fhex','fchg','ffrom','fto','fst'].forEach(id=>$('#'+id).value=''); renderLogList(); });
+$('#fclear').addEventListener('click', ()=>{ Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:'',purpose:''}); ['fhex','fchg','ffrom','fto','fst'].forEach(id=>$('#'+id).value=''); renderLogList(); });
 $('#lq').addEventListener('input', e=>{ state.lf.q=e.target.value; renderLogList(); });
 $('#lmd').addEventListener('click', ()=>{ if(!state.log.length){ toast('記録がありません'); return; } download('eki-log.md', logMd(), 'text/markdown'); });
 $('#lbak').addEventListener('click', backupShare);
