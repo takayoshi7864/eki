@@ -269,10 +269,11 @@ body:not(.help) .exp{display:none !important}
 .log-search-icon{position:absolute;left:11px;font-size:.92rem;opacity:.55;pointer-events:none}
 .log-search-input{width:100%;height:38px;box-sizing:border-box;padding-left:34px;padding-right:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:.9rem;transition:border-color .15s}
 .log-search-input:focus{border-color:var(--accent);outline:none}
-.purp-rail-wrap{width:100%}
-.purp-rail{display:flex;gap:6px 8px;flex-wrap:wrap;padding:2px 0;align-items:center}
-.purp-rail-label{font-size:.8rem;font-weight:600;color:var(--sub);margin-right:4px;align-self:center}
-.purp-rail .chip{white-space:nowrap}
+.purp-section{display:flex;align-items:flex-start;gap:10px;padding:2px 0}
+.purp-section[hidden]{display:none !important}
+.purp-section-label{font-size:.82rem;font-weight:600;color:var(--sub);padding-top:4px;flex-shrink:0;user-select:none;line-height:22px}
+.purp-chips{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;flex:1 1 auto}
+.purp-chips .chip{white-space:nowrap}
 .chip-count{display:inline-block;font-size:.74rem;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,0.1);margin-left:5px;font-weight:600;line-height:1.2}
 .chip.on .chip-count{background:rgba(255,255,255,0.28);color:#fff}
 .log-filter-details{margin:0}
@@ -469,8 +470,9 @@ body:not(.help) .exp{display:none !important}
             <input id="lq" class="log-search-input" type="search" placeholder="記録を検索 (卦・目的・メモ・解説など)">
           </div>
         </div>
-        <div class="purp-rail-wrap">
-          <div class="purp-rail" id="lkinds"></div>
+        <div class="purp-section" id="lpurpwrap">
+          <span class="purp-section-label">目的</span>
+          <div class="purp-chips" id="lkinds"></div>
         </div>
         <details id="lfil" class="log-filter-details"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
           <div class="formgrid">
@@ -2504,11 +2506,12 @@ function renderLogList(){
   });
   const pList = [...pMap.values()].sort((a,b) => b.count - a.count);
   const curP = f.purpose || '';
-  const pChips = pList.length > 1 ? `<span class="purp-rail-label">目的</span>` +
+  const pChips = pList.length > 1 ?
     `<span class="chip${!curP ? ' on' : ''}" data-lpurp="">すべて <span class="chip-count">${state.log.length}</span></span>` +
     pList.map(p => `<span class="chip${curP === p.pk ? ' on' : ''}" data-lpurp="${esc(p.pk)}">${esc(p.title)} <span class="chip-count">${p.count}</span></span>`).join('')
     : '';
   $('#lkinds').innerHTML = pChips;
+  if($('#lpurpwrap')) $('#lpurpwrap').hidden = pList.length <= 1;
 
   const modes = [
     ['purpose', '目的ごと'],
