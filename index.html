@@ -1284,10 +1284,12 @@ function renderLogTop(){
   $('#logtop').innerHTML = '<div class="today">' + defs.map(([k,lab,pre])=>{
     const e = latestOf(k,pre);
     if(!e) return `<div class="lcard empty"><div class="hint">${lab}</div><div>未記録</div><button data-lact="new" data-kind="${k}">記録する</button></div>`;
-    const z = e.ch.length ? ` <span style="white-space:nowrap">→ ${hexName(e.rel.zhi)}</span>` : '';
+    const L = hexLines(e.hex);
+    const yao = e.ch.length ? ` <b>${e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・')}</b>` : '';
+    const z = e.ch.length ? ` <span style="white-space:nowrap"><span class="arrow">→</span> ${hexSvg(e.rel.zhi,20,20)}<b>${fullTrad(e.rel.zhi)}</b></span>` : '';
     const act = (e.action||e.memo||'').trim().slice(0,70);
-    return `<div class="lcard"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : '日付なし'})</div>
-      <div class="lname">${hexSvg(e.hex,28,28)}<b>${hexName(e.hex)}</b>${z}</div>
+    return `<div class="lcard"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')})</div>
+      <div class="lname">${hexSvg(e.hex,26,26)}<b>${fullTrad(e.hex)}</b>${yao}${z}</div>
       ${act?`<div class="hint">${esc(act)}</div>`:''}
       <button data-lact="open" data-id="${e.id}">開く</button></div>`;
   }).join('') + '</div>';
@@ -1320,18 +1322,21 @@ function entryExplain(e,primary){
 function sameHexHistory(e){
   const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))).slice(0,8);
   if(!h.length) return '';
-  return `<div class="sec"><b>同じ本卦(${hexName(e.hex)})の過去の記録</b>`+h.map(x=>{
+  return `<div class="sec"><b>同じ本卦(${fullTrad(e.hex)})の過去の記録</b>`+h.map(x=>{
     const same=x.ch.join()===e.ch.join() && x.ch.length;
-    return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts ? x.ts.slice(0,10) : '日付なし'}</button> ${esc(purposeOf(x))} ／ 変爻: ${yaoNames(x.hex,x.ch)}${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
+    const xL = hexLines(x.hex);
+    const xYao = x.ch.length ? x.ch.map(k=>`${POSLAB[k]}(${yaoName(k,xL[k])})`).join('・') : 'なし';
+    return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts ? x.ts.slice(0,10) : (x.memo || '日付なし')}</button> ${esc(purposeOf(x))} ／ <b>${fullTrad(x.hex)}</b> <b>${xYao}</b>${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
   }).join('')+'</div>';
 }
 function entryDetail(e){
   const d=e.rel, L=hexLines(e.hex);
-  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
+  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${fullTrad(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
   const sec = (t,v) => `<div class="sec"><b>${t}</b><div>${v?esc(v):'<span class="hint">未入力</span>'}</div></div>`;
   const [lab,why] = readingTarget(e.hex,new Set(e.ch));
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : 'なし';
   return `<div class="rels" style="margin:6px 0">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>
-    <div class="hint">変爻: ${yaoNames(e.hex,e.ch)}</div>
+    <div style="margin:6px 0;font-size:.92rem"><b>本卦:</b> ${fullTrad(e.hex)} ／ <b>変爻:</b> ${yaoStr}${d.zhi!=null ? ` ／ <b>之卦:</b> ${fullTrad(d.zhi)}` : ''}</div>
     <div class="read"><div class="hint exp">${why}</div>${entryExplain(e,lab)}</div>
     ${sameHexHistory(e)}${e.result?`<div class="hint">結果: ${RES[e.result]}</div>`:''}${sec('メモ',e.memo)}${sec('解説・アドバイス',e.advice)}${sec('行動',e.action)}${sec('振り返り',e.review)}`;
 }
@@ -1340,9 +1345,15 @@ function logCard(e){
   const zhi = e.ch.length ? e.rel.zhi : null;
   const pend = !!(state._pend && state._pend.has(e.id));
   const rows = [['メモ',e.memo],['解説',e.advice],['行動',e.action],['振り返り',e.review]].filter(([,v])=>v && String(v).trim());
+  const L = hexLines(e.hex);
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
   return `<article class="card logitem" data-lid="${e.id}">
     <header><span>${fmtDT(e.ts, e.memo)}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}${pend?'<span class="tag pend">振り返り待ち</span>':''}</header>
-    <div class="lhex">${hexSvg(e.hex,22,22)}<b>${hexName(e.hex)}</b>${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,22,22)}<b>${hexName(zhi)}</b>`:''}<small>${e.ch.length?'変爻: '+yaoNames(e.hex,e.ch):'変爻なし'}</small></div>
+    <div class="lhex">
+      ${hexSvg(e.hex,22,22)}<b>${fullTrad(e.hex)}</b>
+      ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
+      ${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,22,22)}<b>${fullTrad(zhi)}</b>`:''}
+    </div>
     <div class="body"><b>${esc(purposeOf(e))}</b></div>
     ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
     ${!open && rows.length ? `<div class="lrows">${rows.map(([k,v])=>`<div class="lrow"><b>${k}</b><span>${esc(v)}</span></div>`).join('')}</div>` : ''}
@@ -1381,7 +1392,12 @@ function statsHtml(list){
 }
 function purposeHead(a){
   const last=a[a.length-1], pk=purposeKey(last), st=last.status, tg=last.tags||[];
-  const flow=a.map(e=>`${e.ts ? e.ts.slice(0,10) : (e.memo || '日付なし')} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
+  const flow=a.map(e=>{
+    const L=hexLines(e.hex);
+    const yao=e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+    const z=e.ch.length ? '→'+fullTrad(e.rel.zhi) : '';
+    return `${e.ts ? e.ts.slice(0,10) : (e.memo || '日付なし')} ${fullTrad(e.hex)}${yao}${z}`;
+  }).join(' / ');
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
       <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
@@ -1416,7 +1432,11 @@ function pendingReviews(){
 function renderPending(){
   const p=pendingReviews(), box=$('#lpend');
   box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint exp">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
-    p.slice(0,20).map(e=>`<div class="hint" style="margin:4px 0"><b>${e.ts ? e.ts.slice(0,10) : '日付なし'}</b> ${esc(purposeOf(e))} ／ ${hexName(e.hex)} <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`).join('')+'</details>' : '';
+    p.slice(0,20).map(e=>{
+      const L=hexLines(e.hex);
+      const yao=e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+      return `<div class="hint" style="margin:4px 0"><b>${e.ts ? e.ts.slice(0,10) : '日付なし'}</b> ${esc(purposeOf(e))} ／ <b>${fullTrad(e.hex)}</b> <b>${yao}</b> <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`;
+    }).join('')+'</details>' : '';
 }
 function renderLog(){ renderLogTop(); renderPending(); renderLogList(); }
 
