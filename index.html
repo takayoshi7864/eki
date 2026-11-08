@@ -247,8 +247,8 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec-d{border-bottom:1px solid var(--line);padding:4px 0}
 .sec-d summary{cursor:pointer;font-weight:bold}
 /* ドラムロールピッカー */
-.drum-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.68);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px)}
-.drum-modal-backdrop[hidden]{display:none !important}
+.drum-modal-backdrop{display:none !important;position:fixed;inset:0;background:rgba(0,0,0,0.68);align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(2px)}
+.drum-modal-backdrop.open{display:flex !important}
 .drum-modal-card{background:var(--card,#1c2128);border:1px solid var(--accent,#d9534f);border-radius:12px;padding:16px 18px;width:90%;max-width:320px;box-shadow:0 16px 40px rgba(0,0,0,0.6);text-align:center;box-sizing:border-box}
 .drum-wheels-container{position:relative;display:flex;justify-content:center;gap:6px;height:180px;margin:10px 0;border:1px solid var(--line,#3a4150);border-radius:8px;background:rgba(0,0,0,0.25);overflow:hidden}
 .drum-selection-highlight{position:absolute;top:72px;left:0;right:0;height:36px;background:rgba(217,83,79,0.12);border-top:1px solid var(--accent,#d9534f);border-bottom:1px solid var(--accent,#d9534f);pointer-events:none;z-index:2}
@@ -503,10 +503,11 @@ body:not(.help) .exp{display:none !important}
   </section>
   <div id="toast" class="toast" hidden></div>
 
-  <div id="drumModal" class="drum-modal-backdrop" hidden>
+  <div id="drumModal" class="drum-modal-backdrop" hidden style="display:none">
     <div class="drum-modal-card">
-      <div class="drum-modal-header">
+      <div class="drum-modal-header" style="position:relative">
         <b style="font-size:1.02rem">日付をドラムロールで選択</b>
+        <button type="button" id="drumBtnClose" aria-label="閉じる" style="position:absolute;right:0;top:-6px;background:none;border:none;color:var(--sub);font-size:1.4rem;cursor:pointer;padding:2px 6px;line-height:1">✕</button>
         <div id="drumPreview" class="hint" style="font-weight:600;color:var(--accent);font-size:.9rem;margin-top:3px"></div>
       </div>
       <div class="drum-wheels-container">
@@ -1563,7 +1564,11 @@ function applyDrumSelection(val){
 
 function closeDrumModal(){
   const modal = $('#drumModal');
-  if(modal) modal.hidden = true;
+  if(modal){
+    modal.hidden = true;
+    modal.classList.remove('open');
+    modal.style.display = 'none';
+  }
   currentDrumTarget = null;
 }
 
@@ -1571,6 +1576,13 @@ function setupDrumEvents(){
   const modal = $('#drumModal');
   if(!modal || modal._drumEvents) return;
   modal._drumEvents = true;
+
+  // Escキーで閉じる
+  window.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && modal.classList.contains('open')){
+      closeDrumModal();
+    }
+  });
 
   const colY = $('#drumColY');
   const colM = $('#drumColM');
@@ -1663,7 +1675,7 @@ function setupDrumEvents(){
       closeDrumModal();
       return;
     }
-    if(e.target.id === 'drumBtnCancel' || e.target === modal){
+    if(e.target.id === 'drumBtnCancel' || e.target.id === 'drumBtnClose' || e.target === modal){
       closeDrumModal();
       return;
     }
@@ -1717,6 +1729,8 @@ function openDrumModal(targetKey){
   updateDrumDays(drumState.d);
 
   modal.hidden = false;
+  modal.classList.add('open');
+  modal.style.display = 'flex';
 
   const yIdx = DRUM_YEARS.indexOf(drumState.y);
   colY.scrollTop = (yIdx >= 0 ? yIdx : 0) * 36;
@@ -3967,6 +3981,9 @@ if(cloud) cloudSync();
   const tb=$('#themebtn'); if(tb) tb.addEventListener('click', ()=>{ const cur=LS.get('eki.theme')||'auto'; LS.set('eki.theme', cur==='auto'?'light':cur==='light'?'dark':'auto'); paint(); });
   if(mq && mq.addEventListener) mq.addEventListener('change', paint);
   paint(); }
+// ドラムロール初期化と確実な非表示
+setupDrumEvents();
+closeDrumModal();
 // テスト用フック
 window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, feBuild, feParse, feDiff, feApply, feUndo, fullTrad };
 })();
