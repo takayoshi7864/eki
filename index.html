@@ -1387,7 +1387,7 @@ const yaoNames = (i,ch) => ch.length ? [...ch].sort((a,b)=>b-a).map(k=>yaoName(k
 
 /* 日付簡単パース・ドラムロール連携 */
 function parseEasyDate(val, refYear){
-  if(!val || !val.trim()) return '';
+  if(!val || !String(val).trim()) return '';
   let s = String(val).normalize('NFKC').trim();
   const today = new Date();
   if(/^(今日|きょう|本日)$/i.test(s)){
@@ -1413,12 +1413,15 @@ function parseEasyDate(val, refYear){
     return `${nextM.getFullYear()}-${String(nextM.getMonth()+1).padStart(2,'0')}`;
   }
 
+  s = s.replace(/(?:[T\s]\d{1,2}:\d{2}(?::\d{2})?)$/, '').trim();
+  s = s.replace(/(\d)\s*[ー―—‐−–〜~]\s*(\d)/g, '$1-$2');
+
   const hadYear = /年/.test(s);
   const hadMonth = /月/.test(s);
   const hadDay = /日/.test(s);
 
   s = s.replace(/年|月/g, '-').replace(/日/g, '');
-  s = s.replace(/[\/\.／．\s]/g, '-');
+  s = s.replace(/[\/\.／．\sー―—‐−–〜~]/g, '-');
   s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
 
   // 1. YYYY-M-D
@@ -1864,8 +1867,8 @@ function parseHexInput(val){
   let s = String(val).normalize('NFKC').trim();
   if(!s) return null;
 
-  // 日付・年月表記（1月, 2018年, 12/24 など）は卦名として扱わない
-  if(/^(?:\d{4}年|\d{1,2}月|\d{1,2}日|\d{1,2}[\/\-.]\d{1,2})/.test(s)) return null;
+  // 日付・年月表記（1月, 2018年, 12/24, 20191201 など）は卦名として扱わない
+  if(/^(?:\d{8}|\d{6}|\d{4}|\d{4}年|\d{1,2}月|\d{1,2}日|\d{1,2}[\/\-.]\d{1,2})/.test(s)) return null;
 
   // 1. Direct number: e.g. '34', '1', '第34卦', '34番', '34卦'
   const mNum = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?$/);
@@ -2739,19 +2742,24 @@ function parseChTok(t){
   let c=t.replace(/[\s　]/g,'');
   if(/^(なし|無し?|無|ー|-|―|変爻なし|不変|不明|未詳)$/.test(c)) return {pos:[],names:[]};
   c=c.normalize('NFKC').replace(/ニ/g,'二');
-  c=c.replace(/第?([123456一二三四五六初上])爻?/g, (m, g1)=>{
-    if(g1==='1'||g1==='一') return '初爻';
-    if(g1==='6'||g1==='六') return '上爻';
-    return g1 + (g1.endsWith('爻')?'':'爻');
-  });
-  c=c.replace(/第([一二三四五六123456])爻/g, '$1爻');
-  const toks=c.split(/[・,、，\/／+＋]/).filter(Boolean); if(!toks.length) return null;
+  const rawToks=c.split(/[・,、，\/／+＋]/).filter(Boolean);
+  if(!rawToks.length) return null;
   const pos=[], names=[];
-  for(const x of toks){
+  for(let x of rawToks){
     if(x==='用九'||x==='用六'){ for(let k=0;k<6;k++) pos.push(k); continue; }
-    const lab=YAOALIAS[x] || (POSLAB.includes(x)?x:null);
+    let lab=YAOALIAS[x] || (POSLAB.includes(x)?x:null);
+    if(!lab){
+      const norm = x.replace(/^第?([123456一二三四五六初上])爻?$/, (m, g1)=>{
+        if(g1==='1'||g1==='一') return '初爻';
+        if(g1==='6'||g1==='六') return '上爻';
+        return g1 + (g1.endsWith('爻')?'':'爻');
+      });
+      lab = YAOALIAS[norm] || (POSLAB.includes(norm)?norm:null);
+    }
     if(!lab) return null;
-    pos.push(POSLAB.indexOf(lab)); if(/[九六]/.test(x)) names.push([POSLAB.indexOf(lab),x]);
+    const pIdx = POSLAB.indexOf(lab);
+    pos.push(pIdx);
+    if(/[九六]/.test(x)) names.push([pIdx, x]);
   }
   return {pos:[...new Set(pos)].sort((a,b)=>a-b), names};
 }
@@ -2760,6 +2768,7 @@ function tojiDay(y){
   return Math.floor(22.20 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
 }
 function importLogText(text, commit = true){
+  text = String(text || '').normalize('NFKC').replace(/(\d)\s*[ー―—‐−–〜~]\s*(\d)/g, '$1-$2');
   const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?/;
   const pad2 = n => String(n).padStart(2,'0');
   const out={added:0,dup:0,skip:[],warn:[],newItems:[],dupItems:[],allParsed:[]};
@@ -2767,6 +2776,43 @@ function importLogText(text, commit = true){
   const items=[];
   let baseTitle='', curSubTitle='', curTs=null, curHex=null, curCh=[], curChv=null, curLineNum=1;
   let currentYear=null;
+
+  function parseDateToken(str, refY){
+    if(!str) return null;
+    let s = String(str).normalize('NFKC').trim();
+    if(/^(なし|無し|日付なし|未設定|不明|ー|-)$/.test(s)) return '';
+    s = s.replace(/(\d)\s*[ー―—‐−–〜~]\s*(\d)/g, '$1-$2');
+    const m = s.match(DATE);
+    if(m){
+      return `${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`;
+    }
+    const m8 = s.match(/^(\d{4})(\d{2})(\d{2})(?:[T\s](\d{1,2}):(\d{2}))?$/);
+    if(m8){
+      const yr = +m8[1], mo = +m8[2], da = +m8[3];
+      if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+        return `${yr}-${pad2(mo)}-${pad2(da)}T${pad2(+(m8[4]||0))}:${m8[5]||'00'}`;
+      }
+    }
+    const m6 = s.match(/^(\d{4})(\d{2})$/);
+    if(m6){
+      const yr = +m6[1], mo = +m6[2];
+      if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12){
+        return `${yr}-${pad2(mo)}`;
+      }
+    }
+    const mM = s.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})月?$/);
+    if(mM){
+      const yr = +mM[1], mo = +mM[2];
+      if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12){
+        return `${yr}-${pad2(mo)}`;
+      }
+    }
+    const pEasy = parseEasyDate(s, refY);
+    if(pEasy){
+      return pEasy.length <= 7 ? pEasy : (pEasy + 'T00:00');
+    }
+    return null;
+  }
 
   function flush(n){
     if(curHex!=null){
@@ -2801,10 +2847,10 @@ function importLogText(text, commit = true){
       let ts=null,hex=null,chv=null; const purpose=[];
       for(const q of parts){
         if(/^(なし|無し|日付なし|未設定|不明|ー|-)$/.test(q)){ ts=''; continue; }
-        const m=ts==null && q.match(DATE);
-        if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
-        const mM=ts==null && q.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})月?$/);
-        if(mM){ ts=`${mM[1]}-${pad2(+mM[2])}`; continue; }
+        if(ts==null){
+          const pTs = parseDateToken(q, currentYear);
+          if(pTs != null){ ts = pTs; continue; }
+        }
         if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
         if(chv==null){ const c=parseChTok(q); if(c){ chv=c; continue; } }
         purpose.push(q);
@@ -2825,12 +2871,106 @@ function importLogText(text, commit = true){
       return;
     }
 
-    // 年・月・日付・ヘッダー行の判定（卦名トークン判定より先に行い、1月や2月が卦として誤認識されるのを防ぐ）
+    // 1行に卦とその他の要素（日付・目的など）がスペース等で並んでいる場合（例: 20191201 残されたこの一年の心構え 地水師 上六）
+    const toks=line.split(/[\s　]+/).map(x=>x.trim()).filter(Boolean);
+    let lineHex=null, lineChv=null, lineTs=null;
+    const linePurpose=[];
+    for(const t of toks){
+      if(lineHex==null){
+        const h=findHexByName(t);
+        if(h!=null){ lineHex=h; continue; }
+      }
+      if(lineChv==null){
+        const c=parseChTok(t);
+        if(c && (c.pos.length || /不明|未詳|なし|無し/.test(t))){ lineChv=c; continue; }
+      }
+      if(lineTs==null){
+        const pTs = parseDateToken(t, currentYear);
+        if(pTs != null){ lineTs = pTs; continue; }
+      }
+      if(!/^(本卦|之卦)$/.test(t)) linePurpose.push(t);
+    }
+
+    if(lineHex!=null){
+      flush(n);
+      const rowTs = lineTs != null ? lineTs : (curTs != null ? curTs : '');
+      let rowTitle = linePurpose.join(' ');
+      let rowMemo = '';
+      if(baseTitle){
+        rowTitle = baseTitle;
+        rowMemo = linePurpose.join(' ') || curSubTitle;
+      } else if(!rowTitle){
+        rowTitle = curSubTitle || '心構え';
+      }
+      items.push({
+        lineNum: n,
+        ts: rowTs,
+        title: rowTitle,
+        memo: rowMemo,
+        hex: lineHex,
+        ch: lineChv ? lineChv.pos : [],
+        chv: lineChv
+      });
+      if(lineTs != null && lineTs.length >= 4) currentYear = +lineTs.slice(0,4);
+      return;
+    }
+
+    // 卦が含まれない行（ヘッダー行・日付行・年行・月行・目的行）
+    const mHeader6 = line.match(/^(\d{4})(\d{2})[\s　]+(.*心構え.*)$/);
+    if(mHeader6){
+      currentYear = +mHeader6[1];
+      curTs = `${mHeader6[1]}-${mHeader6[2]}`;
+      baseTitle = mHeader6[3].trim();
+      return;
+    }
+    const mHeader8 = line.match(/^(\d{4})(\d{2})(\d{2})[\s　]+(.*心構え.*)$/);
+    if(mHeader8){
+      currentYear = +mHeader8[1];
+      curTs = `${mHeader8[1]}-${mHeader8[2]}-${mHeader8[3]}T00:00`;
+      baseTitle = mHeader8[4].trim();
+      return;
+    }
     const mHeader=line.match(/^(\d{4})\s*年?(?:\s*(\d{1,2})\s*月)?[\s　]+(.*心構え.*)$/);
     if(mHeader){
       currentYear=+mHeader[1];
       baseTitle=mHeader[3].trim();
       return;
+    }
+
+    const m8=line.match(/^(\d{4})(\d{2})(\d{2})(?:[T\s](\d{1,2}):(\d{2}))?(?:\s+(.*))?$/);
+    if(m8){
+      const yr=+m8[1], mo=+m8[2], da=+m8[3];
+      if(yr>=1900 && yr<=2100 && mo>=1 && mo<=12 && da>=1 && da<=31){
+        currentYear=yr;
+        curTs=`${yr}-${pad2(mo)}-${pad2(da)}T${pad2(+(m8[4]||0))}:${m8[5]||'00'}`;
+        const rest=(m8[6]||'').trim();
+        curSubTitle=rest||'';
+        return;
+      }
+    }
+
+    const m6=line.match(/^(\d{4})(\d{2})(?:\s+(.*))?$/);
+    if(m6){
+      const yr=+m6[1], mo=+m6[2];
+      if(yr>=1900 && yr<=2100 && mo>=1 && mo<=12){
+        currentYear=yr;
+        curTs=`${yr}-${pad2(mo)}`;
+        const rest=(m6[3]||'').trim();
+        curSubTitle=rest ? `${yr}年${mo}月 ${rest}` : `${yr}年${mo}月`;
+        return;
+      }
+    }
+
+    const mYM=line.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})月?(?:\s+(.*))?$/);
+    if(mYM){
+      const yr=+mYM[1], mo=+mYM[2];
+      if(yr>=1900 && yr<=2100 && mo>=1 && mo<=12){
+        currentYear=yr;
+        curTs=`${yr}-${pad2(mo)}`;
+        const rest=(mYM[3]||'').trim();
+        curSubTitle=rest ? `${yr}年${mo}月 ${rest}` : `${yr}年${mo}月`;
+        return;
+      }
     }
 
     const mMonth=line.match(/^(?:(\d{4})\s*年\s*)?(\d{1,2})\s*月$/);
@@ -2840,6 +2980,18 @@ function importLogText(text, commit = true){
       curTs=`${yr}-${pad2(+mMonth[2])}`;
       curSubTitle=`${yr}年${+mMonth[2]}月`;
       return;
+    }
+
+    const m4=line.match(/^(\d{2})(\d{2})(?:\s+(.*))?$/);
+    if(m4){
+      const mo=+m4[1], da=+m4[2];
+      if(mo>=1 && mo<=12 && da>=1 && da<=31){
+        const yr=currentYear||(new Date()).getFullYear();
+        curTs=`${yr}-${pad2(mo)}-${pad2(da)}T00:00`;
+        const rest=(m4[3]||'').trim();
+        curSubTitle=rest||'';
+        return;
+      }
     }
 
     const mMD=line.match(/^(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?$/);
@@ -2874,25 +3026,6 @@ function importLogText(text, commit = true){
         curTs='';
         curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
       }
-      return;
-    }
-
-    const toks=line.split(/[\s　]+/).map(x=>x.trim()).filter(Boolean);
-    let lineHex=null, lineChv=null;
-    for(const t of toks){
-      if(lineHex==null){
-        const h=findHexByName(t);
-        if(h!=null){ lineHex=h; continue; }
-      }
-      const c=parseChTok(t);
-      if(c && (c.pos.length || /不明|未詳|なし|無し/.test(t))){ lineChv=c; continue; }
-    }
-    if(lineHex!=null){
-      curHex=lineHex;
-      curCh=lineChv ? lineChv.pos : [];
-      curChv=lineChv;
-      curLineNum=n;
-      flush(n);
       return;
     }
 
@@ -3175,7 +3308,15 @@ function setupBulkStagingEvents(resId){
       const idx = +t.dataset.bidx;
       const it = currentBulkStaging.items[idx];
       if(it){
-        if(t.classList.contains('bulk-item-date')) it.dateStr = t.value.trim();
+        if(t.classList.contains('bulk-item-date')){
+          const norm = parseEasyDate(t.value.trim());
+          if(norm){
+            t.value = norm;
+            it.dateStr = norm;
+          } else {
+            it.dateStr = t.value.trim();
+          }
+        }
         if(t.classList.contains('bulk-item-title')) it.title = t.value.trim();
         it.selected = true;
         const row = el.querySelector(`tr[data-bidx="${idx}"]`);
