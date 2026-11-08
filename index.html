@@ -148,7 +148,7 @@ details>summary+*{margin-top:10px}
 .cal-selectors{display:flex;align-items:center;gap:4px}
 .cal-sel{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-weight:600;font-size:.95rem;cursor:pointer;color:var(--ink)}
 .cal-jump-area{display:flex;align-items:center;gap:6px;margin-left:auto}
-.cal-jump-input{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:.88rem;color:var(--ink);cursor:pointer}
+.cal-jump-input{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:.88rem;color:var(--ink);width:7.5em;text-align:center}
 @media(max-width:640px){
   .cal-cell{min-height:56px;padding:2px}
   .cal-event{font-size:.66rem;padding:1px 2px}
@@ -1652,6 +1652,50 @@ function calEventPill(e){
     <small>${yaoStr || '不変'}</small>
   </div>`;
 }
+function parseJumpDate(val){
+  if(!val) return null;
+  let s = String(val).normalize('NFKC').trim();
+  s = s.replace(/年|月/g, '-').replace(/日/g, '');
+  s = s.replace(/[\/\.／．]/g, '-');
+  s = s.replace(/-+/g, '-');
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2], da = +m[3];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2], da = +m[3];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const yr = state.calY || (new Date()).getFullYear();
+    const mo = +m[1], da = +m[2];
+    if(mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  return null;
+}
+function jumpToCalDate(str){
+  const parsed = parseJumpDate(str);
+  if(!parsed){
+    toast('日付を「2017/1/1」などの形式で入力してください');
+    return;
+  }
+  const [yr, mo] = parsed.split('-').map(Number);
+  state.calY = yr;
+  state.calM = mo - 1;
+  state.calSelDate = parsed;
+  renderLogList();
+  const selCell = document.querySelector(`.cal-cell[data-date="${parsed}"]`);
+  if(selCell) selCell.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 function calendarHtml(list){
   const now = new Date();
   if(state.calY==null){
@@ -1777,7 +1821,8 @@ function calendarHtml(list){
       </div>
       <div class="cal-jump-area">
         <span class="hint">日付へ飛ぶ:</span>
-        <input type="date" class="cal-jump-input" data-caljump="date" value="${state.calSelDate || ''}" title="指定した日付へジャンプ">
+        <input type="text" class="cal-jump-input" data-caljump="date" value="${state.calSelDate ? state.calSelDate.replace(/-/g,'/') : ''}" placeholder="例: 2017/1/1" title="日付を入力して移動(全角でもOK)">
+        <button class="chip" data-lact="caljumpgo">移動</button>
       </div>
     </div>
     <div class="cal-grid">${cells}</div>
@@ -2326,7 +2371,18 @@ $('#viewLog').addEventListener('click', e=>{
       const pk=a.dataset.pk, name=$('#pname').value.trim(), st=$('#pstat').value, tg=$('#ptags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean);
       state.log.forEach(x=>{ if(purposeKey(x)===pk){ if(name) x.title=name; x.status=st; x.tags=tg; x.upd=Date.now(); } });
       state.pedit=null; saveUser(); renderLog(); toast('目的を更新しました'); break; }
+    case 'caljumpgo': {
+      const inp = document.querySelector('input[data-caljump="date"]');
+      if(inp) jumpToCalDate(inp.value);
+      break;
+    }
     case 'del': if(ent && confirm('この記録を削除しますか?')){ tombAdd(ent.id); state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
+  }
+});
+$('#viewLog').addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target && e.target.dataset && e.target.dataset.caljump==='date'){
+    e.preventDefault();
+    jumpToCalDate(e.target.value);
   }
 });
 $('#viewLog').addEventListener('change', e=>{
@@ -2339,15 +2395,7 @@ $('#viewLog').addEventListener('change', e=>{
       state.calM = +t.value - 1; renderLogList(); return;
     }
     if(t.dataset.caljump==='date' && t.value){
-      const parts = t.value.split('-');
-      if(parts.length===3){
-        state.calY = +parts[0];
-        state.calM = +parts[1] - 1;
-        state.calSelDate = t.value;
-        renderLogList();
-        const selCell = document.querySelector(`.cal-cell[data-date="${t.value}"]`);
-        if(selCell) selCell.scrollIntoView({behavior:'smooth', block:'nearest'});
-      }
+      jumpToCalDate(t.value);
       return;
     }
   }
