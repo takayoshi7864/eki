@@ -77,8 +77,24 @@ details>summary+*{margin-top:10px}
 .lgroup-sub{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.84rem}
 .lgroup-body{margin-top:10px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .lgroup-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px}
-.lgroup-toolbar{display:flex;justify-content:space-between;align-items:center;margin:8px 2px;flex-wrap:wrap;gap:8px}
+.lgroup-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:6px 2px;flex-wrap:wrap;gap:8px}
 .lgroup .card{background:var(--bg);border:1px solid var(--line);margin:10px 0}
+.lsubgroup{margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.lsubgroup-sum{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;font-size:.95rem}
+.lsubgroup-sum:hover{background:rgba(128,128,128,.08)}
+.lsubgroup-body{padding:4px 8px 8px;border-top:1px solid var(--line)}
+.lcompact-list{display:grid;gap:4px;margin:4px 0}
+.lrow-wrap{border-bottom:1px solid var(--line)}
+.lrow-wrap:last-child{border-bottom:none}
+.lrow-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px;border-radius:6px;transition:background .15s}
+.lrow-item:hover{background:rgba(128,128,128,.06)}
+.lrow-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;flex:1}
+.lrow-date{font-weight:600;font-size:.88rem;color:var(--sub);min-width:4.8em;white-space:nowrap}
+.lrow-hex{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.92rem}
+.lrow-hex b{color:var(--ink)}
+.lrow-hex .arrow{color:var(--sub);margin:0 2px}
+.lrow-acts{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.lrow-detail{margin:6px 0 10px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
 .lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
 .lrow>span{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1396,26 +1412,75 @@ function statsHtml(list){
     block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
     block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
 }
+function logRowItem(e){
+  const open = state.lopen===e.id;
+  const zhi = e.ch.length ? e.rel.zhi : null;
+  const pend = !!(state._pend && state._pend.has(e.id));
+  const L = hexLines(e.hex);
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+  const dateStr = e.memo || (e.ts ? (e.kind==='day' ? e.ts.slice(5,10).replace('-','/') : e.ts.slice(0,10)) : '日付なし');
+  return `<div class="lrow-wrap" data-lid="${e.id}">
+    <div class="lrow-item">
+      <div class="lrow-left">
+        <span class="lrow-date">${esc(dateStr)}</span>
+        <span class="lrow-hex">
+          ${hexSvg(e.hex,20,20)}<b>${fullTrad(e.hex)}</b>
+          ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
+          ${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,20,20)}<b>${fullTrad(zhi)}</b>`:''}
+        </span>
+        ${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}
+        ${e.result?`<span class="tag">${RES[e.result]}</span>`:''}
+        ${pend?'<span class="tag pend">振り返り待ち</span>':''}
+      </div>
+      <div class="lrow-acts">
+        <button class="chip${open?' on':''}" data-lact="open" data-id="${e.id}">${open?'閉じる':'解説'}</button>
+        <button class="chip" data-lact="edit" data-id="${e.id}">編集</button>
+      </div>
+    </div>
+    ${open ? `<div class="lrow-detail">${entryDetail(e)}</div>` : ''}
+  </div>`;
+}
 function purposeGroupHtml(a, openPks){
   const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
   const isOpen = (openPks && openPks.has(pk)) || state.pedit === pk;
   const lastL = hexLines(last.hex);
   const lastYao = last.ch.length ? last.ch.map(k=>`${POSLAB[k]}(${yaoName(k,lastL[k])})`).join('・') : '';
-  const lastZhi = last.ch.length ? fullTrad(last.rel.zhi) : null;
   const latestDate = last.ts ? last.ts.slice(0,10) : (last.memo || '日付なし');
-
-  const flow = a.map(e=>{
-    const L = hexLines(e.hex);
-    const yao = e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
-    const z = e.ch.length ? '→'+fullTrad(e.rel.zhi) : '';
-    return `${e.ts ? e.ts.slice(0,10) : (e.memo || '日付なし')} ${fullTrad(e.hex)}${yao}${z}`;
-  }).join(' / ');
+  const firstDate = a[0].ts ? a[0].ts.slice(0,10) : (a[0].memo || '');
+  const rangeStr = firstDate && firstDate !== latestDate ? `${firstDate} 〜 ${latestDate}` : latestDate;
 
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
-      <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
+      <label>目的の名前 <input id="pname" value="${esc(last.title||'')}"></label>
       <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
-      <label>タグ(カンマ区切り) <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
+      <label>タグ <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
       <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
+
+  const isDaily = a.some(e => e.kind === 'day') || a.length >= 15;
+  const descItems = a.slice().reverse();
+
+  let itemsHtml = '';
+  if(isDaily){
+    const mGroups = new Map();
+    descItems.forEach(e => {
+      const ym = (e.ts || '').slice(0,7);
+      const label = ym ? `${ym.slice(0,4)}年${parseInt(ym.slice(5,7),10)}月` : (e.memo ? esc(e.memo) : 'その他');
+      if(!mGroups.has(label)) mGroups.set(label, []);
+      mGroups.get(label).push(e);
+    });
+    itemsHtml = [...mGroups.entries()].map(([label, mList], idx) => {
+      return `<details class="lsubgroup"${idx === 0 ? ' open' : ''}>
+        <summary class="lsubgroup-sum">
+          <b>${label}</b>
+          <span class="chip on">${mList.length}件</span>
+        </summary>
+        <div class="lsubgroup-body">
+          ${mList.map(logRowItem).join('')}
+        </div>
+      </details>`;
+    }).join('');
+  } else {
+    itemsHtml = `<div class="lcompact-list">${descItems.map(logRowItem).join('')}</div>`;
+  }
 
   return `<details class="lgroup"${isOpen ? ' open' : ''} data-pk="${esc(pk)}">
     <summary class="lgroup-sum">
@@ -1429,19 +1494,16 @@ function purposeGroupHtml(a, openPks){
         <span>直近: ${latestDate}</span>
         ${hexSvg(last.hex,18,18)}<b>${fullTrad(last.hex)}</b>
         ${lastYao ? `<b>${lastYao}</b>` : ''}
-        ${lastZhi ? `<span class="arrow">→</span>${hexSvg(last.rel.zhi,18,18)}<b>${lastZhi}</b>` : ''}
       </div>
     </summary>
     <div class="lgroup-body">
       <div class="lgroup-flow-bar">
-        <div class="hint" style="flex:1;min-width:200px">${esc(flow)}</div>
+        <span class="hint">${rangeStr} （全 ${a.length} 件）</span>
         <button data-lact="pedit" data-pk="${esc(pk)}" style="flex:none">目的を編集</button>
       </div>
       ${ed}
-      <div class="lgroup-cards">
-        ${a.map(logCard).join('')}
-      </div>
-      <div style="text-align:center;margin:10px 0 2px">
+      ${itemsHtml}
+      <div style="text-align:center;margin:12px 0 2px">
         <button class="chip" data-lact="pclose">▲ ${esc(purposeOf(last))}を閉じる</button>
       </div>
     </div>
@@ -1455,7 +1517,7 @@ function renderLogList(){
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
   const list = logFiltered();
   state._pend = new Set(pendingReviews().map(x=>x.id));
-  $('#lsum').textContent = state.log.length ? `${list.length} 件 / 全 ${state.log.length} 件` : 'まだ記録がありません。「＋ 新しい記録」から始めましょう。';
+  $('#lsum').textContent = state.log.length ? '' : 'まだ記録がありません。「＋ 新しい記録」から始めましょう。';
   if(f.mode==='stats'){ $('#loglist').innerHTML = statsHtml(list); return; }
   if(f.mode==='purpose'){
     const g=new Map();
@@ -1464,7 +1526,6 @@ function renderLogList(){
     groups.sort((x,y)=>(y[y.length-1].ts||'').localeCompare(x[x.length-1].ts||''));
     const openPks = new Set(Array.from(document.querySelectorAll('#loglist details.lgroup[open]')).map(d=>d.dataset.pk));
     const toolbar = groups.length ? `<div class="lgroup-toolbar">
-      <span class="hint">目的 <b>${groups.length}</b> 種類 ／ 対象 <b>${list.length}</b> 件</span>
       <div style="display:flex;gap:6px">
         <button class="chip" data-lact="expandall">すべて展開</button>
         <button class="chip" data-lact="collapseall">すべて閉じる</button>
