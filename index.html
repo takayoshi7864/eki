@@ -410,9 +410,14 @@ body:not(.help) .exp{display:none !important}
       </p>
       <details class="panel" id="lbulkpanel">
         <summary><b>まとめて記録(複数行のメモや一覧を貼り付け)</b></summary>
-        <div class="hint exp">1行に1件(「日付 | 目的 | 出した卦 | 変爻」)のほか、複数行のメモ(年・冬至占・本卦・変爻など)もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2:<br><code>一年の心構え<br>2018年 冬至占<br>本卦 雷地豫 初爻</code><br>※日付が年だけの場合は1月1日(冬至占なら冬至の日)として補完します。変爻がないときは省略可。互卦・錯卦・綜卦は自動計算されます。同じ内容をもう一度入れても重複しません。</div>
-        <textarea id="lbulktext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
-        <p><button class="primary" id="lbulkgo">取り込む</button></p>
+        <div class="hint exp">1行に1件(「日付 | 目的 | 出した卦 | 変爻」)のほか、複数行のメモ(年・月・日付・本卦・変爻など)もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2(複数月・複数年も一度に貼って一括登録可):<br><code>2017年1月　今日の心構え<br>1/1<br>本卦　地火明夷　第三爻<br>...</code><br>※テキストファイル（.txt / .md）の選択やドラッグ＆ドロップでも一気に読み込めます。既に登録済みの記録は自動で重複除外されます。</div>
+        <textarea id="lbulktext" rows="8" placeholder="2017年1月　今日の心構え&#10;1/1&#10;本卦　地火明夷　第三爻&#10;..."></textarea>
+        <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="primary" id="lbulkgo">取り込む</button>
+          <button type="button" id="lbulkfilebtn">📁 ファイルから選ぶ</button>
+          <input type="file" id="lbulkfile" accept=".txt,.md,text/plain" multiple style="display:none">
+          <span class="hint" style="font-size:.82rem">※複数ファイル・ドラッグ＆ドロップにも対応</span>
+        </p>
         <div id="lbulkres" class="hint"></div>
       </details>
       <div id="lpend"></div>
@@ -1958,16 +1963,17 @@ function importLogText(text){
       return;
     }
 
-    const mHeader=line.match(/^(\d{4})\s*年?[\s　]+(.*心構え.*)$/);
+    const mHeader=line.match(/^(\d{4})\s*年?(?:\s*(\d{1,2})\s*月)?[\s　]+(.*心構え.*)$/);
     if(mHeader){
       currentYear=+mHeader[1];
-      baseTitle=mHeader[2].trim();
+      baseTitle=mHeader[3].trim();
       return;
     }
 
     const mMonth=line.match(/^(?:(\d{4})\s*年\s*)?(\d{1,2})\s*月$/);
     if(mMonth){
       const yr=mMonth[1]?+mMonth[1]:(currentYear||(new Date()).getFullYear());
+      currentYear=yr;
       curTs=`${yr}-${pad2(+mMonth[2])}-01T00:00`;
       curSubTitle=`${yr}年${+mMonth[2]}月`;
       return;
@@ -1984,6 +1990,7 @@ function importLogText(text){
     const mDate=line.match(DATE);
     if(mDate){
       curTs=`${mDate[1]}-${pad2(+mDate[2])}-${pad2(+mDate[3])}T${pad2(+(mDate[4]||0))}:${mDate[5]||'00'}`;
+      currentYear=+mDate[1];
       const rest=line.replace(DATE,'').trim();
       if(rest) curSubTitle=rest;
       return;
@@ -1992,6 +1999,7 @@ function importLogText(text){
     const mYear=line.match(/^(\d{4})\s*年?(.*)$/);
     if(mYear){
       const y=+mYear[1];
+      currentYear=y;
       const rest=mYear[2].trim();
       const isToji=/冬至/.test(rest);
       if(isToji){
@@ -2112,7 +2120,26 @@ const DEFAULT_LOG = (() => {
     imp: true,
     upd: 1476057600000 + parseInt(md.replace('-',''), 10) * 86400000
   }));
-  return [...yearLogs, ...monthLogs, ...dayLogs];
+  const days2017 = [["01-01",35,[2]],["01-02",14,[5]],["01-03",21,[2]],["01-04",1,[1]],["01-05",20,[0]],["01-06",61,[1]],["01-07",58,[0]],["01-08",34,[5]],["01-09",28,[1]],["01-10",9,[5]],["01-11",26,[3]],["01-12",34,[3]],["01-13",8,[1]],["01-14",23,[5]],["01-15",2,[3]],["01-16",23,[5]],["01-17",0,[1]],["01-18",47,[3]],["01-19",3,[3]],["01-20",31,[3]],["01-23",9,[1]],["01-24",23,[0]],["01-25",38,[1]],["01-26",39,[0]],["01-28",29,[2]],["01-29",60,[0]],["01-30",50,[0]],["01-31",2,[4]]];
+  const dayLogs2017 = days2017.map(([md, hex, ch]) => ({
+    id: `l_day_2017${md.replace('-','')}`,
+    kind: 'day',
+    ts: `2017-${md}T00:00`,
+    title: '今日の心構え',
+    hex,
+    ch,
+    rel: deriveSet(hex, ch),
+    memo: '',
+    advice: '',
+    action: '',
+    review: '',
+    status: '',
+    tags: ['今日の心構え'],
+    result: '',
+    imp: true,
+    upd: 1483228800000 + parseInt(md.replace('-',''), 10) * 86400000
+  }));
+  return [...yearLogs, ...monthLogs, ...dayLogs, ...dayLogs2017];
 })();
 const handleBulkImport = (taId, resId) => {
   const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
@@ -2127,6 +2154,28 @@ $('#lbulkgo').addEventListener('click', ()=>handleBulkImport('#lbulktext','#lbul
 $('#lbulkbtn').addEventListener('click', ()=>{
   const p=$('#lbulkpanel'); p.open=!p.open;
   if(p.open) $('#lbulktext').focus();
+});
+$('#lbulkfilebtn').addEventListener('click', ()=>$('#lbulkfile').click());
+$('#lbulkfile').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  if(!files.length) return;
+  const texts = await Promise.all(files.map(f => f.text()));
+  const ta = $('#lbulktext');
+  ta.value = (ta.value ? ta.value.trim() + '\n\n' : '') + texts.join('\n\n');
+  e.target.value = '';
+  handleBulkImport('#lbulktext', '#lbulkres');
+});
+const bulkTa = $('#lbulktext');
+bulkTa.addEventListener('dragover', e => { e.preventDefault(); bulkTa.style.borderColor = 'var(--acc, #d9534f)'; });
+bulkTa.addEventListener('dragleave', () => { bulkTa.style.borderColor = ''; });
+bulkTa.addEventListener('drop', async e => {
+  e.preventDefault();
+  bulkTa.style.borderColor = '';
+  const files = Array.from(e.dataTransfer?.files || []).filter(f => /\.(txt|md|text)$/i.test(f.name) || (f.type && f.type.startsWith('text/')));
+  if(!files.length) return;
+  const texts = await Promise.all(files.map(f => f.text()));
+  bulkTa.value = (bulkTa.value ? bulkTa.value.trim() + '\n\n' : '') + texts.join('\n\n');
+  handleBulkImport('#lbulktext', '#lbulkres');
 });
 
 /* イベント */

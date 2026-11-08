@@ -1,6 +1,6 @@
 // 易 検索: オフライン対応。通信できるときは最新を取得し、できないときは保存済みを使う。
 // (本文・ノート・校正はブラウザのlocalStorageにあり、ここでは扱いません)
-const V = 'eki-v44';
+const V = 'eki-v45';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(ASSETS)).catch(() => {}));
