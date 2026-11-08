@@ -1752,6 +1752,9 @@ function parseHexInput(val){
   let s = String(val).normalize('NFKC').trim();
   if(!s) return null;
 
+  // 日付・年月表記（1月, 2018年, 12/24 など）は卦名として扱わない
+  if(/^(?:\d{4}年|\d{1,2}月|\d{1,2}日|\d{1,2}[\/\-.]\d{1,2})/.test(s)) return null;
+
   // 1. Direct number: e.g. '34', '1', '第34卦', '34番', '34卦'
   const mNum = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?$/);
   if(mNum){
@@ -1760,14 +1763,14 @@ function parseHexInput(val){
   }
 
   // 2. Starts with number: e.g. '34 雷天大壮', '34.大壮', '第34卦: 大壮', '34 大壮(雷天)'
-  const mPref = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?[\s.:：、]*(.*)$/);
+  const mPref = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?(?:[\s.:：、]+(.*)|(?:卦|番)(.*))$/);
   if(mPref){
     const n = parseInt(mPref[1], 10);
     if(n >= 1 && n <= 64){
-      const rest = mPref[2].trim();
+      const rest = (mPref[2] || mPref[3] || '').trim();
       if(!rest) return n - 1;
       const parsedRest = parseHexInput(rest);
-      if(parsedRest === n - 1 || parsedRest == null) return n - 1;
+      if(parsedRest === n - 1) return n - 1;
     }
   }
 
@@ -2658,7 +2661,7 @@ function importLogText(text, commit = true){
   lines.forEach((line, idx)=>{
     const n = idx + 1;
     if(line.startsWith('#')) return;
-    if(/^(互卦|錯卦|綜卦|之卦)[:：\s　]/.test(line)) return;
+    if(/^(?:互卦|錯卦|綜卦|之卦|伏卦|裏卦|変卦)/.test(line)) return;
 
     const parts=line.split(/\t|\||｜|／|\s\/\s/).map(x=>x.trim()).filter(Boolean);
     if(parts.length>=2){
@@ -2688,30 +2691,7 @@ function importLogText(text, commit = true){
       return;
     }
 
-    const toks=line.split(/[\s　]+/).map(x=>x.trim()).filter(Boolean);
-    let lineHex=null, lineChv=null;
-    for(const t of toks){
-      if(lineHex==null){
-        const h=findHexByName(t);
-        if(h!=null){ lineHex=h; continue; }
-      }
-      const c=parseChTok(t);
-      if(c && (c.pos.length || /不明|未詳|なし|無し/.test(t))){ lineChv=c; continue; }
-    }
-    if(lineHex!=null){
-      curHex=lineHex;
-      curCh=lineChv ? lineChv.pos : [];
-      curChv=lineChv;
-      curLineNum=n;
-      flush(n);
-      return;
-    }
-
-    if(line.startsWith('本卦')){
-      out.skip.push(`${n}行目: 本卦が読み取れません → ${line.slice(0,40)}`);
-      return;
-    }
-
+    // 年・月・日付・ヘッダー行の判定（卦名トークン判定より先に行い、1月や2月が卦として誤認識されるのを防ぐ）
     const mHeader=line.match(/^(\d{4})\s*年?(?:\s*(\d{1,2})\s*月)?[\s　]+(.*心構え.*)$/);
     if(mHeader){
       currentYear=+mHeader[1];
@@ -2746,7 +2726,7 @@ function importLogText(text, commit = true){
     }
 
     const mYear=line.match(/^(\d{4})\s*年?(.*)$/);
-    if(mYear){
+    if(mYear && !findHexByName(line)){
       const y=+mYear[1];
       currentYear=y;
       const rest=mYear[2].trim();
@@ -2760,6 +2740,30 @@ function importLogText(text, commit = true){
         curTs='';
         curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
       }
+      return;
+    }
+
+    const toks=line.split(/[\s　]+/).map(x=>x.trim()).filter(Boolean);
+    let lineHex=null, lineChv=null;
+    for(const t of toks){
+      if(lineHex==null){
+        const h=findHexByName(t);
+        if(h!=null){ lineHex=h; continue; }
+      }
+      const c=parseChTok(t);
+      if(c && (c.pos.length || /不明|未詳|なし|無し/.test(t))){ lineChv=c; continue; }
+    }
+    if(lineHex!=null){
+      curHex=lineHex;
+      curCh=lineChv ? lineChv.pos : [];
+      curChv=lineChv;
+      curLineNum=n;
+      flush(n);
+      return;
+    }
+
+    if(line.startsWith('本卦')){
+      out.skip.push(`${n}行目: 本卦が読み取れません → ${line.slice(0,40)}`);
       return;
     }
 
