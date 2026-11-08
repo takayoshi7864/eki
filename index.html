@@ -2173,17 +2173,20 @@ function logRowItem(e){
 }
 function purposeDetailHtml(a){
   const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
-  const y1 = a[0].ts ? a[0].ts.slice(0,4) : '';
-  const y2 = last.ts ? last.ts.slice(0,4) : '';
+  const dated = a.filter(e => e.ts && e.ts.length >= 10);
   let rangeStr = '';
-  if(a[0].ts && last.ts){
-    if(y1 && y2 && y1 !== y2){
-      rangeStr = `${a[0].ts.slice(0,10).replace(/-/g,'/')} 〜 ${last.ts.slice(0,10).replace(/-/g,'/')}`;
+  if(dated.length >= 2){
+    const dFirst = dated[0], dLast = dated[dated.length - 1];
+    const y1 = dFirst.ts.slice(0, 4), y2 = dLast.ts.slice(0, 4);
+    if(y1 !== y2){
+      rangeStr = `${dFirst.ts.slice(0, 10).replace(/-/g, '/')} 〜 ${dLast.ts.slice(0, 10).replace(/-/g, '/')}`;
     } else {
-      rangeStr = `${y1 ? y1+'年 ' : ''}${a[0].ts.slice(5,10).replace('-','/')} 〜 ${last.ts.slice(5,10).replace('-','/')}`;
+      rangeStr = `${y1 ? y1 + '年 ' : ''}${dFirst.ts.slice(5, 10).replace('-', '/')} 〜 ${dLast.ts.slice(5, 10).replace('-', '/')}`;
     }
+  } else if(dated.length === 1){
+    rangeStr = dated[0].ts.slice(0, 10).replace(/-/g, '/');
   } else {
-    rangeStr = last.memo || a[0].memo || '日付なし';
+    rangeStr = '日付なし';
   }
   const filteredTags = tg.filter(t => t !== last.title);
 
@@ -2480,7 +2483,9 @@ function purposeSummaryCards(groups, activePk){
       const pk = purposeKey(last);
       const title = purposeOf(last);
       let latestDate = '';
-      if(last.kind === 'month' && last.ts){
+      if(last.memo && /冬至占/.test(last.memo)){
+        latestDate = last.memo;
+      } else if(last.kind === 'month' && last.ts){
         latestDate = `${last.ts.slice(0, 4)}/${pad2(+last.ts.slice(5, 7))}`;
       } else if(last.ts && last.ts.length >= 10){
         latestDate = last.ts.slice(0, 10).replace(/-/g, '/');
@@ -3838,67 +3843,114 @@ let embRaw = '', embUser = null;
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
 if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; if(relabelAll(state)) saveUser(true); }
-// 「一年の心構え」過去10年の記録を初期登録・目的統一
+// 「一年の心構え」過去10年の記録を完全正規化・重複統合
 {
-  const logKey = e => [(e.ts||'').slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
-  state.log.forEach(x => {
-    if(/^一年の心構え(?:\s*(?:\d{4}年|冬至占?))+$/.test(x.title)){
-      if(!x.memo){
-        const sub = x.title.replace(/^一年の心構え\s*/, '').trim();
-        if(sub) x.memo = sub;
+  const CANONICAL_ANNUAL = [
+    { y: 2017, toji: false, hex: 8,  ch: [4], memo: '2017年' },
+    { y: 2018, toji: true,  hex: 15, ch: [0], memo: '2018年 冬至占' },
+    { y: 2019, toji: true,  hex: 32, ch: [2], memo: '2019年 冬至占' },
+    { y: 2020, toji: true,  hex: 10, ch: [0], memo: '2020年 冬至占' },
+    { y: 2021, toji: true,  hex: 0,  ch: [5], memo: '2021年 冬至占' },
+    { y: 2022, toji: true,  hex: 53, ch: [0], memo: '2022年 冬至占' },
+    { y: 2023, toji: true,  hex: 44, ch: [5], memo: '2023年 冬至占' },
+    { y: 2024, toji: true,  hex: 38, ch: [3], memo: '2024年 冬至占' },
+    { y: 2025, toji: true,  hex: 17, ch: [4], memo: '2025年 冬至占' },
+    { y: 2026, toji: true,  hex: 33, ch: [4], memo: '2026年 冬至占' }
+  ];
+
+  let logChanged = false;
+  const canonicalIds = new Set(CANONICAL_ANNUAL.map(c => `l_toji_${c.y}`));
+  const removeIds = new Set();
+
+  CANONICAL_ANNUAL.forEach(item => {
+    const targetTs = item.toji ? `${item.y - 1}-12-${pad2(tojiDay(item.y - 1))}T00:00` : '';
+    const chStr = (item.ch || []).join('');
+    
+    // 年占の対象レコードを特定（ID一致、または卦・変爻の一致）
+    const matches = state.log.filter(e => {
+      if(e.id === `l_toji_${item.y}`) return true;
+      if(e.hex === item.hex && (e.ch || []).join('') === chStr){
+        const t = e.title || '', m = e.memo || '';
+        if(t.includes('年') || t.includes('冬至') || m.includes('年') || m.includes('冬至') || e.kind === 'year' || !e.ts || (e.id || '').startsWith('l_toji_')){
+          return true;
+        }
       }
-      x.title = '一年の心構え';
+      return false;
+    });
+
+    if(matches.length > 0){
+      const primary = matches.find(m => m.id === `l_toji_${item.y}`) || matches[0];
+      if(primary.id !== `l_toji_${item.y}`) { primary.id = `l_toji_${item.y}`; logChanged = true; }
+      if(primary.title !== '一年の心構え') { primary.title = '一年の心構え'; logChanged = true; }
+      if(primary.memo !== item.memo) { primary.memo = item.memo; logChanged = true; }
+      if(primary.ts !== targetTs) { primary.ts = targetTs; logChanged = true; }
+      if(primary.kind !== 'year') { primary.kind = 'year'; logChanged = true; }
+      if(!Array.isArray(primary.tags) || !primary.tags.includes('一年の心構え')){
+        primary.tags = ['一年の心構え'];
+        logChanged = true;
+      }
+      primary.hex = item.hex;
+      primary.ch = item.ch;
+      primary.rel = deriveSet(item.hex, item.ch);
+
+      matches.forEach(m => {
+        if(m !== primary){
+          removeIds.add(m.id);
+          logChanged = true;
+        }
+      });
+    } else {
+      const deleted = state.tomb && state.tomb[`l_toji_${item.y}`];
+      if(!deleted){
+        state.log.push({
+          id: `l_toji_${item.y}`,
+          kind: 'year',
+          ts: targetTs,
+          title: '一年の心構え',
+          hex: item.hex,
+          ch: item.ch,
+          rel: deriveSet(item.hex, item.ch),
+          memo: item.memo,
+          advice: '',
+          action: '',
+          review: '',
+          status: '',
+          tags: ['一年の心構え'],
+          result: '',
+          imp: true,
+          upd: 1483200000000 + (item.y - 2017) * 31536000000
+        });
+        logChanged = true;
+      }
     }
   });
-  let added = false;
+
+  if(removeIds.size > 0){
+    state.log = state.log.filter(e => !removeIds.has(e.id));
+  }
+
+  // 誤って目的が「冬至占」となっていた日次記録を「今日の心構え」に正規化
+  state.log.forEach(e => {
+    if(e.title === '冬至占' && !canonicalIds.has(e.id)){
+      e.title = '今日の心構え';
+      e.kind = 'day';
+      e.tags = ['今日の心構え'];
+      logChanged = true;
+    }
+  });
+
+  // 他の今月の心構え・日次デフォルト等の登録（未登録分のみ）
   DEFAULT_LOG.forEach(rec => {
+    if(canonicalIds.has(rec.id)) return;
     const deleted = state.tomb && state.tomb[rec.id];
-    const exists = state.log.some(e => logKey(e) === logKey(rec) || e.id === rec.id);
+    const exists = state.log.some(e => e.id === rec.id || ((e.ts||'').slice(0,10) === (rec.ts||'').slice(0,10) && e.title === rec.title && e.hex === rec.hex && (e.ch||[]).join('') === (rec.ch||[]).join('')));
     if(!deleted && !exists){
       state.log.push(rec);
-      added = true;
+      logChanged = true;
     }
   });
-  if(added){
-    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
-    saveUser(true);
-  }
-}
-// 冬至占の日付マイグレーション: 2016年冬至(2017年の心構え)以外は、前年12月の冬至の日に更新
-{
-  let tojiMigrated = false;
-  state.log.forEach(e => {
-    const mId = (e.id || '').match(/^l_toji_(\d{4})$/);
-    if(mId){
-      const y = +mId[1];
-      if(y >= 2018){
-        const prevY = y - 1;
-        const targetTs = `${prevY}-12-${pad2(tojiDay(prevY))}T00:00`;
-        if(e.ts !== targetTs){
-          e.ts = targetTs;
-          tojiMigrated = true;
-        }
-      } else if(y === 2017){
-        if(e.ts !== ''){
-          e.ts = '';
-          tojiMigrated = true;
-        }
-      }
-    }
-    const mMemo = (e.memo || '' + ' ' + (e.title || '')).match(/(\d{4})\s*年?\s*冬至占?/);
-    if(mMemo){
-      const y = +mMemo[1];
-      if(y >= 2018){
-        const prevY = y - 1;
-        const targetTs = `${prevY}-12-${pad2(tojiDay(prevY))}T00:00`;
-        if(e.ts !== targetTs){
-          e.ts = targetTs;
-          tojiMigrated = true;
-        }
-      }
-    }
-  });
-  if(tojiMigrated){
+
+  if(logChanged){
     state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
     saveUser(true);
   }
