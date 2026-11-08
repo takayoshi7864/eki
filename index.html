@@ -1353,10 +1353,9 @@ function renderLogTop(){
     if(!e) return `<div class="lcard empty"><div class="hint">${lab}</div><div>未記録</div><button data-lact="new" data-kind="${k}">記録する</button></div>`;
     const L = hexLines(e.hex);
     const yao = e.ch.length ? ` <b>${e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・')}</b>` : '';
-    const z = e.ch.length ? ` <span style="white-space:nowrap"><span class="arrow">→</span> ${hexSvg(e.rel.zhi,20,20)}<b>${fullTrad(e.rel.zhi)}</b></span>` : '';
     const act = (e.action||e.memo||'').trim().slice(0,70);
     return `<div class="lcard"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')})</div>
-      <div class="lname">${hexSvg(e.hex,26,26)}<b>${fullTrad(e.hex)}</b>${yao}${z}</div>
+      <div class="lname">${hexSvg(e.hex,26,26)}<b>${fullTrad(e.hex)}</b>${yao}</div>
       ${act?`<div class="hint">${esc(act)}</div>`:''}
       <button data-lact="open" data-id="${e.id}">開く</button></div>`;
   }).join('') + '</div>';
@@ -1419,7 +1418,6 @@ function logCard(e){
     <div class="lhex">
       ${hexSvg(e.hex,22,22)}<b>${fullTrad(e.hex)}</b>
       ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
-      ${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,22,22)}<b>${fullTrad(zhi)}</b>`:''}
     </div>
     <div class="body"><b>${esc(purposeOf(e))}</b></div>
     ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
@@ -1473,7 +1471,6 @@ function logRowItem(e, showPurpose){
         <span class="lrow-hex">
           ${hexSvg(e.hex,20,20)}<b>${fullTrad(e.hex)}</b>
           ${yaoStr ? `<b>${yaoStr}</b>` : '<span class="hint">変爻なし</span>'}
-          ${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,20,20)}<b>${fullTrad(zhi)}</b>`:''}
         </span>
         ${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}
         ${e.result?`<span class="tag">${RES[e.result]}</span>`:''}
