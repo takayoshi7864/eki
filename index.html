@@ -330,7 +330,15 @@ body:not(.help) .exp{display:none !important}
       <div id="logtop"></div>
       <p>
         <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
+        <button id="lbulkbtn">＋ まとめて記録</button>
       </p>
+      <details class="panel" id="lbulkpanel">
+        <summary><b>まとめて記録(複数行のメモや一覧を貼り付け)</b></summary>
+        <div class="hint exp">1行に1件(「日付 | 目的 | 出した卦 | 変爻」)のほか、複数行のメモ(年・冬至占・本卦・変爻など)もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2:<br><code>一年の心構え<br>2018年 冬至占<br>本卦 雷地豫 初爻</code><br>※日付が年だけの場合は1月1日(冬至占なら冬至の日)として補完します。変爻がないときは省略可。互卦・錯卦・綜卦は自動計算されます。同じ内容をもう一度入れても重複しません。</div>
+        <textarea id="lbulktext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
+        <p><button class="primary" id="lbulkgo">取り込む</button></p>
+        <div id="lbulkres" class="hint"></div>
+      </details>
       <div id="lpend"></div>
       <div id="logform" hidden></div>
       <div class="panel">
@@ -1399,16 +1407,17 @@ async function backupShare(){
   download('eki-backup.json', json, 'application/json');
 }
 
-/* まとめて取り込み: 「日付 | 目的 | 卦 | 変爻」 */
+/* まとめて取り込み: 「日付 | 目的 | 卦 | 変爻」 または 複数行のメモ */
 function findHexByName(t){
-  const c=t.replace(/^[第\d\s.、]+卦?[\s.、]*/,'').replace(/[\s　]/g,'');
+  const c=t.replace(/^(本卦|之卦|卦)[:：\s　]*/,'').replace(/^[第\d\s.、]+卦?[\s.、]*/,'').replace(/[\s　]/g,'');
   if(!c) return null;
   for(let i=0;i<HEX.length;i++) if(c===fullTrad(i) || c===HEX[i][0] || c===fullName(i).replace(/[\s　]/g,'')) return i;
   return null;
 }
 function parseChTok(t){
-  const c=t.replace(/[\s　]/g,'');
+  let c=t.replace(/[\s　]/g,'');
   if(/^(なし|無し?|無|ー|-|―|変爻なし|不変)$/.test(c)) return {pos:[],names:[]};
+  c=c.replace(/第([一二三四五六123456])爻/g, '$1爻');
   const toks=c.split(/[・,、，\/／+＋]/).filter(Boolean); if(!toks.length) return null;
   const pos=[], names=[];
   for(const x of toks){
@@ -1419,40 +1428,144 @@ function parseChTok(t){
   }
   return {pos:[...new Set(pos)].sort((a,b)=>a-b), names};
 }
+function tojiDay(y){
+  // 1980-2099 JST 冬至
+  return Math.floor(22.20 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
+}
 function importLogText(text){
-  const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})\s*日?(?:\s*(\d{1,2}):(\d{2}))?/;
+  const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?/;
+  const pad2 = n => String(n).padStart(2,'0');
   const out={added:0,dup:0,skip:[],warn:[]};
-  text.split(/\r?\n/).forEach((raw,n)=>{
-    const line=raw.trim(); if(!line || line[0]==='#') return;
-    const parts=line.split(/\t|\||｜|／|\s\/\s/).map(x=>x.trim()).filter(Boolean);
-    let ts=null,hex=null,chv=null; const purpose=[];
-    for(const q of parts){
-      const m=ts==null && q.match(DATE);
-      if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
-      if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
-      if(chv==null){ const c=parseChTok(q); if(c){ chv=c; continue; } }
-      purpose.push(q);
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const items=[];
+  let baseTitle='', curSubTitle='', curTs=null, curHex=null, curCh=[], curChv=null, curLineNum=1;
+
+  function flush(n){
+    if(curHex!=null){
+      const fullTitle=[baseTitle, curSubTitle].filter(Boolean).join(' ') || '心構え';
+      items.push({
+        lineNum: curLineNum,
+        ts: curTs || `${new Date().getFullYear()}-01-01T00:00`,
+        title: fullTitle,
+        hex: curHex,
+        ch: curCh,
+        chv: curChv
+      });
+      curHex=null; curCh=[]; curChv=null; curSubTitle=''; curTs=null;
     }
-    if(ts==null || hex==null){ out.skip.push(`${n+1}行目: ${ts==null?'日付':'卦'}が読み取れません → ${line.slice(0,40)}`); return; }
-    const ch=chv?chv.pos:[], title=purpose.join(' ');
-    if(chv) chv.names.forEach(([k,x])=>{ if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${n+1}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です(「${x}」と書かれています。位置を優先しました)`); });
-    const rec={id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), kind:/今日/.test(title)?'day':/今月/.test(title)?'month':/今年/.test(title)?'year':'event',
-      ts, title, hex, ch, rel:deriveSet(hex,ch), memo:'', advice:'', action:'', review:'', status:'', tags:[], result:'', imp:true, upd:Date.now()};
-    { const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,'')); if(same){ rec.status=same.status||''; rec.tags=same.tags||[]; } }
+  }
+
+  lines.forEach((line, idx)=>{
+    const n = idx + 1;
+    if(line.startsWith('#')) return;
+    if(/^(互卦|錯卦|綜卦|之卦)[:：\s　]/.test(line)) return;
+
+    const parts=line.split(/\t|\||｜|／|\s\/\s/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>=2){
+      flush(n);
+      let ts=null,hex=null,chv=null; const purpose=[];
+      for(const q of parts){
+        const m=ts==null && q.match(DATE);
+        if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
+        if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
+        if(chv==null){ const c=parseChTok(q); if(c){ chv=c; continue; } }
+        purpose.push(q);
+      }
+      if(hex==null){
+        out.skip.push(`${n}行目: 卦が読み取れません → ${line.slice(0,40)}`);
+        return;
+      }
+      items.push({
+        lineNum: n,
+        ts: ts || `${new Date().getFullYear()}-01-01T00:00`,
+        title: purpose.join(' ') || baseTitle || '',
+        hex,
+        ch: chv ? chv.pos : [],
+        chv
+      });
+      return;
+    }
+
+    const toks=line.split(/[\s　]+/).map(x=>x.trim()).filter(Boolean);
+    let lineHex=null, lineChv=null;
+    for(const t of toks){
+      if(lineHex==null){
+        const h=findHexByName(t);
+        if(h!=null){ lineHex=h; continue; }
+      }
+      const c=parseChTok(t);
+      if(c && c.pos.length){ lineChv=c; continue; }
+    }
+    if(lineHex!=null){
+      curHex=lineHex;
+      curCh=lineChv ? lineChv.pos : [];
+      curChv=lineChv;
+      curLineNum=n;
+      flush(n);
+      return;
+    }
+
+    const mDate=line.match(DATE);
+    if(mDate){
+      curTs=`${mDate[1]}-${pad2(+mDate[2])}-${pad2(+mDate[3])}T${pad2(+(mDate[4]||0))}:${mDate[5]||'00'}`;
+      const rest=line.replace(DATE,'').trim();
+      if(rest) curSubTitle=rest;
+      return;
+    }
+
+    const mYear=line.match(/^(\d{4})\s*年?(.*)$/);
+    if(mYear){
+      const y=+mYear[1];
+      const rest=mYear[2].trim();
+      const isToji=/冬至/.test(rest);
+      const d=isToji ? tojiDay(y) : 1;
+      const m=isToji ? 12 : 1;
+      curTs=`${y}-${pad2(m)}-${pad2(d)}T00:00`;
+      if(rest) curSubTitle=rest;
+      return;
+    }
+
+    baseTitle=line;
+  });
+  flush();
+
+  items.forEach(it=>{
+    const { lineNum, ts, title, hex, ch, chv } = it;
+    if(chv) chv.names.forEach(([k,x])=>{
+      if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${lineNum}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です(「${x}」と書かれています。位置を優先しました)`);
+    });
+    const isYear=/今年|一?年の心構え|冬至占?/.test(title);
+    const kind=/今日/.test(title)?'day':/今月/.test(title)?'month':isYear?'year':'event';
+    const rec={
+      id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,4),
+      kind,
+      ts, title, hex, ch, rel:deriveSet(hex,ch), memo:'', advice:'', action:'', review:'', status:'', tags:[], result:'', imp:true, upd:Date.now()
+    };
+    {
+      const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,''));
+      if(same){ rec.status=same.status||''; rec.tags=same.tags||[]; }
+    }
     const key=e=>[e.ts.slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, e.ch.join('')].join('|');
     if(state.log.some(e=>key(e)===key(rec))){ out.dup++; return; }
     state.log.push(rec); out.added++;
   });
+
   if(out.added){ state.log.sort((a,b)=>b.ts.localeCompare(a.ts)); saveUser(); renderLog(); }
   return out;
 }
-$('#limpgo').addEventListener('click', ()=>{
-  const t=$('#limptext').value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
-  const r=importLogText(t);
-  $('#limpres').innerHTML = `<b>${r.added}件を取り込みました</b>${r.dup?`(重複 ${r.dup}件は除外)`:''}` +
+const handleBulkImport = (taId, resId) => {
+  const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
+  const r = importLogText(t);
+  $(resId).innerHTML = `<b>${r.added}件を取り込みました</b>${r.dup?`(重複 ${r.dup}件は除外)`:''}` +
     (r.skip.length?`<br>読み取れなかった行: ${r.skip.length}件<br>`+r.skip.map(esc).join('<br>'):'') +
     (r.warn.length?`<br>確認: <br>`+r.warn.map(esc).join('<br>'):'');
-  if(r.added && !r.skip.length) $('#limptext').value='';
+  if(r.added && !r.skip.length) $(taId).value='';
+};
+$('#limpgo').addEventListener('click', ()=>handleBulkImport('#limptext','#limpres'));
+$('#lbulkgo').addEventListener('click', ()=>handleBulkImport('#lbulktext','#lbulkres'));
+$('#lbulkbtn').addEventListener('click', ()=>{
+  const p=$('#lbulkpanel'); p.open=!p.open;
+  if(p.open) $('#lbulktext').focus();
 });
 
 /* イベント */
