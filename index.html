@@ -2201,12 +2201,12 @@ function purposeDetailHtml(a){
 
   const isDay = a.some(e => e.kind === 'day');
   const isMonth = a.some(e => e.kind === 'month');
-  const descItems = a.slice().reverse();
+  const ascItems = a.slice(); // 昇順（上が過去、下が最新）
 
   let itemsHtml = '';
   if(isDay){
     const yGroups = new Map();
-    descItems.forEach(e => {
+    ascItems.forEach(e => {
       const y = (e.ts || '').slice(0,4) || (e.memo ? (e.memo.match(/\d{4}/)?.[0] || 'その他') : 'その他');
       const m = (e.ts || '').slice(5,7);
       const mLabel = m ? `${parseInt(m,10)}月` : 'その他';
@@ -2216,10 +2216,12 @@ function purposeDetailHtml(a){
       mGroups.get(mLabel).push(e);
     });
 
+    const totalYears = yGroups.size;
     itemsHtml = [...yGroups.entries()].map(([yLabel, mGroups], yIdx) => {
       const totalInYear = [...mGroups.values()].reduce((sum, list) => sum + list.length, 0);
+      const totalMonths = mGroups.size;
       const monthsHtml = [...mGroups.entries()].map(([mLabel, mList], mIdx) => {
-        return `<details class="lsubgroup"${(yIdx === 0 && mIdx === 0) ? ' open' : ''}>
+        return `<details class="lsubgroup"${(yIdx === totalYears - 1 && mIdx === totalMonths - 1) ? ' open' : ''}>
           <summary class="lsubgroup-sum">
             <b>${mLabel}</b>
             <span class="chip on" style="font-size:.78rem;padding:2px 8px">${mList.length}件</span>
@@ -2230,7 +2232,7 @@ function purposeDetailHtml(a){
         </details>`;
       }).join('');
 
-      return `<details class="lyeargroup"${yIdx === 0 ? ' open' : ''}>
+      return `<details class="lyeargroup"${yIdx === totalYears - 1 ? ' open' : ''}>
         <summary class="lyeargroup-sum">
           <b>${yLabel.endsWith('年') ? yLabel : yLabel + '年'}</b>
           <span class="chip on" style="font-size:.82rem;padding:2px 9px">${totalInYear}件</span>
@@ -2242,14 +2244,15 @@ function purposeDetailHtml(a){
     }).join('');
   } else if(isMonth){
     const yGroups = new Map();
-    descItems.forEach(e => {
+    ascItems.forEach(e => {
       const y = (e.ts || '').slice(0,4) || (e.memo ? (e.memo.match(/\d{4}/)?.[0] || 'その他') : 'その他');
       if(!yGroups.has(y)) yGroups.set(y, []);
       yGroups.get(y).push(e);
     });
 
+    const totalYears = yGroups.size;
     itemsHtml = [...yGroups.entries()].map(([yLabel, yList], yIdx) => {
-      return `<details class="lyeargroup"${yIdx === 0 ? ' open' : ''}>
+      return `<details class="lyeargroup"${yIdx === totalYears - 1 ? ' open' : ''}>
         <summary class="lyeargroup-sum">
           <b>${yLabel.endsWith('年') ? yLabel : yLabel + '年'}</b>
           <span class="chip on" style="font-size:.82rem;padding:2px 9px">${yList.length}件</span>
@@ -2260,7 +2263,7 @@ function purposeDetailHtml(a){
       </details>`;
     }).join('');
   } else {
-    itemsHtml = `<div class="lcompact-list">${descItems.map(logRowItem).join('')}</div>`;
+    itemsHtml = `<div class="lcompact-list">${ascItems.map(logRowItem).join('')}</div>`;
   }
 
   return `<div class="purpose-detail-wrap" data-pk="${esc(pk)}">
@@ -2516,6 +2519,7 @@ function purposeSummaryCards(groups, activePk){
   `</div>`;
 }
 function renderLogList(){
+  if(cleanAndDedupAnnualRecords(state)){ saveUser(true); }
   const f=state.lf;
   // 目的別のまとまりセレクター（常設チップ）
   const pMap = new Map();
@@ -3848,7 +3852,11 @@ let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }
 if(!userData) userData = embUser;
 if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; if(relabelAll(state)) saveUser(true); }
 // 「一年の心構え」過去10年の記録を完全正規化・重複統合
-{
+function cleanAndDedupAnnualRecords(st){
+  if(!st || !Array.isArray(st.log)) return false;
+  if(!st.tomb) st.tomb = {};
+  let logChanged = false;
+
   const CANONICAL_ANNUAL = [
     { y: 2017, toji: false, hex: 8,  ch: [4], memo: '2017年' },
     { y: 2018, toji: true,  hex: 15, ch: [0], memo: '2018年 冬至占' },
@@ -3862,7 +3870,6 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
     { y: 2026, toji: true,  hex: 33, ch: [4], memo: '2026年 冬至占' }
   ];
 
-  let logChanged = false;
   const canonicalIds = new Set(CANONICAL_ANNUAL.map(c => `l_toji_${c.y}`));
   const removeIds = new Set();
 
@@ -3870,12 +3877,12 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
     const targetTs = item.toji ? `${item.y - 1}-12-${pad2(tojiDay(item.y - 1))}T00:00` : '';
     const chStr = (item.ch || []).join('');
     
-    // 年占の対象レコードを特定（ID一致、または卦・変爻の一致）
-    const matches = state.log.filter(e => {
+    // 年占の対象レコードを特定
+    const matches = st.log.filter(e => {
       if(e.id === `l_toji_${item.y}`) return true;
       if(e.hex === item.hex && (e.ch || []).join('') === chStr){
         const t = e.title || '', m = e.memo || '';
-        if(t.includes('年') || t.includes('冬至') || m.includes('年') || m.includes('冬至') || e.kind === 'year' || !e.ts || (e.id || '').startsWith('l_toji_')){
+        if(t.includes('心構え') || t.includes('年') || t.includes('冬至') || m.includes('年') || m.includes('冬至') || e.kind === 'year' || !e.ts || (e.id || '').startsWith('l_toji_')){
           return true;
         }
       }
@@ -3900,13 +3907,14 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
       matches.forEach(m => {
         if(m !== primary){
           removeIds.add(m.id);
+          st.tomb[m.id] = Date.now();
           logChanged = true;
         }
       });
     } else {
-      const deleted = state.tomb && state.tomb[`l_toji_${item.y}`];
+      const deleted = st.tomb && st.tomb[`l_toji_${item.y}`];
       if(!deleted){
-        state.log.push({
+        st.log.push({
           id: `l_toji_${item.y}`,
           kind: 'year',
           ts: targetTs,
@@ -3930,11 +3938,12 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
   });
 
   if(removeIds.size > 0){
-    state.log = state.log.filter(e => !removeIds.has(e.id));
+    st.log = st.log.filter(e => !removeIds.has(e.id));
+    logChanged = true;
   }
 
-  // 誤って目的が「冬至占」となっていた日次記録を「今日の心構え」に正規化
-  state.log.forEach(e => {
+  // 目的名が「冬至占」のまま残っているものをすべて「今日の心構え」に正規化
+  st.log.forEach(e => {
     if(e.title === '冬至占' && !canonicalIds.has(e.id)){
       e.title = '今日の心構え';
       e.kind = 'day';
@@ -3946,19 +3955,20 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
   // 他の今月の心構え・日次デフォルト等の登録（未登録分のみ）
   DEFAULT_LOG.forEach(rec => {
     if(canonicalIds.has(rec.id)) return;
-    const deleted = state.tomb && state.tomb[rec.id];
-    const exists = state.log.some(e => e.id === rec.id || ((e.ts||'').slice(0,10) === (rec.ts||'').slice(0,10) && e.title === rec.title && e.hex === rec.hex && (e.ch||[]).join('') === (rec.ch||[]).join('')));
+    const deleted = st.tomb && st.tomb[rec.id];
+    const exists = st.log.some(e => e.id === rec.id || ((e.ts||'').slice(0,10) === (rec.ts||'').slice(0,10) && e.title === rec.title && e.hex === rec.hex && (e.ch||[]).join('') === (rec.ch||[]).join('')));
     if(!deleted && !exists){
-      state.log.push(rec);
+      st.log.push(rec);
       logChanged = true;
     }
   });
 
   if(logChanged){
-    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
-    saveUser(true);
+    st.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
   }
+  return logChanged;
 }
+if(cleanAndDedupAnnualRecords(state)) saveUser(true);
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
@@ -3988,6 +3998,7 @@ function mergeIn(d){
     return out;
   };
   state.log = mergeList(state.log, (d.log||[]).filter(x=>x && x.id));
+  if(cleanAndDedupAnnualRecords(state)) ch = true;
   state.notes = mergeList(state.notes, d.notes);
   const keys=new Set([...Object.keys(state.lib), ...Object.keys(d.lib||{})]);
   keys.forEach(k=>{ const a=mergeList(state.lib[k]||[], (d.lib||{})[k]); if(a.length) state.lib[k]=a; else delete state.lib[k]; });
