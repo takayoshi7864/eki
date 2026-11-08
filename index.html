@@ -1355,17 +1355,30 @@ function latestOf(kind, prefix){ return state.log.filter(e=>e.kind===kind && e.t
 function renderLogTop(){
   const n=nowLocal();
   const defs=[['day','今日',n.slice(0,10)],['month','今月',n.slice(0,7)],['year','今年',n.slice(0,4)]];
-  $('#logtop').innerHTML = '<div class="today">' + defs.map(([k,lab,pre])=>{
+  let openEnt = null;
+  const cardsHtml = '<div class="today">' + defs.map(([k,lab,pre])=>{
     const e = latestOf(k,pre);
     if(!e) return `<div class="lcard empty"><div class="hint">${lab}</div><div>未記録</div><button data-lact="new" data-kind="${k}">記録する</button></div>`;
+    const isOpened = state.lopen === e.id;
+    if(isOpened) openEnt = e;
     const L = hexLines(e.hex);
     const yao = e.ch.length ? ` <b>${e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・')}</b>` : '';
     const act = (e.action||e.memo||'').trim().slice(0,70);
-    return `<div class="lcard"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')})</div>
+    return `<div class="lcard${isOpened ? ' sel' : ''}"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')})</div>
       <div class="lname">${hexSvg(e.hex,26,26)}<b>${fullTrad(e.hex)}</b>${yao}</div>
       ${act?`<div class="hint">${esc(act)}</div>`:''}
-      <button data-lact="open" data-id="${e.id}">開く</button></div>`;
+      <button class="${isOpened ? 'chip on' : ''}" data-lact="open" data-id="${e.id}">${isOpened ? '閉じる' : '開く'}</button></div>`;
   }).join('') + '</div>';
+
+  const detailHtml = openEnt ? `<div class="panel" style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b style="font-size:1.05rem">${fmtDT(openEnt.ts, openEnt.memo)}: ${esc(purposeOf(openEnt))}</b>
+      <button class="chip" data-lact="open" data-id="${openEnt.id}">閉じる</button>
+    </div>
+    ${entryDetail(openEnt)}
+  </div>` : '';
+
+  $('#logtop').innerHTML = cardsHtml + detailHtml;
 }
 /* 登録した卦から、関連する解説文をまとめて確認する */
 function entryExplain(e,primary){
@@ -2184,8 +2197,11 @@ $('#viewLog').addEventListener('click', e=>{
     case 'cancel': $('#logform').hidden=true; $('#logform').innerHTML=''; state.draft=null; break;
     case 'save': saveLog(); break;
     case 'open':
-      state.lopen = state.lopen===id ? null : id; renderLogList();
-      { const el=document.querySelector(`[data-lid="${id}"]`); if(el) el.scrollIntoView({block:'nearest'}); }
+      state.lopen = state.lopen===id ? null : id;
+      if(ent && state.lopen===id) state.activePk = purposeKey(ent);
+      renderLogTop();
+      renderLogList();
+      { const el=document.querySelector(`[data-lid="${id}"]`); if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
       break;
     case 'edit': if(ent) openLogForm(ent); break;
     case 'expandall':
