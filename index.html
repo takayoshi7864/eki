@@ -1355,6 +1355,22 @@ function saveLog(){
     status:$('#lstat').value, tags:$('#ltags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean), result:$('#lresult').value, imp:e.imp||false,
     upd:Date.now()
   };
+
+  if(!e.id){
+    const key = x => [(x.ts||'').slice(0,10), (x.title||'').normalize('NFKC').replace(/\s+/g,''), x.hex, (x.ch||[]).join('')].join('|');
+    const exact = state.log.find(x => key(x) === key(rec));
+    if(exact){
+      const ok = confirm(`同じ記録が既に存在します。\n・日付: ${rec.ts ? rec.ts.slice(0,10) : '未設定'}\n・目的: ${rec.title || '心構え'}\n・卦: ${fullTrad(rec.hex)} ${rec.ch.map(k=>POSLAB[k]).join('')||'不変'}\n\nそれでも追加登録しますか？`);
+      if(!ok) return;
+    } else if(rec.ts && rec.title){
+      const sameDay = state.log.find(x => x.ts && x.ts.slice(0,10) === rec.ts.slice(0,10) && purposeKey(x) === purposeKey(rec));
+      if(sameDay){
+        const ok = confirm(`同じ日（${rec.ts.slice(0,10)}）に同じ目的「${rec.title}」の記録が既にあります（${fullTrad(sameDay.hex)}）。\n\n別件として追加しますか？`);
+        if(!ok) return;
+      }
+    }
+  }
+
   const i = state.log.findIndex(x=>x.id===rec.id);
   if(i>=0) state.log[i]=rec; else state.log.push(rec);
   if(rec.title) state.log.forEach(x=>{ if(x!==rec && x.title && purposeKey(x)===purposeKey(rec)){ x.status=rec.status; x.tags=rec.tags; } });   // 状態とタグは、目的ごとにそろえる
@@ -1976,10 +1992,10 @@ function tojiDay(y){
   // 1980-2099 JST 冬至
   return Math.floor(22.20 + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
 }
-function importLogText(text){
+function importLogText(text, commit = true){
   const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?/;
   const pad2 = n => String(n).padStart(2,'0');
-  const out={added:0,dup:0,skip:[],warn:[]};
+  const out={added:0,dup:0,skip:[],warn:[],newItems:[],dupItems:[]};
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const items=[];
   let baseTitle='', curSubTitle='', curTs=null, curHex=null, curCh=[], curChv=null, curLineNum=1;
@@ -2134,12 +2150,23 @@ function importLogText(text){
       const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,''));
       if(same){ rec.status=same.status||''; rec.tags=same.tags||[]; }
     }
-    const key=e=>[(e.ts||'').slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, e.ch.join('')].join('|');
-    if(state.log.some(e=>key(e)===key(rec))){ out.dup++; return; }
-    state.log.push(rec); out.added++;
+    const key=e=>[(e.ts||'').slice(0,10), (e.title||'').normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
+    const existing = state.log.find(e=>key(e)===key(rec));
+    if(existing || out.newItems.some(e=>key(e)===key(rec))){
+      out.dup++;
+      out.dupItems.push(existing || rec);
+      return;
+    }
+    out.newItems.push(rec);
+    out.added++;
   });
 
-  if(out.added){ state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))); saveUser(); renderLog(); }
+  if(commit && out.newItems.length){
+    state.log.push(...out.newItems);
+    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
+    saveUser();
+    renderLog();
+  }
   return out;
 }
 const DEFAULT_LOG = (() => {
@@ -2244,11 +2271,40 @@ const DEFAULT_LOG = (() => {
 })();
 const handleBulkImport = (taId, resId) => {
   const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
-  const r = importLogText(t);
-  $(resId).innerHTML = `<b>${r.added}件を取り込みました</b>${r.dup?`(重複 ${r.dup}件は除外)`:''}` +
+  const r = importLogText(t, false);
+  if(!r.newItems.length && !r.dupItems.length){
+    $(resId).innerHTML = r.skip.length ? `<span style="color:var(--accent)">読み取れませんでした:</span><br>`+r.skip.map(esc).join('<br>') : '取り込めるデータがありませんでした';
+    return;
+  }
+
+  if(r.dupItems.length > 0){
+    const dupSamples = r.dupItems.slice(0, 3).map(x => `・${(x.ts||'').slice(0,10) || (x.memo || '日付なし')} ${x.title || '心構え'} (${fullTrad(x.hex)} ${x.ch.length ? x.ch.map(k=>POSLAB[k]).join('') : '不変'})`);
+    const moreText = r.dupItems.length > 3 ? `\n...他 ${r.dupItems.length - 3} 件` : '';
+    if(!r.newItems.length){
+      alert(`既に取り込み済みの記録です (${r.dupItems.length}件すべて重複)。\n新しい記録はありません。\n\n【重複の例】\n${dupSamples.join('\n')}${moreText}`);
+      $(resId).innerHTML = `<span class="hint">すべて既に取り込み済みの記録です (${r.dupItems.length}件重複)</span>`;
+      return;
+    }
+    const ok = confirm(`既に登録済みの記録が ${r.dupItems.length} 件含まれています。\n\n【重複の例】\n${dupSamples.join('\n')}${moreText}\n\n重複を除外して、新規の ${r.newItems.length} 件のみを取り込みますか？\n（キャンセルで取り込みを中止します）`);
+    if(!ok){
+      toast('取り込みをキャンセルしました');
+      $(resId).innerHTML = `<span class="hint">取り込みをキャンセルしました (重複 ${r.dupItems.length}件)</span>`;
+      return;
+    }
+  }
+
+  if(r.newItems.length){
+    state.log.push(...r.newItems);
+    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
+    saveUser();
+    renderLog();
+  }
+
+  $(resId).innerHTML = `<b>${r.newItems.length}件を取り込みました</b>` +
+    (r.dupItems.length ? `<br><span class="hint">(重複 ${r.dupItems.length}件は確認の上除外しました)</span>` : '') +
     (r.skip.length?`<br>読み取れなかった行: ${r.skip.length}件<br>`+r.skip.map(esc).join('<br>'):'') +
     (r.warn.length?`<br>確認: <br>`+r.warn.map(esc).join('<br>'):'');
-  if(r.added && !r.skip.length) $(taId).value='';
+  if(r.newItems.length && !r.skip.length) $(taId).value='';
 };
 $('#limpgo').addEventListener('click', ()=>handleBulkImport('#limptext','#limpres'));
 $('#lbulkgo').addEventListener('click', ()=>handleBulkImport('#lbulktext','#lbulkres'));
