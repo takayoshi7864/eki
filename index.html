@@ -239,7 +239,11 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec div{white-space:pre-wrap;overflow-wrap:anywhere}
 .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .tabs button{flex:0 0 auto;white-space:nowrap}
-.view-stage{position:relative;width:100%}
+#tab-viewport{overflow:hidden;width:100%;position:relative}
+#tab-track{display:flex;width:500%;transform:translate3d(0%,0,0);will-change:transform;align-items:flex-start}
+#tab-track.animating{transition:transform 0.28s cubic-bezier(0.22,1,0.36,1)}
+.tab-pane{width:20%;flex:0 0 20%;min-width:0;box-sizing:border-box}
+.tab-pane.inactive{height:0;overflow:hidden;visibility:hidden;pointer-events:none}
 .orig-box{margin:6px 0}
 .orig{white-space:pre-wrap;font-size:1.05rem;letter-spacing:.04em;border-left:3px solid var(--line);padding-left:10px;margin:4px 0 8px;overflow-wrap:anywhere}
 .expl{margin:8px 0}
@@ -321,8 +325,93 @@ body:not(.help) .exp{display:none !important}
       <button data-view="search" title="本の本文（原典）の検索">原典</button>
       <button data-view="settings">設定</button>
     </nav>
-    <div id="viewStage" class="view-stage">
-    <div id="viewSearch">
+    <div id="tab-viewport">
+      <div id="tab-track">
+        <!-- 1. 記録 -->
+        <div id="viewLog" class="tab-pane">
+      <div id="logtop"></div>
+      <p>
+        <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
+        <button id="lbulkbtn">＋ まとめて記録</button>
+      </p>
+      <details class="panel" id="lbulkpanel">
+        <summary><b>まとめて記録（複数行のメモや一覧を貼り付け）</b></summary>
+        <div class="hint exp">1行に1件（「日付 | 目的 | 出した卦 | 変爻」）のほか、複数行のメモ（年・月・日付・本卦・変爻など）もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2（複数月・複数年も一度に貼って一括登録可）:<br><code>2017年1月　今日の心構え<br>1/1<br>本卦　地火明夷　第三爻<br>...</code><br>※テキストファイル（.txt / .md）の選択やドラッグ＆ドロップでも一気に読み込めます。既に登録済みの記録は自動で重複除外されます。</div>
+        <textarea id="lbulktext" rows="8" placeholder="2017年1月　今日の心構え&#10;1/1&#10;本卦　地火明夷　第三爻&#10;..."></textarea>
+        <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="primary" id="lbulkgo">取り込む</button>
+          <button type="button" id="lbulkfilebtn">📁 ファイルから選ぶ</button>
+          <input type="file" id="lbulkfile" accept=".txt,.md,text/plain" multiple style="display:none">
+          <span class="hint" style="font-size:.82rem">※複数ファイル・ドラッグ＆ドロップにも対応</span>
+        </p>
+        <div id="lbulkres" class="hint"></div>
+      </details>
+      <div id="lpend"></div>
+      <div id="logform" hidden></div>
+      <div class="panel log-ctrl-panel">
+        <div class="log-ctrl-top">
+          <div class="mode-segmented" id="lmode"></div>
+          <div class="log-search-wrap">
+            <span class="log-search-icon" aria-hidden="true">🔍</span>
+            <input id="lq" class="log-search-input" type="search" placeholder="記録を検索（卦・目的・メモ・解説など）">
+          </div>
+        </div>
+        <div class="purp-section" id="lpurpwrap">
+          <span class="purp-section-label">目的</span>
+          <div class="purp-chips" id="lkinds"></div>
+        </div>
+        <details id="lfil" class="log-filter-details"><summary>絞り込み（卦・変爻・期間・状態・タグ）</summary>
+          <div class="formgrid">
+            <label>本卦 <select id="fhex"></select></label>
+            <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
+            <label>期間（から）
+              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+                <input type="text" id="ffrom_text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:32px">
+                <button type="button" class="date-drum-btn" data-drum="ffrom" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
+                <input type="hidden" id="ffrom">
+              </div>
+            </label>
+            <label>期間（まで）
+              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+                <input type="text" id="fto_text" placeholder="例: 2026/12/31 や 12/31" style="width:100%;box-sizing:border-box;padding-right:32px">
+                <button type="button" class="date-drum-btn" data-drum="fto" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
+                <input type="hidden" id="fto">
+              </div>
+            </label>
+            <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
+          </div>
+          <div class="facets" id="ltagchips"></div>
+          <p><button id="fclear" type="button">絞り込みを解除</button></p>
+        </details>
+      </div>
+      <div class="summary" id="lsum"></div>
+      <div id="loglist"></div>
+        <!-- 2. 解説 -->
+        <div id="viewHex" class="tab-pane inactive">
+      <div class="panel" id="libpanel">
+        <b>解説の登録状況</b>
+        <div class="hint" id="libprog"></div>
+        <div class="hint exp">解説文の追加・編集・取り込みは、「設定」のページで行います。ここは、見るためのページです。</div>
+      </div>
+      <div class="panel">
+        <b>六十四卦の一覧表</b>
+        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦（互・錯・綜）・変爻と之卦が出ます。</div>
+        <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
+      </div>
+      <div id="hexdetail"></div>
+    </div>
+        <!-- 3. 吉凶表 -->
+        <div id="viewJudge" class="tab-pane inactive">
+      <div class="panel">
+        <b>吉凶悔吝の一覧表</b>
+        <div class="hint exp">各爻辞（原文の1行目）から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="facets" id="jchips"></div>
+        <div class="hint exp" id="jnote"></div>
+      </div>
+      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
+    </div>
+        <!-- 4. 原典 -->
+        <div id="viewSearch" class="tab-pane inactive">
     <div class="stick">
     <div class="searchbar">
       <input id="q" type="search" placeholder="例:潜竜　／　天行健　／　君子 吝（スペースでAND）" autocomplete="off" autofocus>
@@ -338,22 +427,8 @@ body:not(.help) .exp{display:none !important}
     <div class="summary" id="summary"></div>
     <div id="results"></div>
     </div>
-
-    <div id="viewHex" hidden>
-      <div class="panel" id="libpanel">
-        <b>解説の登録状況</b>
-        <div class="hint" id="libprog"></div>
-        <div class="hint exp">解説文の追加・編集・取り込みは、「設定」のページで行います。ここは、見るためのページです。</div>
-      </div>
-      <div class="panel">
-        <b>六十四卦の一覧表</b>
-        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦（互・錯・綜）・変爻と之卦が出ます。</div>
-        <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
-      </div>
-      <div id="hexdetail"></div>
-    </div>
-
-    <div id="viewSettings" hidden>
+        <!-- 5. 設定 -->
+        <div id="viewSettings" class="tab-pane inactive">
       <div class="panel">
         <label>表示の色 <select id="themesel"><option value="auto">自動（端末の設定に合わせる）</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
       </div>
@@ -438,76 +513,8 @@ body:not(.help) .exp{display:none !important}
       <span class="hint exp">　削除してもPCのファイルには影響しません。</span>
     </div>
     </div>
-    <div id="viewJudge" hidden>
-      <div class="panel">
-        <b>吉凶悔吝の一覧表</b>
-        <div class="hint exp">各爻辞（原文の1行目）から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
-        <div class="facets" id="jchips"></div>
-        <div class="hint exp" id="jnote"></div>
-      </div>
-      <div class="tblwrap"><table class="judgetable" id="judgetable"></table></div>
-    </div>
-
-    <div id="viewLog" hidden>
-      <div id="logtop"></div>
-      <p>
-        <button class="primary" data-lact="new" data-kind="">＋ 新しい記録</button>
-        <button id="lbulkbtn">＋ まとめて記録</button>
-      </p>
-      <details class="panel" id="lbulkpanel">
-        <summary><b>まとめて記録（複数行のメモや一覧を貼り付け）</b></summary>
-        <div class="hint exp">1行に1件（「日付 | 目的 | 出した卦 | 変爻」）のほか、複数行のメモ（年・月・日付・本卦・変爻など）もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2（複数月・複数年も一度に貼って一括登録可）:<br><code>2017年1月　今日の心構え<br>1/1<br>本卦　地火明夷　第三爻<br>...</code><br>※テキストファイル（.txt / .md）の選択やドラッグ＆ドロップでも一気に読み込めます。既に登録済みの記録は自動で重複除外されます。</div>
-        <textarea id="lbulktext" rows="8" placeholder="2017年1月　今日の心構え&#10;1/1&#10;本卦　地火明夷　第三爻&#10;..."></textarea>
-        <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="primary" id="lbulkgo">取り込む</button>
-          <button type="button" id="lbulkfilebtn">📁 ファイルから選ぶ</button>
-          <input type="file" id="lbulkfile" accept=".txt,.md,text/plain" multiple style="display:none">
-          <span class="hint" style="font-size:.82rem">※複数ファイル・ドラッグ＆ドロップにも対応</span>
-        </p>
-        <div id="lbulkres" class="hint"></div>
-      </details>
-      <div id="lpend"></div>
-      <div id="logform" hidden></div>
-      <div class="panel log-ctrl-panel">
-        <div class="log-ctrl-top">
-          <div class="mode-segmented" id="lmode"></div>
-          <div class="log-search-wrap">
-            <span class="log-search-icon" aria-hidden="true">🔍</span>
-            <input id="lq" class="log-search-input" type="search" placeholder="記録を検索（卦・目的・メモ・解説など）">
-          </div>
-        </div>
-        <div class="purp-section" id="lpurpwrap">
-          <span class="purp-section-label">目的</span>
-          <div class="purp-chips" id="lkinds"></div>
-        </div>
-        <details id="lfil" class="log-filter-details"><summary>絞り込み（卦・変爻・期間・状態・タグ）</summary>
-          <div class="formgrid">
-            <label>本卦 <select id="fhex"></select></label>
-            <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
-            <label>期間（から）
-              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
-                <input type="text" id="ffrom_text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:32px">
-                <button type="button" class="date-drum-btn" data-drum="ffrom" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
-                <input type="hidden" id="ffrom">
-              </div>
-            </label>
-            <label>期間（まで）
-              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
-                <input type="text" id="fto_text" placeholder="例: 2026/12/31 や 12/31" style="width:100%;box-sizing:border-box;padding-right:32px">
-                <button type="button" class="date-drum-btn" data-drum="fto" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
-                <input type="hidden" id="fto">
-              </div>
-            </label>
-            <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
-          </div>
-          <div class="facets" id="ltagchips"></div>
-          <p><button id="fclear" type="button">絞り込みを解除</button></p>
-        </details>
-      </div>
-      <div class="summary" id="lsum"></div>
-      <div id="loglist"></div>
-    </div>
-    </div>
+      </div><!-- #tab-track -->
+    </div><!-- #tab-viewport -->
   </section>
   <div id="toast" class="toast" hidden></div>
 
@@ -4089,222 +4096,208 @@ $('#gengo').addEventListener('click', ()=>{
 $('#libfile').addEventListener('change', async e=>{ const f=e.target.files[0]; if(f){ $('#libtext').value=await readFile(f); toast('読み込みました。「取り込む」を押してください'); } e.target.value=''; });
 $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start(''); });
 
-/* タブ切り替え */
-function prepareView(v){
-  if(v==='settings') feOpen();
-  if(v==='log') renderLog();
-  if(v==='judge') renderJudge();
-  if(v==='hex'){ renderHexTable(); renderLibProg(); }
-  if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典（本の本文）は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
-}
-function switchView(v){
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
-  $('#viewSearch').hidden = v!=='search'; $('#viewHex').hidden = v!=='hex'; $('#viewJudge').hidden = v!=='judge';
-  $('#viewLog').hidden = v!=='log'; $('#viewSettings').hidden = v!=='settings';
-  prepareView(v);
-}
-document.querySelector('.tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b) switchView(b.dataset.view); });
+/* ================= タブ & スワイプ切り替え ================= */
+const TABS = ['log', 'hex', 'judge', 'search', 'settings'];
+let currentTabIdx = 0;
+let isAnimating = false;
 
-/* ================= 画面スワイプで画面移動・切り替え ================= */
-(function(){
-  const VIEWS = ['log', 'hex', 'judge', 'search', 'settings'];
-  const VIEW_MAP = {
-    log: () => $('#viewLog'),
-    hex: () => $('#viewHex'),
-    judge: () => $('#viewJudge'),
-    search: () => $('#viewSearch'),
-    settings: () => $('#viewSettings')
+const tabTrack = document.getElementById('tab-track');
+const tabPanes = document.querySelectorAll('.tab-pane');
+const tabButtons = document.querySelectorAll('.tabs button');
+const viewportElem = document.getElementById('tab-viewport');
+
+function updateTabButtons(targetIdx){
+  tabButtons.forEach((b, i) => b.classList.toggle('on', i === targetIdx));
+}
+
+function showAllPanes(){
+  tabPanes.forEach(p => p.classList.remove('inactive'));
+}
+
+function finalizeTab(targetIdx, doScroll = false){
+  currentTabIdx = targetIdx;
+  updateTabButtons(currentTabIdx);
+
+  if(tabTrack){
+    tabTrack.classList.remove('animating');
+    tabTrack.style.transform = `translate3d(-${currentTabIdx * (100 / TABS.length)}%, 0, 0)`;
+  }
+
+  tabPanes.forEach((p, i) => {
+    p.classList.toggle('inactive', i !== currentTabIdx);
+  });
+
+  const t = TABS[currentTabIdx];
+  if(t === 'settings') feOpen();
+  if(t === 'log') renderLog();
+  if(t === 'judge') renderJudge();
+  if(t === 'hex'){ renderHexTable(); renderLibProg(); }
+  if(t === 'search' && !state.chunks.length) $('#summary').textContent = '原典（本の本文）は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
+
+  if(doScroll){
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  isAnimating = false;
+}
+
+function switchTab(t, animate = true){
+  const targetIdx = TABS.indexOf(t);
+  if(targetIdx === -1 || targetIdx === currentTabIdx) return;
+  if(isAnimating) return;
+
+  if(!animate || !tabTrack){
+    finalizeTab(targetIdx, true);
+    return;
+  }
+
+  isAnimating = true;
+  showAllPanes();
+  updateTabButtons(targetIdx);
+
+  requestAnimationFrame(() => {
+    tabTrack.classList.add('animating');
+    tabTrack.style.transform = `translate3d(-${targetIdx * (100 / TABS.length)}%, 0, 0)`;
+  });
+
+  let done = false;
+  const onEnd = () => {
+    if(done) return;
+    done = true;
+    tabTrack.removeEventListener('transitionend', onEnd);
+    finalizeTab(targetIdx, true);
   };
+  tabTrack.addEventListener('transitionend', onEnd);
+  setTimeout(onEnd, 350);
+}
 
-  let startX = 0, startY = 0, startTime = 0;
-  let isTracking = false, directionLocked = false, isAnimating = false;
-  let curView = null, curIdx = -1, fromEl = null;
-  let targetView = null, targetDir = 0, toEl = null;
-  let stage = null, stageWidth = 0;
+function switchView(v, animate = false){
+  switchTab(v, animate);
+}
 
-  function resetStyles(el){
-    if(!el) return;
-    el.style.transform = '';
-    el.style.transition = '';
-    el.style.position = '';
-    el.style.top = '';
-    el.style.left = '';
-    el.style.width = '';
-    el.style.minHeight = '';
-    el.style.boxSizing = '';
-    el.style.zIndex = '';
-  }
+tabButtons.forEach(b => b.addEventListener('click', () => {
+  switchTab(b.dataset.view, true);
+}));
 
-  function cleanup(){
-    resetStyles(fromEl);
-    resetStyles(toEl);
-    if(toEl && toEl !== fromEl){
-      const curBtn = document.querySelector('.tabs button.on');
-      const active = curBtn ? curBtn.dataset.view : 'log';
-      if(targetView !== active) toEl.hidden = true;
-    }
-    if(stage){
-      stage.style.overflow = '';
-      stage.style.minHeight = '';
-    }
-    fromEl = null; toEl = null; targetView = null; targetDir = 0;
-    isTracking = false; directionLocked = false; isAnimating = false;
-  }
+/* ================= 画面スワイプで画面移動 & 切り替え ================= */
+(function(){
+  if(!tabTrack || !viewportElem) return;
+
+  let startX = 0, startY = 0;
+  let startTime = 0;
+  let isHorizontal = null; // null: 未判定, true: 横スワイプ, false: 縦スクロール
+  let isTracking = false;
+  let paneWidth = 0;
 
   document.addEventListener('touchstart', e => {
     if(isAnimating) return;
     if($('#app')?.hidden) return;
     const modal = $('#drumModal');
     if(modal && !modal.hidden && modal.classList.contains('open')) return;
-    if(e.touches.length !== 1){ cleanup(); return; }
+    if(e.touches.length !== 1) return;
     const t = e.touches[0];
-    if(e.target.closest('input, select, textarea, button, a, details, summary, .drum-col, [data-view], .tblwrap')) {
-      cleanup(); return;
-    }
+
+    // 入力フォームやボタンなどの操作要素上ではスワイプを開始しない
+    if(t.target.closest('input, select, textarea, button, a, details, summary, .drum-col, [data-view], .tblwrap')) return;
+
+    // ブラウザの戻る/進むジェスチャー用エッジマージン（左右20px）
     const edgeMargin = 20;
-    if(t.clientX < edgeMargin || t.clientX > window.innerWidth - edgeMargin){
-      cleanup(); return;
-    }
-
-    const curBtn = document.querySelector('.tabs button.on');
-    curView = curBtn ? curBtn.dataset.view : 'log';
-    curIdx = VIEWS.indexOf(curView);
-    if(curIdx === -1){ cleanup(); return; }
-
-    fromEl = VIEW_MAP[curView] ? VIEW_MAP[curView]() : null;
-    if(!fromEl){ cleanup(); return; }
-
-    stage = $('#viewStage') || $('#app');
-    stageWidth = stage.clientWidth || window.innerWidth;
+    if(t.clientX < edgeMargin || t.clientX > window.innerWidth - edgeMargin) return;
 
     startX = t.clientX;
     startY = t.clientY;
     startTime = Date.now();
+    isHorizontal = null;
     isTracking = true;
-    directionLocked = false;
+    paneWidth = viewportElem.clientWidth || window.innerWidth;
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
-    if(!isTracking || isAnimating || !fromEl) return;
-    if(!e.touches || e.touches.length !== 1) return;
+    if(!isTracking || isAnimating) return;
+    if(e.touches.length !== 1) return;
     const t = e.touches[0];
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
 
-    if(!directionLocked){
-      if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if(Math.abs(dy) >= Math.abs(dx)){
-        cleanup();
-        return;
-      }
-      directionLocked = true;
-    }
-
-    if(e.cancelable) e.preventDefault();
-
-    let desiredDir = 0, desiredTarget = null;
-    if(dx < 0 && curIdx < VIEWS.length - 1){
-      desiredDir = 1;
-      desiredTarget = VIEWS[curIdx + 1];
-    } else if(dx > 0 && curIdx > 0){
-      desiredDir = -1;
-      desiredTarget = VIEWS[curIdx - 1];
-    }
-
-    if(desiredTarget !== targetView){
-      if(toEl && toEl !== fromEl){
-        resetStyles(toEl);
-        toEl.hidden = true;
-      }
-      targetView = desiredTarget;
-      targetDir = desiredDir;
-      toEl = targetView && VIEW_MAP[targetView] ? VIEW_MAP[targetView]() : null;
-
-      if(toEl){
-        prepareView(targetView);
-        toEl.hidden = false;
-        toEl.style.position = 'absolute';
-        toEl.style.left = '0';
-        toEl.style.width = '100%';
-        toEl.style.boxSizing = 'border-box';
-        toEl.style.zIndex = '2';
-
-        const stageRect = stage.getBoundingClientRect();
-        const scrollOffset = Math.max(0, -stageRect.top);
-        toEl.style.top = scrollOffset + 'px';
-
-        stage.style.overflow = 'hidden';
-        const neededHeight = Math.max(fromEl.offsetHeight, toEl.offsetHeight + scrollOffset);
-        stage.style.minHeight = neededHeight + 'px';
+    // 水平方向のスワイプか垂直スクロールかの判定
+    if(isHorizontal === null){
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if(absX < 8 && absY < 8) return; // デッドゾーン
+      if(absX > absY * 1.1){
+        isHorizontal = true;
+        showAllPanes();
+        tabTrack.classList.remove('animating');
+      } else {
+        isHorizontal = false;
       }
     }
 
-    stageWidth = stage.clientWidth || window.innerWidth;
+    if(isHorizontal){
+      if(e.cancelable) e.preventDefault(); // 画面の縦揺れスクロールを防止
 
-    if(!toEl){
-      const rubberDx = dx * 0.25;
-      fromEl.style.transform = `translate3d(${rubberDx}px,0,0)`;
+      // 端でのラバーバンド抵抗効果
+      let moveX = dx;
+      if((currentTabIdx === 0 && dx > 0) || (currentTabIdx === TABS.length - 1 && dx < 0)){
+        moveX = dx * 0.25;
+      }
+
+      // 指の移動量に1:1でリアルタイム追従
+      const currentOffsetPx = -currentTabIdx * paneWidth + moveX;
+      tabTrack.style.transform = `translate3d(${currentOffsetPx}px, 0, 0)`;
+    }
+  }, { passive: false });
+
+  function endSwipe(e){
+    if(!isTracking) return;
+    isTracking = false;
+
+    if(!isHorizontal){
       return;
     }
 
-    fromEl.style.position = 'relative';
-    fromEl.style.zIndex = '1';
-    fromEl.style.transform = `translate3d(${dx}px,0,0)`;
-    const toOffset = targetDir > 0 ? (stageWidth + dx) : (-stageWidth + dx);
-    toEl.style.transform = `translate3d(${toOffset}px,0,0)`;
-  }, { passive: false });
-
-  document.addEventListener('touchend', e => {
-    if(!isTracking || !fromEl){ cleanup(); return; }
-    if(!directionLocked){ cleanup(); return; }
-
-    const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+    const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
     const dx = t ? (t.clientX - startX) : 0;
-    const dy = t ? (t.clientY - startY) : 0;
     const dt = Math.max(1, Date.now() - startTime);
-    const vx = dx / dt;
+    const velocity = dx / dt; // px/ms
 
-    const w = stageWidth || window.innerWidth;
-    const isHorizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
-    const isFlick = Math.abs(vx) >= 0.35 && Math.abs(dx) >= 30;
-    const isPastHalf = Math.abs(dx) >= Math.min(w * 0.3, 80);
-    const shouldSwitch = Boolean(toEl && isHorizontal && (isFlick || isPastHalf) && ((targetDir > 0 && dx < 0) || (targetDir < 0 && dx > 0)));
+    let targetIdx = currentTabIdx;
+    const threshold = paneWidth * 0.2; // 画面幅の20%以上の移動で切り替え
+
+    if((dx < -threshold || (velocity < -0.3 && dx < -25)) && currentTabIdx < TABS.length - 1){
+      // 左スワイプ（指を左へ）→ 次のタブ画面へ
+      targetIdx = currentTabIdx + 1;
+    } else if((dx > threshold || (velocity > 0.3 && dx > 25)) && currentTabIdx > 0){
+      // 右スワイプ（指を右へ）→ 前のタブ画面へ
+      targetIdx = currentTabIdx - 1;
+    }
 
     isAnimating = true;
+    updateTabButtons(targetIdx);
+    tabTrack.classList.add('animating');
+    tabTrack.style.transform = `translate3d(-${targetIdx * (100 / TABS.length)}%, 0, 0)`;
 
-    if(shouldSwitch && toEl && targetView){
-      const duration = 220;
-      const ease = 'cubic-bezier(0.2, 0.9, 0.3, 1)';
-      fromEl.style.transition = `transform ${duration}ms ${ease}`;
-      toEl.style.transition = `transform ${duration}ms ${ease}`;
+    let done = false;
+    const onEnd = () => {
+      if(done) return;
+      done = true;
+      tabTrack.removeEventListener('transitionend', onEnd);
+      finalizeTab(targetIdx, targetIdx !== currentTabIdx);
+    };
+    tabTrack.addEventListener('transitionend', onEnd);
+    setTimeout(onEnd, 350);
+  }
 
-      const fromEnd = targetDir > 0 ? -w : w;
-      fromEl.style.transform = `translate3d(${fromEnd}px,0,0)`;
-      toEl.style.transform = `translate3d(0,0,0)`;
-
-      const finalTarget = targetView;
-      setTimeout(() => {
-        cleanup();
-        switchView(finalTarget);
-      }, duration + 10);
-    } else {
-      const duration = 200;
-      fromEl.style.transition = `transform ${duration}ms ease-out`;
-      fromEl.style.transform = `translate3d(0,0,0)`;
-      if(toEl){
-        toEl.style.transition = `transform ${duration}ms ease-out`;
-        const toEnd = targetDir > 0 ? w : -w;
-        toEl.style.transform = `translate3d(${toEnd}px,0,0)`;
-      }
-      setTimeout(() => {
-        cleanup();
-      }, duration + 10);
-    }
-  }, { passive: true });
-
+  document.addEventListener('touchend', endSwipe, { passive: true });
   document.addEventListener('touchcancel', () => {
-    cleanup();
+    if(isTracking && isHorizontal){
+      isTracking = false;
+      isAnimating = true;
+      tabTrack.classList.add('animating');
+      tabTrack.style.transform = `translate3d(-${currentTabIdx * (100 / TABS.length)}%, 0, 0)`;
+      setTimeout(() => finalizeTab(currentTabIdx, false), 300);
+    } else {
+      isTracking = false;
+    }
   }, { passive: true });
 })();
 
