@@ -125,6 +125,7 @@ details>summary+*{margin-top:10px}
 .purpose-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s;display:flex;flex-direction:column;gap:4px}
 .purpose-card:hover{border-color:var(--accent);transform:translateY(-1px)}
 .purpose-card.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
+.purpose-detail-wrap{margin-top:10px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .purpose-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
 .purpose-card-title{font-size:.98rem;color:var(--ink)}
 .purpose-card-sub{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.8rem}
@@ -1490,13 +1491,10 @@ function logRowItem(e, showPurpose){
     ${open ? `<div class="lrow-detail">${entryDetail(e)}</div>` : ''}
   </div>`;
 }
-function purposeGroupHtml(a, openPks){
+function purposeDetailHtml(a){
   const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
-  const isOpen = (openPks && openPks.has(pk)) || state.pedit === pk;
-  const lastL = hexLines(last.hex);
-  const lastYao = last.ch.length ? last.ch.map(k=>`${POSLAB[k]}(${yaoName(k,lastL[k])})`).join('・') : '';
-  const latestDate = last.ts ? last.ts.slice(0,10) : (last.memo || '日付なし');
-  const firstDate = a[0].ts ? a[0].ts.slice(0,10) : (a[0].memo || '');
+  const latestDate = last.ts ? (last.kind==='day' ? last.ts.slice(5,10).replace('-','/') : last.ts.slice(0,10)) : (last.memo || '日付なし');
+  const firstDate = a[0].ts ? (a[0].kind==='day' ? a[0].ts.slice(5,10).replace('-','/') : a[0].ts.slice(0,10)) : (a[0].memo || '');
   const rangeStr = firstDate && firstDate !== latestDate ? `${firstDate} 〜 ${latestDate}` : latestDate;
 
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
@@ -1532,32 +1530,22 @@ function purposeGroupHtml(a, openPks){
     itemsHtml = `<div class="lcompact-list">${descItems.map(logRowItem).join('')}</div>`;
   }
 
-  return `<details class="lgroup"${isOpen ? ' open' : ''} data-pk="${esc(pk)}">
-    <summary class="lgroup-sum">
-      <div class="lgroup-topline">
-        <b class="lgroup-name">${esc(purposeOf(last))}</b>
-        <span class="chip on">${a.length}件</span>
+  return `<div class="purpose-detail-wrap" data-pk="${esc(pk)}">
+    <div class="lgroup-flow-bar">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <b style="font-size:1.05rem;color:var(--ink)">${esc(purposeOf(last))}</b>
+        <span class="hint">${rangeStr}（全 ${a.length} 件）</span>
         ${st ? `<span class="tag">${STATUS[st]}</span>` : ''}
         ${tg.length ? `<span class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</span>` : ''}
       </div>
-      <div class="lgroup-sub hint">
-        <span>直近: ${latestDate}</span>
-        ${hexSvg(last.hex,18,18)}<b>${fullTrad(last.hex)}</b>
-        ${lastYao ? `<b>${lastYao}</b>` : ''}
-      </div>
-    </summary>
-    <div class="lgroup-body">
-      <div class="lgroup-flow-bar">
-        <span class="hint">${rangeStr} （全 ${a.length} 件）</span>
-        <button data-lact="pedit" data-pk="${esc(pk)}" style="flex:none">目的を編集</button>
-      </div>
-      ${ed}
-      ${itemsHtml}
-      <div style="text-align:center;margin:12px 0 2px">
-        <button class="chip" data-lact="pclose">▲ ${esc(purposeOf(last))}を閉じる</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button class="chip" data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button>
+        <button class="chip" data-lact="pclose">閉じる</button>
       </div>
     </div>
-  </details>`;
+    ${ed}
+    ${itemsHtml}
+  </div>`;
 }
 function calEventPill(e){
   const L = hexLines(e.hex);
@@ -1764,15 +1752,16 @@ function renderLogList(){
     list.forEach(e=>{ const k=purposeKey(e); if(!g.has(k)) g.set(k,[]); g.get(k).push(e); });
     const groups=[...g.values()].map(a=>a.slice().sort((x,y)=>(x.ts||'').localeCompare(y.ts||'') || ((x.upd||0)-(y.upd||0))));
     groups.sort((x,y)=>(y[y.length-1].ts||'').localeCompare(x[x.length-1].ts||''));
-    const openPks = new Set(Array.from(document.querySelectorAll('#loglist details.lgroup[open]')).map(d=>d.dataset.pk));
-    const summaryCards = purposeSummaryCards(groups, f.purpose);
-    const toolbar = groups.length ? `<div class="lgroup-toolbar">
-      <div style="display:flex;gap:6px">
-        <button class="chip" data-lact="expandall">すべて展開</button>
-        <button class="chip" data-lact="collapseall">すべて閉じる</button>
-      </div>
-    </div>` : '';
-    $('#loglist').innerHTML = summaryCards + toolbar + groups.map(a=>purposeGroupHtml(a, openPks)).join('');
+
+    if(state.activePk === undefined && groups.length){
+      state.activePk = purposeKey(groups[0][groups[0].length-1]);
+    }
+    const curPk = state.activePk;
+    const activeGroup = groups.find(a => purposeKey(a[a.length-1]) === curPk);
+
+    const cardsHtml = purposeSummaryCards(groups, curPk);
+    const detailHtml = activeGroup ? purposeDetailHtml(activeGroup) : '';
+    $('#loglist').innerHTML = cardsHtml + detailHtml;
   } else $('#loglist').innerHTML = list.map(logCard).join('');
 }
 /* 振り返り待ち */
@@ -2112,17 +2101,15 @@ $('#viewLog').addEventListener('click', e=>{
   if(purp){
     const pk = purp.dataset.lpurp;
     state.lf.purpose = (state.lf.purpose === pk) ? '' : pk;
+    if(pk) state.activePk = pk;
     renderLogList();
     return;
   }
   const pcard=t.closest('[data-lpurpcard]');
   if(pcard){
     const pk = pcard.dataset.lpurpcard;
-    const targetGroup = document.querySelector(`#loglist details.lgroup[data-pk="${CSS.escape(pk)}"]`);
-    if(targetGroup){
-      targetGroup.open = true;
-      targetGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    state.activePk = (state.activePk === pk) ? null : pk;
+    renderLogList();
     return;
   }
   const k=t.closest('[data-lkind]'); if(k){ state.lf.kind=k.dataset.lkind; renderLogList(); return; }
@@ -2182,8 +2169,8 @@ $('#viewLog').addEventListener('click', e=>{
       document.querySelectorAll('#loglist details.lgroup').forEach(d=>d.open=false);
       break;
     case 'pclose': {
-      const grp = a.closest('details.lgroup');
-      if(grp){ grp.open = false; grp.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+      state.activePk = null;
+      renderLogList();
       break;
     }
     case 'pedit': state.pedit=a.dataset.pk; renderLogList(); break;
