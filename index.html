@@ -1990,7 +1990,18 @@ function saveLog(){
 }
 
 /* 一覧・今日/今月/今年 */
-function latestOf(kind, prefix){ return state.log.filter(e=>e.kind===kind && e.ts && e.ts.startsWith(prefix))[0]; }
+function latestOf(kind, prefix){
+  if(kind === 'year'){
+    const y = +prefix;
+    return state.log.find(e => {
+      if(e.kind !== 'year' && !/一年の心構え|冬至占/.test(e.title || '')) return false;
+      if((e.memo && e.memo.includes(y + '年')) || (e.title && e.title.includes(y + '年'))) return true;
+      if(e.ts && (e.ts.startsWith(prefix) || e.ts.startsWith(`${y - 1}-12`))) return true;
+      return false;
+    });
+  }
+  return state.log.filter(e=>e.kind===kind && e.ts && e.ts.startsWith(prefix))[0];
+}
 function renderLogTop(){
   const n=nowLocal();
   const defs=[['day','今日',n.slice(0,10)],['month','今月',n.slice(0,7)],['year','今年',n.slice(0,4)]];
@@ -2124,7 +2135,7 @@ function logRowItem(e){
   let dateStr = '';
   const yr = e.ts ? e.ts.slice(0,4) : '';
   if(e.memo && /冬至占/.test(e.memo)){
-    dateStr = (yr && !e.memo.includes(yr)) ? `${yr}年 ${e.memo}` : e.memo;
+    dateStr = e.ts ? e.ts.slice(0,10).replace(/-/g,'/') : (e.memo || '日付なし');
   } else if(e.kind==='day' && e.ts){
     dateStr = e.ts.slice(5,10).replace('-','/');
   } else if(e.kind==='month' && e.ts){
@@ -2467,7 +2478,7 @@ function purposeSummaryCards(groups, activePk){
       const yr = last.ts ? last.ts.slice(0, 4) : '';
       let latestDate = '';
       if(last.memo && /冬至占/.test(last.memo)){
-        latestDate = (yr && !last.memo.includes(yr)) ? `${yr}年 ${last.memo}` : last.memo;
+        latestDate = last.ts ? last.ts.slice(0,10).replace(/-/g,'/') : (last.memo || '日付なし');
       } else if(last.kind === 'day' && last.ts){
         latestDate = last.ts.slice(5, 10).replace('-', '/');
       } else if(last.kind === 'month' && last.ts){
@@ -2735,9 +2746,10 @@ function importLogText(text, commit = true){
       const rest=mYear[2].trim();
       const isToji=/冬至/.test(rest);
       if(isToji){
-        const d=tojiDay(y);
-        curTs=`${y}-12-${pad2(d)}T00:00`;
-        curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
+        const prevY = y - 1;
+        const d = tojiDay(prevY);
+        curTs = `${prevY}-12-${pad2(d)}T00:00`;
+        curSubTitle = `${y}年${rest ? ' ' + rest : ''}`;
       } else {
         curTs='';
         curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
@@ -2809,7 +2821,7 @@ const DEFAULT_LOG = (() => {
   const yearLogs = data.map(e => ({
     id: `l_toji_${e.y}`,
     kind: 'year',
-    ts: e.toji ? `${e.y}-12-${pad2(tojiDay(e.y))}T00:00` : '',
+    ts: e.toji ? `${e.y - 1}-12-${pad2(tojiDay(e.y - 1))}T00:00` : '',
     title: '一年の心構え',
     hex: e.hex,
     ch: e.ch,
@@ -3847,6 +3859,45 @@ if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes |
     }
   });
   if(added){
+    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
+    saveUser(true);
+  }
+}
+// 冬至占の日付マイグレーション: 2016年冬至(2017年の心構え)以外は、前年12月の冬至の日に更新
+{
+  let tojiMigrated = false;
+  state.log.forEach(e => {
+    const mId = (e.id || '').match(/^l_toji_(\d{4})$/);
+    if(mId){
+      const y = +mId[1];
+      if(y >= 2018){
+        const prevY = y - 1;
+        const targetTs = `${prevY}-12-${pad2(tojiDay(prevY))}T00:00`;
+        if(e.ts !== targetTs){
+          e.ts = targetTs;
+          tojiMigrated = true;
+        }
+      } else if(y === 2017){
+        if(e.ts !== ''){
+          e.ts = '';
+          tojiMigrated = true;
+        }
+      }
+    }
+    const mMemo = (e.memo || '' + ' ' + (e.title || '')).match(/(\d{4})\s*年?\s*冬至占?/);
+    if(mMemo){
+      const y = +mMemo[1];
+      if(y >= 2018){
+        const prevY = y - 1;
+        const targetTs = `${prevY}-12-${pad2(tojiDay(prevY))}T00:00`;
+        if(e.ts !== targetTs){
+          e.ts = targetTs;
+          tojiMigrated = true;
+        }
+      }
+    }
+  });
+  if(tojiMigrated){
     state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
     saveUser(true);
   }
