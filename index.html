@@ -1698,10 +1698,120 @@ function openDrumModal(targetKey){
   updateDrumPreview();
 }
 
+/* 本卦簡単記述パース・同期 */
+function parseHexInput(val){
+  if(val == null) return null;
+  let s = String(val).normalize('NFKC').trim();
+  if(!s) return null;
+
+  // 1. Direct number: e.g. '34', '1', '第34卦', '34番', '34卦'
+  const mNum = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?$/);
+  if(mNum){
+    const n = parseInt(mNum[1], 10);
+    if(n >= 1 && n <= 64) return n - 1;
+  }
+
+  // 2. Starts with number: e.g. '34 雷天大壮', '34.大壮', '第34卦: 大壮', '34 大壮(雷天)'
+  const mPref = s.match(/^第?\s*(\d{1,2})\s*(?:卦|番)?[\s.:：、]*(.*)$/);
+  if(mPref){
+    const n = parseInt(mPref[1], 10);
+    if(n >= 1 && n <= 64){
+      const rest = mPref[2].trim();
+      if(!rest) return n - 1;
+      const parsedRest = parseHexInput(rest);
+      if(parsedRest === n - 1 || parsedRest == null) return n - 1;
+    }
+  }
+
+  // 3. Name cleaning
+  const clean = str => str.normalize('NFKC')
+    .replace(/[\s　]/g, '')
+    .replace(/^(本卦|之卦|卦)[:：]*/, '')
+    .replace(/[\(\)（）]/g, '')
+    .replace(/盻/g,'睽').replace(/旡/g,'无').replace(/晋/g,'晉').replace(/恒/g,'恆').replace(/剥/g,'剝').replace(/壮/g,'壯')
+    .replace(/帰/g,'歸').replace(/豊/g,'豐').replace(/随/g,'隨').replace(/観/g,'觀').replace(/無妄/g,'无妄');
+
+  const c = clean(s);
+  if(!c) return null;
+
+  // Exact matches
+  for(let i = 0; i < 64; i++){
+    if(c === clean(fullTrad(i)) || c === clean(HEX[i][0]) || c === clean(fullName(i))) return i;
+    if(HEX[i][3] && c === clean(HEX[i][3])) return i;
+  }
+
+  // Trigram pair match: e.g. '雷天', '地火', '天天' (if length == 2)
+  if(c.length === 2){
+    for(let i = 0; i < 64; i++){
+      const pair = TIMG[HT[i][0]] + TIMG[HT[i][1]];
+      if(c === pair) return i;
+    }
+  }
+
+  // StartsWith / EndsWith / Includes matches
+  for(let i = 0; i < 64; i++){
+    const ft = clean(fullTrad(i));
+    const fn = clean(fullName(i));
+    if(ft.startsWith(c) || fn.startsWith(c)) return i;
+    if(ft.endsWith(c) || fn.endsWith(c)) return i;
+  }
+  for(let i = 0; i < 64; i++){
+    const ft = clean(fullTrad(i));
+    if(c.length >= 2 && ft.includes(c)) return i;
+  }
+
+  return null;
+}
+
+function syncFormHex(source){
+  const txtInput = $('#lhex_text');
+  const hidInput = $('#lhex');
+  const statEl = $('#lhex_status');
+  const prevEl = $('#lhex_preview');
+  const clearBtn = $('#lhex_clear');
+  if(!txtInput) return;
+
+  const raw = txtInput.value.trim();
+  if(clearBtn) clearBtn.style.display = raw ? 'inline-block' : 'none';
+
+  if(!raw){
+    if(hidInput) hidInput.value = '';
+    state.draft.hex = null;
+    if(statEl) statEl.textContent = '';
+    if(prevEl) prevEl.innerHTML = '<span class="hint">番号(1〜64)または卦名(例: 雷天大壮、大壮)を入力</span>';
+    updateLogDerived();
+    return;
+  }
+
+  const idx = parseHexInput(raw);
+  if(idx != null){
+    if(hidInput) hidInput.value = String(idx);
+    const changed = state.draft.hex !== idx;
+    state.draft.hex = idx;
+    if(changed && source !== 'init') state.draft.ch = [];
+    if(statEl) { statEl.textContent = '✓'; statEl.style.color = 'var(--accent, #4caf50)'; }
+    if(prevEl){
+      prevEl.innerHTML = `${hexSvg(idx, 16, 16)} <b style="color:var(--accent, #4caf50)">第${idx+1}卦 ${fullTrad(idx)}</b> <span class="hint">(${fullName(idx)})</span>`;
+    }
+    if(source === 'change'){
+      txtInput.value = `${idx + 1} ${fullTrad(idx)}`;
+    }
+    updateLogDerived();
+  } else {
+    if(hidInput) hidInput.value = '';
+    state.draft.hex = null;
+    if(statEl) { statEl.textContent = '✕'; statEl.style.color = 'var(--warn, #f44336)'; }
+    if(prevEl){
+      prevEl.innerHTML = `<span style="color:var(--warn, #f44336)">該当する卦が見つかりません（例: 34 または 雷天大壮、大壮）</span>`;
+    }
+    updateLogDerived();
+  }
+}
+
 /* 入力フォーム */
 function openLogForm(entry, kind){
   const base = entry ? JSON.parse(JSON.stringify(entry))
-    : {id:null, kind:kind||'event', ts:nowLocal().slice(0,10)+'T00:00', title:(kind&&KINDS[kind]&&kind!=='event')?KINDS[kind]:'', hex:0, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
+    : {id:null, kind:kind||'event', ts:nowLocal().slice(0,10)+'T00:00', title:(kind&&KINDS[kind]&&kind!=='event')?KINDS[kind]:'', hex:null, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
   state.draft = base;
   const box = $('#logform'); box.hidden = false;
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
@@ -1735,7 +1845,20 @@ function openLogForm(entry, kind){
       <datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
-      <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
+      <label>本卦
+        <div class="hex-input-wrap" style="position:relative;display:flex;align-items:center;margin-top:2px">
+          <input id="lhex_text" list="lhex_list" placeholder="例: 34 または 雷天大壮、大壮" autocomplete="off" onfocus="this.select()" style="width:100%;box-sizing:border-box;padding-right:52px">
+          <div style="position:absolute;right:8px;display:flex;align-items:center;gap:4px">
+            <button type="button" id="lhex_clear" title="クリア" style="background:none;border:none;cursor:pointer;font-size:.9rem;color:var(--sub);padding:0 2px;line-height:1;display:none">✕</button>
+            <span id="lhex_status" style="font-size:1rem;line-height:1"></span>
+          </div>
+          <input id="lhex" type="hidden">
+        </div>
+        <datalist id="lhex_list">
+          ${HEX.map((h,i)=>`<option value="${i+1} ${fullTrad(i)}" label="${fullName(i)}">`).join('')}
+        </datalist>
+        <div id="lhex_preview" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.85rem;min-height:1.4rem"></div>
+      </label>
       <div><div class="hint exp">変爻(該当する爻にチェック。上の爻が上に並びます)</div><div id="lyao" class="yaos"></div></div>
       <div id="ldrv"></div>
       <div id="lread" class="read"></div>
@@ -1754,15 +1877,24 @@ function openLogForm(entry, kind){
   syncFormDate('init');
 
   $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16);
-  $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
+  $('#ltitle').value=base.title;
+  $('#lhex_text').value = (base.hex != null) ? `${base.hex + 1} ${fullTrad(base.hex)}` : '';
+  syncFormHex('init');
+
   $('#lstat').value=base.status||''; $('#ltags').value=(base.tags||[]).join(', '); $('#lresult').value=base.result||'';
   $('#lmemo').value=base.memo; $('#ladvice').value=base.advice; $('#laction').value=base.action; $('#lreview').value=base.review;
   if(entry) $('#lmore').open = true;
-  updateLogDerived();
   box.scrollIntoView({block:'start'});
 }
 function updateLogDerived(){
-  const e=state.draft, L=hexLines(e.hex), d=deriveSet(e.hex,e.ch);
+  const e=state.draft;
+  if(!e || e.hex == null){
+    $('#lyao').innerHTML = '<div class="hint" style="padding:6px 0">本卦を入力すると、変爻（初爻〜上爻）が選択できるようになります。</div>';
+    $('#ldrv').innerHTML = '';
+    $('#lread').innerHTML = '';
+    return;
+  }
+  const L=hexLines(e.hex), d=deriveSet(e.hex,e.ch);
   $('#lyao').innerHTML = [5,4,3,2,1,0].map(k=>`<label class="chg"><input type="checkbox" data-lch="${k}"${e.ch.includes(k)?' checked':''}>${yaoName(k,L[k])}</label>`).join(' ');
   const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
   $('#ldrv').innerHTML = `<div class="hint exp">自動で求めた関連の卦(押すと卦の詳細へ)。互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
@@ -1770,7 +1902,14 @@ function updateLogDerived(){
   $('#lread').innerHTML = `<div class="hint exp">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要(参考)') : '');
 }
 function saveLog(){
+  syncFormHex('save');
   const e=state.draft;
+  if(!e || e.hex == null){
+    toast('本卦を入力してください（例: 34 または 雷天大壮）');
+    const inp = $('#lhex_text');
+    if(inp) inp.focus();
+    return;
+  }
   const dVal=$('#lts').value; const tVal=$('#ltime').value;
   const ts = dVal ? (dVal+'T'+(tVal||'00:00')) : '';
   const rec = {
@@ -2391,11 +2530,7 @@ async function backupShare(){
 
 /* まとめて取り込み: 「日付 | 目的 | 卦 | 変爻」 または 複数行のメモ */
 function findHexByName(t){
-  const clean = s => s.replace(/[\s　]/g,'').replace(/盻/g,'睽').replace(/旡/g,'无').replace(/晋/g,'晉').replace(/恒/g,'恆').replace(/剥/g,'剝');
-  const c=clean(t.replace(/^(本卦|之卦|卦)[:：\s　]*/,'').replace(/^[第\d\s.、]+卦?[\s.、]*/,''));
-  if(!c) return null;
-  for(let i=0;i<HEX.length;i++) if(c===clean(fullTrad(i)) || c===clean(HEX[i][0]) || c===clean(fullName(i))) return i;
-  return null;
+  return parseHexInput(t);
 }
 function parseChTok(t){
   let c=t.replace(/[\s　]/g,'');
@@ -3139,10 +3274,21 @@ document.addEventListener('click', e => {
     e.preventDefault();
     openDrumModal(drumBtn.dataset.drum);
   }
+  if(e.target && e.target.id === 'lhex_clear'){
+    const txt = $('#lhex_text');
+    if(txt){
+      txt.value = '';
+      syncFormHex('input');
+      txt.focus();
+    }
+  }
 });
 $('#viewLog').addEventListener('input', e=>{
   if(e.target && e.target.id === 'lts_text'){
     syncFormDate('text');
+  }
+  if(e.target && e.target.id === 'lhex_text'){
+    syncFormHex('input');
   }
 });
 $('#viewLog').addEventListener('keydown', e=>{
@@ -3150,11 +3296,19 @@ $('#viewLog').addEventListener('keydown', e=>{
     e.preventDefault();
     jumpToCalDate(e.target.value);
   }
+  if(e.key==='Enter' && e.target && e.target.id === 'lhex_text'){
+    e.preventDefault();
+    syncFormHex('change');
+  }
 });
 $('#viewLog').addEventListener('change', e=>{
   const t=e.target;
   if(t.id==='lts_text'){
     syncFormDate('text');
+    return;
+  }
+  if(t.id==='lhex_text'){
+    syncFormHex('change');
     return;
   }
   if(t.dataset && t.dataset.caljump){
