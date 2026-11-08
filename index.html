@@ -361,7 +361,7 @@ body:not(.help) .exp{display:none !important}
       </div>
       <details class="panel" id="limp">
         <summary><b>これまでの記録をまとめて取り込む</b></summary>
-        <div class="hint exp">1行に1件。「日付 | 立てた目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
+        <div class="hint exp">1行に1件。「日付 | 目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
         <textarea id="limptext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
         <p><button class="primary" id="limpgo">取り込む</button></p>
         <div id="limpres" class="hint"></div>
@@ -1817,7 +1817,7 @@ function openLogForm(entry, kind){
   const box = $('#logform'); box.hidden = false;
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
-      <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
+      <label>目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
       <div id="lrow_dt" style="display:flex;gap:12px;align-items:flex-start;margin:4px 0 8px">
         <div style="flex:1 1 0;min-width:0">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;min-height:24px">
@@ -2890,7 +2890,7 @@ function renderBulkStaging(staging, resId){
         <tr style="text-align:left;border-bottom:1px solid var(--line,#2e3544)">
           <th style="padding:6px 8px;width:36px;text-align:center">選択</th>
           <th style="padding:6px 8px;width:120px">日付</th>
-          <th style="padding:6px 8px">立てた目的</th>
+          <th style="padding:6px 8px">目的</th>
           <th style="padding:6px 8px;width:160px">卦・変爻</th>
           <th style="padding:6px 8px;width:75px;text-align:center">状態</th>
           <th style="padding:6px 8px;width:50px;text-align:center">除外</th>
