@@ -439,8 +439,22 @@ body:not(.help) .exp{display:none !important}
           <div class="formgrid">
             <label>本卦 <select id="fhex"></select></label>
             <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
-            <label>期間(から) <input type="date" id="ffrom"></label>
-            <label>期間(まで) <input type="date" id="fto"></label>
+            <label>期間(から)
+              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+                <input type="text" id="ffrom_text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:32px">
+                <input type="date" id="ffrom_picker" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
+                <span style="position:absolute;right:8px;font-size:1rem;pointer-events:none;z-index:1">📅</span>
+                <input type="hidden" id="ffrom">
+              </div>
+            </label>
+            <label>期間(まで)
+              <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+                <input type="text" id="fto_text" placeholder="例: 2026/12/31 や 12/31" style="width:100%;box-sizing:border-box;padding-right:32px">
+                <input type="date" id="fto_picker" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
+                <span style="position:absolute;right:8px;font-size:1rem;pointer-events:none;z-index:1">📅</span>
+                <input type="hidden" id="fto">
+              </div>
+            </label>
             <label>目的の状態 <select id="fst"><option value="">すべて</option><option value="-">未設定</option><option value="open">検討中</option><option value="decided">決定</option><option value="done">終了</option></select></label>
           </div>
           <div class="facets" id="ltagchips"></div>
@@ -1363,93 +1377,96 @@ function parseEasyDate(val, refYear){
   }
   return null;
 }
-function renderYearSelectOptions(selectedYear){
-  const nowY = (new Date()).getFullYear();
-  let html = '<option value="">年(未設定)</option>';
-  for(let y = nowY + 5; y >= 2000; y--){
-    html += `<option value="${y}"${String(y) === String(selectedYear) ? ' selected' : ''}>${y}年</option>`;
-  }
-  return html;
-}
-function renderMonthSelectOptions(selectedMonth){
-  let html = '<option value="">月(未設定)</option>';
-  for(let m = 1; m <= 12; m++){
-    html += `<option value="${m}"${String(m) === String(selectedMonth) ? ' selected' : ''}>${m}月</option>`;
-  }
-  return html;
-}
-function updateDayOptions(yStr, mStr, selectedD){
-  const selD = $('#lts_d');
-  if(!selD) return;
-  const y = +yStr || (new Date()).getFullYear(), m = +mStr || 1;
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const curVal = selectedD != null ? String(selectedD) : selD.value;
-  let html = '<option value="">日(未設定)</option>';
-  for(let i=1; i<=daysInMonth; i++){
-    html += `<option value="${i}"${curVal === String(i) ? ' selected' : ''}>${i}日</option>`;
-  }
-  selD.innerHTML = html;
-}
 function syncFormDate(source){
-  const hidden = $('#lts'), textInp = $('#lts_text'), selY = $('#lts_y'), selM = $('#lts_m'), selD = $('#lts_d'), preview = $('#lts_preview');
-  if(!hidden || !textInp || !selY) return;
+  const hidden = $('#lts'), textInp = $('#lts_text'), picker = $('#lts_picker'), preview = $('#lts_preview');
+  if(!hidden || !textInp) return;
 
   if(source === 'text'){
     const val = textInp.value.trim();
     if(!val){
       hidden.value = '';
-      selY.value = ''; selM.value = ''; selD.value = '';
-      preview.innerHTML = '<span class="hint">(日付なし)</span>';
+      if(picker) picker.value = '';
+      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
       return;
     }
-    const currentY = selY.value ? +selY.value : null;
-    const res = parseEasyDate(val, currentY);
+    const res = parseEasyDate(val);
     if(res){
       hidden.value = res;
+      if(picker) picker.value = res;
       const [y, m, d] = res.split('-');
-      selY.value = y;
-      selM.value = String(+m);
-      updateDayOptions(selY.value, selM.value, String(+d));
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
     } else {
-      preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません (例: 1/1, 2017/1/1)</span>';
+      hidden.value = '';
+      if(picker) picker.value = '';
+      if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません (例: 1/1, 2017/1/1)</span>';
     }
-  } else if(source === 'wheel'){
-    const y = selY.value, m = selM.value, d = selD.value;
-    if(y && m && d){
-      updateDayOptions(y, m, d);
-      const res = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-      hidden.value = res;
+  } else if(source === 'picker'){
+    const val = picker ? picker.value : '';
+    if(val){
+      hidden.value = val;
+      const [y, m, d] = val.split('-');
       textInp.value = `${y}/${+m}/${+d}`;
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
-    } else if(!y && !m && !d){
+      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+    } else {
       hidden.value = '';
       textInp.value = '';
-      preview.innerHTML = '<span class="hint">(日付なし)</span>';
-    } else {
-      updateDayOptions(y, m, d);
-      preview.innerHTML = '<span class="hint">年月日のすべてを選択してください</span>';
+      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
     }
   } else if(source === 'init'){
     const cur = hidden.value;
     if(cur && cur.length >= 10){
-      const [y, m, d] = cur.slice(0,10).split('-');
-      selY.value = y;
-      selM.value = String(+m);
-      updateDayOptions(y, selM.value, String(+d));
+      const d10 = cur.slice(0,10);
+      hidden.value = d10;
+      if(picker) picker.value = d10;
+      const [y, m, d] = d10.split('-');
       textInp.value = `${y}/${+m}/${+d}`;
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
     } else {
-      selY.value = ''; selM.value = ''; selD.value = '';
+      hidden.value = '';
       textInp.value = '';
-      preview.innerHTML = '<span class="hint">(日付なし)</span>';
+      if(picker) picker.value = '';
+      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
     }
+  }
+}
+
+function syncFilterDate(which, source){
+  const textInp = $('#f' + which + '_text');
+  const picker = $('#f' + which + '_picker');
+  const hidden = $('#f' + which);
+  if(!hidden || !textInp) return;
+
+  if(source === 'text'){
+    const val = textInp.value.trim();
+    if(!val){
+      hidden.value = '';
+      if(picker) picker.value = '';
+      state.lf[which] = '';
+    } else {
+      const res = parseEasyDate(val);
+      if(res){
+        hidden.value = res;
+        if(picker) picker.value = res;
+        state.lf[which] = res;
+      } else {
+        hidden.value = '';
+        if(picker) picker.value = '';
+        state.lf[which] = '';
+      }
+    }
+    renderLogList();
+  } else if(source === 'picker'){
+    const val = picker ? picker.value : '';
+    hidden.value = val;
+    textInp.value = val ? val.replace(/-/g, '/') : '';
+    state.lf[which] = val;
+    renderLogList();
   }
 }
 
@@ -1462,30 +1479,32 @@ function openLogForm(entry, kind){
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
       <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
-      <div style="margin:4px 0 8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-          <label style="font-weight:600;margin:0">日付</label>
-          <div style="display:flex;gap:4px">
-            <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
-            <button type="button" class="chip" data-lts-q="yesterday" style="padding:1px 6px;font-size:.78rem">昨日</button>
-            <button type="button" class="chip" data-lts-q="clear" style="padding:1px 6px;font-size:.78rem">日付なし</button>
+      <div id="lrow_dt" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin:4px 0 8px">
+        <div style="flex:1;min-width:210px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label style="font-weight:600;margin:0">日付</label>
+            <div style="display:flex;gap:4px">
+              <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
+              <button type="button" class="chip" data-lts-q="yesterday" style="padding:1px 6px;font-size:.78rem">昨日</button>
+              <button type="button" class="chip" data-lts-q="clear" style="padding:1px 6px;font-size:.78rem">日付なし</button>
+            </div>
           </div>
+          <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
+            <input id="lts_text" type="text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:34px">
+            <input id="lts_picker" type="date" tabindex="-1" style="position:absolute;right:4px;width:28px;height:28px;opacity:0;cursor:pointer;z-index:2">
+            <span style="position:absolute;right:8px;font-size:1.05rem;pointer-events:none;z-index:1">📅</span>
+            <input id="lts" type="hidden">
+          </div>
+          <div id="lts_preview" style="margin-top:3px;font-size:.8rem;min-height:1.2rem"></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <div style="flex:1;min-width:140px">
-            <input id="lts_text" type="text" placeholder="手入力: 例 1/1 や 2017/1/1" style="width:100%;box-sizing:border-box">
+        <div style="width:140px">
+          <div style="display:flex;align-items:center;margin-bottom:4px">
+            <label style="margin:0;font-weight:600">時刻(任意)</label>
           </div>
-          <span class="hint" style="font-size:.82rem">または</span>
-          <div style="display:flex;gap:4px;align-items:center">
-            <select id="lts_y" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
-            <select id="lts_m" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
-            <select id="lts_d" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
-          </div>
+          <input id="ltime" type="time" style="width:100%;box-sizing:border-box">
+          <div style="margin-top:3px;font-size:.8rem;min-height:1.2rem"></div>
         </div>
-        <div id="lts_preview" style="margin-top:4px;font-size:.82rem"></div>
-        <input id="lts" type="hidden">
       </div>
-      <label>時間(任意) <input id="ltime" type="time"></label>
       <datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
@@ -1504,10 +1523,6 @@ function openLogForm(entry, kind){
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
 
   const curD = base.ts ? base.ts.slice(0,10) : '';
-  const [initY, initM, initDay] = curD ? curD.split('-') : ['', '', ''];
-  $('#lts_y').innerHTML = renderYearSelectOptions(initY);
-  $('#lts_m').innerHTML = renderMonthSelectOptions(initM ? +initM : '');
-  updateDayOptions(initY, initM, initDay ? +initDay : '');
   $('#lts').value = curD;
   syncFormDate('init');
 
@@ -2898,8 +2913,8 @@ $('#viewLog').addEventListener('keydown', e=>{
 });
 $('#viewLog').addEventListener('change', e=>{
   const t=e.target;
-  if(t.id==='lts_y' || t.id==='lts_m' || t.id==='lts_d'){
-    syncFormDate('wheel');
+  if(t.id==='lts_picker'){
+    syncFormDate('picker');
     return;
   }
   if(t.id==='lts_text'){
@@ -2929,11 +2944,27 @@ $('#viewLog').addEventListener('change', e=>{
   }
 });
 $('#fhex').innerHTML = '<option value="">すべて</option>'+HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('');
-$('#lfil').addEventListener('change', e=>{
-  const m={fhex:'hex',fchg:'chg',ffrom:'from',fto:'to',fst:'st'}[e.target.id]; if(!m) return;
-  state.lf[m]=e.target.value; renderLogList();
+$('#lfil').addEventListener('input', e=>{
+  const t = e.target;
+  if(t.id==='ffrom_text'){ syncFilterDate('from', 'text'); return; }
+  if(t.id==='fto_text'){ syncFilterDate('to', 'text'); return; }
 });
-$('#fclear').addEventListener('click', ()=>{ Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:'',purpose:''}); ['fhex','fchg','ffrom','fto','fst'].forEach(id=>$('#'+id).value=''); renderLogList(); });
+$('#lfil').addEventListener('change', e=>{
+  const t = e.target;
+  if(t.id==='ffrom_picker'){ syncFilterDate('from', 'picker'); return; }
+  if(t.id==='fto_picker'){ syncFilterDate('to', 'picker'); return; }
+  if(t.id==='ffrom_text'){ syncFilterDate('from', 'text'); return; }
+  if(t.id==='fto_text'){ syncFilterDate('to', 'text'); return; }
+  const m={fhex:'hex',fchg:'chg',fst:'st'}[t.id]; if(!m) return;
+  state.lf[m]=t.value; renderLogList();
+});
+$('#fclear').addEventListener('click', ()=>{
+  Object.assign(state.lf,{hex:'',chg:'',from:'',to:'',st:'',tag:'',purpose:''});
+  ['fhex','fchg','fst','ffrom','fto','ffrom_text','fto_text','ffrom_picker','fto_picker'].forEach(id=>{
+    const el=$('#'+id); if(el) el.value='';
+  });
+  renderLogList();
+});
 $('#lq').addEventListener('input', e=>{ state.lf.q=e.target.value; renderLogList(); });
 $('#lmd').addEventListener('click', ()=>{ if(!state.log.length){ toast('記録がありません'); return; } download('eki-log.md', logMd(), 'text/markdown'); });
 $('#lbak').addEventListener('click', backupShare);
