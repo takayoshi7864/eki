@@ -6,11 +6,11 @@
 <meta name="theme-color" content="#12141d">
 <script>try{var t=localStorage.getItem('eki.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="易 解説">
+<meta name="apple-mobile-web-app-title" content="易">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<title>易 解説</title>
+<title>易</title>
 <style>
 :root{--bg:#faf8f3;--panel:#fff;--ink:#242220;--sub:#6e685b;--line:#e3ded1;--accent:#8a3b2b;--mark:#ffe28a;--chip:#efeadc;--ok:#2d6a3f;--warn:#9a5b00}
 :root{color-scheme:light}
@@ -148,7 +148,6 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .sec div{white-space:pre-wrap;overflow-wrap:anywhere}
 .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
 .tabs button{flex:0 0 auto;white-space:nowrap}
-.tabs button[data-view="search"]{opacity:.7}
 .orig-box{margin:6px 0}
 .orig{white-space:pre-wrap;font-size:1.05rem;letter-spacing:.04em;border-left:3px solid var(--line);padding-left:10px;margin:4px 0 8px;overflow-wrap:anywhere}
 .expl{margin:8px 0}
@@ -166,7 +165,7 @@ body:not(.help) .exp{display:none !important}
 </head>
 <body>
 <header class="top">
-  <div class="toprow"><h1>易 解説</h1><button type="button" id="themebtn" class="themebtn" aria-label="表示の色を切り替える(自動・ライト・ダーク)">◐ 自動</button></div>
+  <div class="toprow"><h1>易</h1><button type="button" id="themebtn" class="themebtn" aria-label="表示の色を切り替える(自動・ライト・ダーク)">◐ 自動</button></div>
   <div class="sub exp">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
   <div class="status" id="status"></div>
 </header>
@@ -1104,6 +1103,23 @@ function renderReading(){
 
 /* ---------- 吉凶悔吝の一覧表 ---------- */
 state.jf = '';
+const DEFAULT_JUDGE_STR = ',,,厲无咎,无咎,,悔;吉,,,,无咎,吉,;,,,凶吉悔吝,吉,凶吉,;,吝,吉,,吝,吉,;吉,无咎,吉,,,吉,吉;凶吉,吉,,吉厲,吉,吉,;吉无咎,凶,吉无咎,凶,无咎,凶无咎,;凶吉无咎,吉无咎,吉,,吉,吉,凶;,吉咎,吉,,无咎,,凶厲;,无咎,吉,凶,吉,厲,吉;吉,吉,,无咎,,吉,吝;,吉,吉,,无咎,吉,;,无咎,,,吉,,悔亡;,无咎,无咎,,无咎,吉,吉;,吉,吉,吉,,,;,凶,吉,悔,,,无咎;无咎,吉,,,凶咎,吉,;,吉厲无咎,,悔咎,吝,,;凶,吉,吉,无咎,无咎,吉,吉无咎;,吝无咎,,,,无咎,无咎;,无咎,无咎,吝无咎,吉,厲无咎,凶;,,,吉,,吉吝,无咎;,凶,凶,无咎,凶,,;,吉悔,吉,厲无咎,,悔亡,凶;,吉,,,无咎,,;吉,厲,,,吉,吉,;吉,凶,凶,凶,吉无咎,吉,吉厲;,无咎,,凶,吉吝,无咎,凶无咎;,凶,,,无咎,无咎,凶;吉,无咎,吉,凶,,吉,咎;吉,,凶吉,吝,吉悔亡,悔亡,;无咎,凶,悔亡,吝,,凶吉,凶;,厲,,吉厲,吉,吉,;,凶,吉,厲,吉悔亡,悔亡,吉;,吉无咎,吉,悔亡,厲,吉悔亡,吉厲吝无咎;,,吉,,,,;,悔亡,吉,吉厲悔吝,吉,吉,吉;吉,悔亡无咎,无咎,,厲无咎,悔亡咎,吉;吉,,,,,,吉;吉,无咎,吉,吝,,吉,;吉无咎,无咎,凶,,无咎,吉,吉无咎;,吉无咎,吉,凶无咎,,吉,;,咎,,凶无咎,悔亡,无咎,凶;,凶吉,无咎,厲咎,凶,,吝无咎;吉,无咎,吉无咎,吝无咎,吉无咎,悔亡无咎,无咎;吉,吉,无咎,,吉无咎,吉,;吉无咎,,凶无咎,凶,吝,,吉悔;凶,,,,无咎,,吉;悔亡,,吉无咎,凶厲,吉悔亡,,凶吉;吉,无咎,吉,吉悔,凶,,吉;,吉,厲,,,厲,凶无咎;无咎,无咎,,厲,无咎,悔亡,吉;吉,厲无咎,吉,凶,无咎,吉,吉;凶,吉,,,,吉,;,无咎,吉,无咎,吉,吉,凶;吉,,,厲,,,凶;,,吉无咎,吝,悔亡,吉悔亡,凶;,吉,吉悔亡,凶,,厲,;,,悔亡,悔亡,吉,无咎,无咎;,无咎,凶,无咎,,吉,凶悔亡;吉,吉,,,无咎,无咎,凶;吉,凶,无咎,凶,厲无咎,,凶;吉,无咎,,,,,厲;,,吉,凶,吉悔亡,吉悔亡,';
+function unpackJudge(str){
+  return str.split(';').map(line => {
+    const cells = line.split(',');
+    const parseTags = s => {
+      const tags = [];
+      if(s.includes('凶')) tags.push('凶');
+      if(s.includes('吉')) tags.push('吉');
+      if(s.includes('厲')) tags.push('厲');
+      if(s.includes('悔亡')) tags.push('悔亡'); else if(s.includes('悔')) tags.push('悔');
+      if(s.includes('吝')) tags.push('吝');
+      if(s.includes('无咎')) tags.push('无咎'); else if(s.includes('咎')) tags.push('咎');
+      return tags;
+    };
+    return { g: parseTags(cells[0]||''), y: [1,2,3,4,5,6].map(k=>parseTags(cells[k]||'')) };
+  });
+}
 function judgeTags(l){
   const t=[];
   if(/凶/.test(l)) t.push('凶');
@@ -1128,6 +1144,10 @@ function firstClassical(c){
   return s;
 }
 function computeJudge(){
+  if(!state.chunks.length){
+    state.judge = unpackJudge(DEFAULT_JUDGE_STR);
+    return;
+  }
   const J=Array.from({length:64},()=>({g:undefined, y:Array(6).fill(undefined)}));
   const pos={'初':0,'二':1,'三':2,'四':3,'五':4,'上':5};
   for(const c of state.chunks){
@@ -1146,7 +1166,9 @@ function renderJudge(){
   const order=['吉','凶','悔','吝','厲','无咎','悔亡','咎'];
   $('#jchips').innerHTML = `<span class="chip${state.jf?'':' on'}" data-jf="">すべて</span>` +
     order.filter(x=>cnt[x]).map(x=>`<span class="chip${state.jf===x?' on':''}" data-jf="${x}">${x}<b>${cnt[x]}</b></span>`).join('');
-  $('#jnote').textContent = `本文の区画が見つからない欄(?): ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`;
+  $('#jnote').textContent = none
+    ? `本文の区画が見つからない欄(?): ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`
+    : '判定は爻辞の1行目から自動で行っています。セルを押すと卦の詳細または原文を開きます。';
   const cell=(t,i,lab)=>{
     if(t===undefined) return '<td><span class="jnone" title="区画なし">？</span></td>';
     const dim = state.jf && !t.includes(state.jf) ? ' dim' : '';
@@ -1162,7 +1184,12 @@ function renderJudge(){
 }
 $('#viewJudge').addEventListener('click', e=>{
   const f=e.target.closest('[data-jf]'); if(f){ state.jf=f.dataset.jf; renderJudge(); return; }
-  const c=e.target.closest('[data-jh]'); if(c){ jumpTo(+c.dataset.jh, c.dataset.jl); return; }
+  const c=e.target.closest('[data-jh]');
+  if(c){
+    if(state.chunks.length) jumpTo(+c.dataset.jh, c.dataset.jl);
+    else { switchView('hex'); renderHexDetail(+c.dataset.jh); $('#hexdetail').scrollIntoView({block:'start'}); }
+    return;
+  }
   const n=e.target.closest('[data-jn]'); if(n){ switchView('hex'); renderHexDetail(+n.dataset.jn); $('#hexdetail').scrollIntoView({block:'start'}); }
 });
 
