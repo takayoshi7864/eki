@@ -79,10 +79,12 @@ details>summary+*{margin-top:10px}
 .lgroup-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px}
 .lgroup-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:6px 2px;flex-wrap:wrap;gap:8px}
 .lgroup .card{background:var(--bg);border:1px solid var(--line);margin:10px 0}
-.lsubgroup{margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
-.lsubgroup-sum{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;font-size:.95rem}
-.lsubgroup-sum:hover{background:rgba(128,128,128,.08)}
-.lsubgroup-body{padding:4px 8px 8px;border-top:1px solid var(--line)}
+.lsubgroup{margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .15s}
+.lsubgroup[open]{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.lsubgroup-sum{display:flex;align-items:center;gap:10px;padding:9px 4.8em 9px 2.8em !important;border:none !important;border-radius:0 !important;background:transparent !important;cursor:pointer;user-select:none;font-size:.95rem}
+.lsubgroup-sum:hover{background:rgba(128,128,128,.06) !important}
+.lsubgroup[open]>summary.lsubgroup-sum{background:color-mix(in srgb,var(--accent) 8%,var(--bg)) !important;border-bottom:1px solid var(--line) !important}
+.lsubgroup-body{padding:4px 8px 8px;border-top:none}
 .lcompact-list{display:grid;gap:4px;margin:4px 0}
 .lrow-wrap{border-bottom:1px solid var(--line)}
 .lrow-wrap:last-child{border-bottom:none}
@@ -1524,9 +1526,19 @@ function logRowItem(e){
 }
 function purposeDetailHtml(a){
   const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
-  const latestDate = last.ts ? (last.kind==='day' ? last.ts.slice(5,10).replace('-','/') : last.ts.slice(0,10)) : (last.memo || '日付なし');
-  const firstDate = a[0].ts ? (a[0].kind==='day' ? a[0].ts.slice(5,10).replace('-','/') : a[0].ts.slice(0,10)) : (a[0].memo || '');
-  const rangeStr = firstDate && firstDate !== latestDate ? `${firstDate} 〜 ${latestDate}` : latestDate;
+  const y1 = a[0].ts ? a[0].ts.slice(0,4) : '';
+  const y2 = last.ts ? last.ts.slice(0,4) : '';
+  let rangeStr = '';
+  if(a[0].ts && last.ts){
+    if(y1 && y2 && y1 !== y2){
+      rangeStr = `${a[0].ts.slice(0,10).replace(/-/g,'/')} 〜 ${last.ts.slice(0,10).replace(/-/g,'/')}`;
+    } else {
+      rangeStr = `${y1 ? y1+'年 ' : ''}${a[0].ts.slice(5,10).replace('-','/')} 〜 ${last.ts.slice(5,10).replace('-','/')}`;
+    }
+  } else {
+    rangeStr = last.memo || a[0].memo || '日付なし';
+  }
+  const filteredTags = tg.filter(t => t !== last.title);
 
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前 <input id="pname" value="${esc(last.title||'')}"></label>
@@ -1567,7 +1579,7 @@ function purposeDetailHtml(a){
         <b style="font-size:1.05rem;color:var(--ink)">${esc(purposeOf(last))}</b>
         <span class="hint">${rangeStr}（全 ${a.length} 件）</span>
         ${st ? `<span class="tag">${STATUS[st]}</span>` : ''}
-        ${tg.length ? `<span class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</span>` : ''}
+        ${filteredTags.length ? `<span class="hint">${filteredTags.map(t=>'#'+esc(t)).join(' ')}</span>` : ''}
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         <button class="chip" data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button>
