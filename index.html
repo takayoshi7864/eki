@@ -521,9 +521,11 @@ body:not(.help) .exp{display:none !important}
         <div class="drum-col" id="drumColM"></div>
         <div class="drum-col" id="drumColD"></div>
       </div>
-      <div style="display:flex;gap:6px;justify-content:center;margin:8px 0 12px">
+      <div style="display:flex;gap:6px;justify-content:center;margin:8px 0 12px;flex-wrap:wrap">
         <button type="button" class="chip" id="drumBtnToday" style="padding:2px 8px;font-size:.8rem">今日</button>
         <button type="button" class="chip" id="drumBtnYesterday" style="padding:2px 8px;font-size:.8rem">昨日</button>
+        <button type="button" class="chip" id="drumBtnMonth" style="padding:2px 8px;font-size:.8rem">今月</button>
+        <button type="button" class="chip" id="drumBtnMonthOnly" style="padding:2px 8px;font-size:.8rem">年月のみ</button>
         <button type="button" class="chip" id="drumBtnClear" style="padding:2px 8px;font-size:.8rem">日付なし</button>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -1399,11 +1401,27 @@ function parseEasyDate(val, refYear){
     const t = new Date(today.getTime() + 864e5);
     return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
   }
+  if(/^(今月|こんげつ)$/i.test(s)){
+    return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  }
+  if(/^(先月|せんげつ)$/i.test(s)){
+    const prevM = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    return `${prevM.getFullYear()}-${String(prevM.getMonth()+1).padStart(2,'0')}`;
+  }
+  if(/^(来月|らいげつ)$/i.test(s)){
+    const nextM = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return `${nextM.getFullYear()}-${String(nextM.getMonth()+1).padStart(2,'0')}`;
+  }
+
+  const hadYear = /年/.test(s);
+  const hadMonth = /月/.test(s);
+  const hadDay = /日/.test(s);
 
   s = s.replace(/年|月/g, '-').replace(/日/g, '');
   s = s.replace(/[\/\.／．\s]/g, '-');
   s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
 
+  // 1. YYYY-M-D
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m){
     const yr = +m[1], mo = +m[2], da = +m[3];
@@ -1411,6 +1429,8 @@ function parseEasyDate(val, refYear){
       return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
     }
   }
+
+  // 2. YY-M-D
   m = s.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/);
   if(m){
     const yr = 2000 + (+m[1]), mo = +m[2], da = +m[3];
@@ -1418,6 +1438,8 @@ function parseEasyDate(val, refYear){
       return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
     }
   }
+
+  // 3. YYYYMMDD (8桁)
   m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
   if(m){
     const yr = +m[1], mo = +m[2], da = +m[3];
@@ -1425,6 +1447,37 @@ function parseEasyDate(val, refYear){
       return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
     }
   }
+
+  // 4. YYYY-M (年月のみ: 2018/1, 2018-01, 2018年1月など)
+  m = s.match(/^(\d{4})-(\d{1,2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12){
+      return `${yr}-${String(mo).padStart(2,'0')}`;
+    }
+  }
+
+  // 5. YYYYMM (6桁: 201801など)
+  m = s.match(/^(\d{4})(\d{2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12){
+      return `${yr}-${String(mo).padStart(2,'0')}`;
+    }
+  }
+
+  // 6. YY-M (年と月が明示された2桁年: 18年1月など)
+  if(hadYear && hadMonth && !hadDay){
+    m = s.match(/^(\d{2})-(\d{1,2})$/);
+    if(m){
+      const yr = 2000 + (+m[1]), mo = +m[2];
+      if(mo >= 1 && mo <= 12){
+        return `${yr}-${String(mo).padStart(2,'0')}`;
+      }
+    }
+  }
+
+  // 7. M-D (月日: 1/1, 12-31, 1月1日など)
   m = s.match(/^(\d{1,2})-(\d{1,2})$/);
   if(m){
     const yr = refYear || today.getFullYear();
@@ -1433,6 +1486,20 @@ function parseEasyDate(val, refYear){
       return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
     }
   }
+
+  // 8. M月 のみ (1月, 12月など)
+  if(hadMonth && !hadDay){
+    m = s.match(/^(\d{1,2})$/);
+    if(m){
+      const yr = refYear || today.getFullYear();
+      const mo = +m[1];
+      if(mo >= 1 && mo <= 12){
+        return `${yr}-${String(mo).padStart(2,'0')}`;
+      }
+    }
+  }
+
+  // 9. MMDD (4桁: 0101など)
   m = s.match(/^(\d{2})(\d{2})$/);
   if(m){
     const yr = refYear || today.getFullYear();
@@ -1457,24 +1524,38 @@ function syncFormDate(source){
     const res = parseEasyDate(val);
     if(res){
       hidden.value = res;
-      const [y, m, d] = res.split('-');
-      const dt = new Date(+y, +m - 1, +d);
-      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
+      const parts = res.split('-');
+      if(parts.length === 2){
+        const y = parts[0], m = parts[1];
+        if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月</span>`;
+      } else {
+        const [y, m, d] = parts;
+        const dt = new Date(+y, +m - 1, +d);
+        const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+        if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
+      }
     } else {
       hidden.value = '';
-      if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません（例: 1/1, 2017/1/1）</span>';
+      if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません（例: 2018/1, 2017/1/1）</span>';
     }
   } else if(source === 'init'){
     const cur = hidden.value;
-    if(cur && cur.length >= 10){
-      const d10 = cur.slice(0,10);
-      hidden.value = d10;
-      const [y, m, d] = d10.split('-');
-      textInp.value = `${y}/${+m}/${+d}`;
-      const dt = new Date(+y, +m - 1, +d);
-      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
+    if(cur && cur.length >= 7){
+      const parts = cur.slice(0, 10).split('-');
+      const y = parts[0], m = parts[1];
+      if(parts.length === 2 || cur.length === 7 || cur.charAt(7) !== '-'){
+        hidden.value = `${y}-${m}`;
+        textInp.value = `${y}/${+m}`;
+        if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月</span>`;
+      } else {
+        const d = parts[2];
+        const d10 = `${y}-${m}-${d}`;
+        hidden.value = d10;
+        textInp.value = `${y}/${+m}/${+d}`;
+        const dt = new Date(+y, +m - 1, +d);
+        const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+        if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
+      }
     } else {
       hidden.value = '';
       textInp.value = '';
@@ -1518,19 +1599,25 @@ function updateDrumDays(keepD){
   const daysInMo = new Date(drumState.y, drumState.m, 0).getDate();
   const colD = $('#drumColD');
   if(!colD) return;
-  colD.innerHTML = Array.from({length: daysInMo}, (_, i) => i + 1).map(d => `<div class="drum-item" data-val="${d}">${d}日</div>`).join('');
+  colD.innerHTML = `<div class="drum-item" data-val="0">日なし</div>` +
+    Array.from({length: daysInMo}, (_, i) => i + 1).map(d => `<div class="drum-item" data-val="${d}">${d}日</div>`).join('');
   let d = keepD != null ? keepD : drumState.d;
   if(d > daysInMo) d = daysInMo;
-  if(d < 1) d = 1;
+  if(d < 0) d = 0;
   drumState.d = d;
-  colD.scrollTop = (d - 1) * 36;
+  colD.scrollTop = d * 36;
 }
 
 function updateDrumPreview(){
-  const dt = new Date(drumState.y, drumState.m - 1, drumState.d);
-  const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
   const prev = $('#drumPreview');
-  if(prev) prev.textContent = `${drumState.y}年${drumState.m}月${drumState.d}日（${dow}）`;
+  if(!prev) return;
+  if(!drumState.d || drumState.d === 0){
+    prev.textContent = `${drumState.y}年${drumState.m}月`;
+  } else {
+    const dt = new Date(drumState.y, drumState.m - 1, drumState.d);
+    const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+    prev.textContent = `${drumState.y}年${drumState.m}月${drumState.d}日（${dow}）`;
+  }
 }
 
 function applyDrumSelection(val){
@@ -1624,9 +1711,9 @@ function setupDrumEvents(){
   colD.addEventListener('scroll', () => {
     clearTimeout(scrollTimerD);
     scrollTimerD = setTimeout(() => {
-      const d = Math.round(colD.scrollTop / 36) + 1;
+      const d = Math.round(colD.scrollTop / 36);
       const daysInMo = new Date(drumState.y, drumState.m, 0).getDate();
-      if(d >= 1 && d <= daysInMo && drumState.d !== d){
+      if(d >= 0 && d <= daysInMo && drumState.d !== d){
         drumState.d = d;
         updateDrumPreview();
       }
@@ -1658,7 +1745,7 @@ function setupDrumEvents(){
       colY.scrollTo({ top: (yIdx >= 0 ? yIdx : 0) * 36, behavior: 'smooth' });
       colM.scrollTo({ top: (drumState.m - 1) * 36, behavior: 'smooth' });
       updateDrumDays(drumState.d);
-      colD.scrollTo({ top: (drumState.d - 1) * 36, behavior: 'smooth' });
+      colD.scrollTo({ top: drumState.d * 36, behavior: 'smooth' });
       updateDrumPreview();
       return;
     }
@@ -1671,7 +1758,26 @@ function setupDrumEvents(){
       colY.scrollTo({ top: (yIdx >= 0 ? yIdx : 0) * 36, behavior: 'smooth' });
       colM.scrollTo({ top: (drumState.m - 1) * 36, behavior: 'smooth' });
       updateDrumDays(drumState.d);
-      colD.scrollTo({ top: (drumState.d - 1) * 36, behavior: 'smooth' });
+      colD.scrollTo({ top: drumState.d * 36, behavior: 'smooth' });
+      updateDrumPreview();
+      return;
+    }
+    if(e.target.id === 'drumBtnMonth'){
+      const today = new Date();
+      drumState.y = today.getFullYear();
+      drumState.m = today.getMonth() + 1;
+      drumState.d = 0;
+      const yIdx = DRUM_YEARS.indexOf(drumState.y);
+      colY.scrollTo({ top: (yIdx >= 0 ? yIdx : 0) * 36, behavior: 'smooth' });
+      colM.scrollTo({ top: (drumState.m - 1) * 36, behavior: 'smooth' });
+      updateDrumDays(0);
+      colD.scrollTo({ top: 0, behavior: 'smooth' });
+      updateDrumPreview();
+      return;
+    }
+    if(e.target.id === 'drumBtnMonthOnly'){
+      drumState.d = 0;
+      colD.scrollTo({ top: 0, behavior: 'smooth' });
       updateDrumPreview();
       return;
     }
@@ -1686,7 +1792,9 @@ function setupDrumEvents(){
     }
     if(e.target.id === 'drumBtnDone'){
       const pad2 = n => String(n).padStart(2, '0');
-      const val = `${drumState.y}-${pad2(drumState.m)}-${pad2(drumState.d)}`;
+      const val = (drumState.d && drumState.d > 0)
+        ? `${drumState.y}-${pad2(drumState.m)}-${pad2(drumState.d)}`
+        : `${drumState.y}-${pad2(drumState.m)}`;
       applyDrumSelection(val);
       closeDrumModal();
       return;
@@ -1716,15 +1824,19 @@ function openDrumModal(targetKey){
   }
 
   const today = new Date();
-  if(curVal && curVal.length >= 10){
-    const [y, m, d] = curVal.slice(0, 10).split('-').map(Number);
+  if(curVal && curVal.length >= 7){
+    const parts = curVal.slice(0, 10).split('-').map(Number);
+    const y = parts[0];
+    const m = parts[1];
+    const d = parts.length >= 3 ? parts[2] : 0;
     drumState.y = (y >= 1980 && y <= today.getFullYear() + 5) ? y : today.getFullYear();
     drumState.m = (m >= 1 && m <= 12) ? m : (today.getMonth() + 1);
-    drumState.d = d || today.getDate();
+    drumState.d = d || 0;
   } else {
+    const isMonthPurpose = ($('#ltitle')?.value || '').includes('今月') || state.draft?.kind === 'month';
     drumState.y = (state.calY != null) ? state.calY : today.getFullYear();
     drumState.m = (state.calM != null) ? (state.calM + 1) : (today.getMonth() + 1);
-    drumState.d = today.getDate();
+    drumState.d = isMonthPurpose ? 0 : today.getDate();
   }
 
   const colY = $('#drumColY');
@@ -1741,7 +1853,7 @@ function openDrumModal(targetKey){
   colY.scrollTop = (yIdx >= 0 ? yIdx : 0) * 36;
   colM.scrollTop = (drumState.m - 1) * 36;
   const colD = $('#drumColD');
-  colD.scrollTop = (drumState.d - 1) * 36;
+  colD.scrollTop = drumState.d * 36;
 
   updateDrumPreview();
 }
@@ -1861,8 +1973,9 @@ function syncFormHex(source){
 
 /* 入力フォーム */
 function openLogForm(entry, kind){
+  const defaultTs = (kind==='month') ? `${(new Date()).getFullYear()}-${pad2((new Date()).getMonth()+1)}` : (nowLocal().slice(0,10)+'T00:00');
   const base = entry ? JSON.parse(JSON.stringify(entry))
-    : {id:null, kind:kind||'event', ts:nowLocal().slice(0,10)+'T00:00', title:(kind&&KINDS[kind]&&kind!=='event')?KINDS[kind]:'', hex:null, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
+    : {id:null, kind:kind||'event', ts:defaultTs, title:(kind&&KINDS[kind]&&kind!=='event')?KINDS[kind]:'', hex:null, ch:[], memo:'', advice:'', action:'', review:'', status:'', tags:[], result:''};
   state.draft = base;
   const box = $('#logform'); box.hidden = false;
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
@@ -1875,11 +1988,12 @@ function openLogForm(entry, kind){
             <div style="display:flex;gap:4px">
               <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
               <button type="button" class="chip" data-lts-q="yesterday" style="padding:1px 6px;font-size:.78rem">昨日</button>
+              <button type="button" class="chip" data-lts-q="month" style="padding:1px 6px;font-size:.78rem">今月</button>
               <button type="button" class="chip" data-lts-q="clear" style="padding:1px 6px;font-size:.78rem">日付なし</button>
             </div>
           </div>
           <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
-            <input id="lts_text" type="text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:34px">
+            <input id="lts_text" type="text" placeholder="例: 2018/1 や 2017/1/1" style="width:100%;box-sizing:border-box;padding-right:34px">
             <button type="button" class="date-drum-btn" data-drum="lts" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
             <input id="lts" type="hidden">
           </div>
@@ -1923,7 +2037,7 @@ function openLogForm(entry, kind){
     </div>
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
 
-  const curD = base.ts ? base.ts.slice(0,10) : '';
+  const curD = base.ts ? (base.ts.length <= 7 ? base.ts.slice(0, 7) : base.ts.slice(0, 10)) : '';
   $('#lts').value = curD;
   syncFormDate('init');
 
@@ -1962,10 +2076,10 @@ function saveLog(){
     return;
   }
   const dVal=$('#lts').value; const tVal=$('#ltime').value;
-  const ts = dVal ? (dVal+'T'+(tVal||'00:00')) : '';
+  const ts = dVal ? (dVal.length <= 7 ? dVal : (dVal+'T'+(tVal||'00:00'))) : '';
   const rec = {
     id: e.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
-    kind:$('#ltitle').value.trim() ? kindOfTitle($('#ltitle').value) : (e.kind||'event'), ts, title:$('#ltitle').value.trim(),
+    kind:$('#ltitle').value.trim() ? kindOfTitle($('#ltitle').value) : (dVal && dVal.length === 7 ? 'month' : (e.kind||'event')), ts, title:$('#ltitle').value.trim(),
     hex:e.hex, ch:[...e.ch].sort((a,b)=>a-b), rel:deriveSet(e.hex,e.ch),
     memo:$('#lmemo').value.trim(), advice:$('#ladvice').value.trim(), action:$('#laction').value.trim(), review:$('#lreview').value.trim(),
     status:$('#lstat').value, tags:$('#ltags').value.split(/[,、,\s]+/).map(x=>x.trim()).filter(Boolean), result:$('#lresult').value, imp:e.imp||false,
@@ -2143,9 +2257,9 @@ function logRowItem(e){
   const yr = e.ts ? e.ts.slice(0,4) : '';
   if(e.memo && /冬至占/.test(e.memo)){
     dateStr = e.ts ? e.ts.slice(0,10).replace(/-/g,'/') : (e.memo || '日付なし');
-  } else if(e.kind==='day' && e.ts){
+  } else if(e.kind==='day' && e.ts && e.ts.length >= 10){
     dateStr = e.ts.slice(5,10).replace('-','/');
-  } else if(e.kind==='month' && e.ts){
+  } else if((e.kind==='month' || (e.ts && e.ts.length === 7)) && e.ts){
     dateStr = `${e.ts.slice(0,4)}年${parseInt(e.ts.slice(5,7),10)}月`;
   } else if(e.ts){
     dateStr = e.ts.slice(0,10).replace(/-/g,'/');
@@ -2176,18 +2290,32 @@ function logRowItem(e){
 }
 function purposeDetailHtml(a){
   const last = a[a.length-1], pk = purposeKey(last), st = last.status, tg = last.tags || [];
-  const dated = a.filter(e => e.ts && e.ts.length >= 10);
+  const dated = a.filter(e => e.ts && e.ts.length >= 7);
   let rangeStr = '';
   if(dated.length >= 2){
     const dFirst = dated[0], dLast = dated[dated.length - 1];
     const y1 = dFirst.ts.slice(0, 4), y2 = dLast.ts.slice(0, 4);
-    if(y1 !== y2){
+    const isMonthOnly = (dFirst.ts.length === 7 || dFirst.kind === 'month') && (dLast.ts.length === 7 || dLast.kind === 'month');
+    if(isMonthOnly){
+      const m1 = parseInt(dFirst.ts.slice(5, 7), 10);
+      const m2 = parseInt(dLast.ts.slice(5, 7), 10);
+      if(y1 !== y2){
+        rangeStr = `${y1}年${m1}月 〜 ${y2}年${m2}月`;
+      } else {
+        rangeStr = `${y1}年${m1}月 〜 ${m2}月`;
+      }
+    } else if(y1 !== y2){
       rangeStr = `${dFirst.ts.slice(0, 10).replace(/-/g, '/')} 〜 ${dLast.ts.slice(0, 10).replace(/-/g, '/')}`;
     } else {
       rangeStr = `${y1 ? y1 + '年 ' : ''}${dFirst.ts.slice(5, 10).replace('-', '/')} 〜 ${dLast.ts.slice(5, 10).replace('-', '/')}`;
     }
   } else if(dated.length === 1){
-    rangeStr = dated[0].ts.slice(0, 10).replace(/-/g, '/');
+    const d0 = dated[0];
+    if(d0.ts.length === 7 || d0.kind === 'month'){
+      rangeStr = `${d0.ts.slice(0,4)}年${parseInt(d0.ts.slice(5,7),10)}月`;
+    } else {
+      rangeStr = d0.ts.slice(0, 10).replace(/-/g, '/');
+    }
   } else {
     rangeStr = '日付なし';
   }
@@ -2675,6 +2803,8 @@ function importLogText(text, commit = true){
         if(/^(なし|無し|日付なし|未設定|不明|ー|-)$/.test(q)){ ts=''; continue; }
         const m=ts==null && q.match(DATE);
         if(m){ ts=`${m[1]}-${pad2(+m[2])}-${pad2(+m[3])}T${pad2(+(m[4]||0))}:${m[5]||'00'}`; continue; }
+        const mM=ts==null && q.match(/^(\d{4})\s*[-\/.年]\s*(\d{1,2})月?$/);
+        if(mM){ ts=`${mM[1]}-${pad2(+mM[2])}`; continue; }
         if(hex==null){ const h=findHexByName(q); if(h!=null){ hex=h; continue; } }
         if(chv==null){ const c=parseChTok(q); if(c){ chv=c; continue; } }
         purpose.push(q);
@@ -2707,7 +2837,7 @@ function importLogText(text, commit = true){
     if(mMonth){
       const yr=mMonth[1]?+mMonth[1]:(currentYear||(new Date()).getFullYear());
       currentYear=yr;
-      curTs=`${yr}-${pad2(+mMonth[2])}-01T00:00`;
+      curTs=`${yr}-${pad2(+mMonth[2])}`;
       curSubTitle=`${yr}年${+mMonth[2]}月`;
       return;
     }
@@ -2781,7 +2911,7 @@ function importLogText(text, commit = true){
       if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${lineNum}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です（「${x}」と書かれています。位置を優先しました）`);
     });
     const isYear=/今年|一?年の心構え|冬至占?/.test(title);
-    const kind=/今日/.test(title)?'day':/今月/.test(title)?'month':isYear?'year':'event';
+    const kind=/今日/.test(title)?'day':/今月/.test(title)?'month':isYear?'year':(ts && ts.length===7?'month':'event');
     const rec={
       id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,4),
       kind,
@@ -2798,8 +2928,8 @@ function importLogText(text, commit = true){
       ...rec,
       isDup,
       selected: !isDup,
-      dateStr: rec.ts ? rec.ts.slice(0,10) : '',
-      timeStr: (rec.ts && rec.ts.slice(11,16) !== '00:00') ? rec.ts.slice(11,16) : ''
+      dateStr: rec.ts ? (rec.ts.length <= 7 ? rec.ts.slice(0,7).replace(/-/g,'/') : rec.ts.slice(0,10).replace(/-/g,'/')) : '',
+      timeStr: (rec.ts && rec.ts.length > 10 && rec.ts.slice(11,16) !== '00:00') ? rec.ts.slice(11,16) : ''
     };
     out.allParsed.push(parsedItem);
     if(isDup){
@@ -2864,7 +2994,7 @@ const DEFAULT_LOG = (() => {
   const monthLogs = months.map(([m, hex, ch]) => ({
     id: `l_month_2017${m}`,
     kind: 'month',
-    ts: `2017-${m}-01T00:00`,
+    ts: `2017-${m}`,
     title: '今月の心構え',
     hex,
     ch,
@@ -3144,10 +3274,10 @@ function commitBulkStaging(staging, resId){
   const newRecords = [];
   for(const it of selected){
     const dVal = it.dateStr ? parseEasyDate(it.dateStr) : '';
-    const ts = dVal ? (dVal + 'T' + (it.timeStr || '00:00')) : '';
+    const ts = dVal ? (dVal.length <= 7 ? dVal : (dVal + 'T' + (it.timeStr || '00:00'))) : '';
     const title = (it.title || '').trim();
     const isYear = /今年|一?年の心構え|冬至占?/.test(title);
-    const kind = /今日/.test(title) ? 'day' : /今月/.test(title) ? 'month' : isYear ? 'year' : 'event';
+    const kind = /今日/.test(title) ? 'day' : /今月/.test(title) ? 'month' : isYear ? 'year' : (dVal && dVal.length === 7 ? 'month' : 'event');
     const rec = {
       id: it.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
       kind,
@@ -3270,6 +3400,9 @@ $('#viewLog').addEventListener('click', e=>{
     } else if(act === 'yesterday'){
       const y = new Date(today.getTime() - 864e5);
       $('#lts').value = `${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+      syncFormDate('init');
+    } else if(act === 'month'){
+      $('#lts').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
       syncFormDate('init');
     } else if(act === 'clear'){
       $('#lts').value = '';
@@ -3952,11 +4085,19 @@ function cleanAndDedupAnnualRecords(st){
     }
   });
 
+  // 「今月の心構え」の記録は月までの登録（YYYY-MM）に正規化
+  st.log.forEach(e => {
+    if((e.title === '今月の心構え' || e.kind === 'month') && e.ts && /^\d{4}-\d{2}-01(?:T00:00)?$/.test(e.ts)){
+      e.ts = e.ts.slice(0, 7);
+      logChanged = true;
+    }
+  });
+
   // 他の今月の心構え・日次デフォルト等の登録（未登録分のみ）
   DEFAULT_LOG.forEach(rec => {
     if(canonicalIds.has(rec.id)) return;
     const deleted = st.tomb && st.tomb[rec.id];
-    const exists = st.log.some(e => e.id === rec.id || ((e.ts||'').slice(0,10) === (rec.ts||'').slice(0,10) && e.title === rec.title && e.hex === rec.hex && (e.ch||[]).join('') === (rec.ch||[]).join('')));
+    const exists = st.log.some(e => e.id === rec.id || ((e.ts||'').slice(0,7) === (rec.ts||'').slice(0,7) && e.title === rec.title && e.hex === rec.hex && (e.ch||[]).join('') === (rec.ch||[]).join('')));
     if(!deleted && !exists){
       st.log.push(rec);
       logChanged = true;
