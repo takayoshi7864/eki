@@ -70,6 +70,9 @@ details>summary+*{margin-top:10px}
 .lhex .arrow{color:var(--sub)}
 .lhex small{color:var(--sub);margin-left:auto}
 .lrows{display:grid;gap:5px;margin:8px 0 4px;padding-top:8px;border-top:1px dashed var(--line)}
+.lgroup{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0}
+.lgroup-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.lgroup .card{background:var(--bg);border:1px solid var(--line);margin:10px 0}
 .lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
 .lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
 .lrow>span{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -1201,7 +1204,7 @@ const RES = {hit:'読み通り', part:'一部そのとおり', miss:'ずれた',
 const DUE = {event:30, month:31, year:366};   // 振り返りを促すまでの日数(今日の心構えは対象外)
 const pad2 = n => String(n).padStart(2,'0');
 function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
-const fmtDT = s => s ? String(s).replace('T00:00','').replace('T',' ') : '日付なし';
+const fmtDT = (s, memo) => s ? String(s).replace('T00:00','').replace('T',' ') : (memo ? `${memo} (日付なし)` : '日付なし');
 const kindOfTitle = t => /今日/.test(t)?'day':/今月/.test(t)?'month':/今年/.test(t)?'year':'event';
 const hexName = i => HEX[i][0];
 const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
@@ -1338,7 +1341,7 @@ function logCard(e){
   const pend = !!(state._pend && state._pend.has(e.id));
   const rows = [['メモ',e.memo],['解説',e.advice],['行動',e.action],['振り返り',e.review]].filter(([,v])=>v && String(v).trim());
   return `<article class="card logitem" data-lid="${e.id}">
-    <header><span>${fmtDT(e.ts)}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}${pend?'<span class="tag pend">振り返り待ち</span>':''}</header>
+    <header><span>${fmtDT(e.ts, e.memo)}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}${pend?'<span class="tag pend">振り返り待ち</span>':''}</header>
     <div class="lhex">${hexSvg(e.hex,22,22)}<b>${hexName(e.hex)}</b>${zhi!=null?`<span class="arrow">→</span>${hexSvg(zhi,22,22)}<b>${hexName(zhi)}</b>`:''}<small>${e.ch.length?'変爻: '+yaoNames(e.hex,e.ch):'変爻なし'}</small></div>
     <div class="body"><b>${esc(purposeOf(e))}</b></div>
     ${(e.tags&&e.tags.length)?`<div class="hint">${e.tags.map(t=>'#'+esc(t)).join(' ')}</div>`:''}
@@ -1350,7 +1353,7 @@ function logCard(e){
 const purposeOf = e => e.title || KINDS[e.kind];
 const purposeKey = e => purposeOf(e).normalize('NFKC').replace(/\s+/g,'');
 function purposeList(){ const m=new Map(); ['今日の心構え','今月の心構え','今年の心構え'].forEach(t=>m.set(t,t)); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
-state.lf.mode = 'date';
+state.lf.mode = 'purpose';
 function logFiltered(){
   const f=state.lf, q=normStr(f.q||'');
   return state.log.filter(e=>(!f.kind || e.kind===f.kind) &&
@@ -1378,19 +1381,19 @@ function statsHtml(list){
 }
 function purposeHead(a){
   const last=a[a.length-1], pk=purposeKey(last), st=last.status, tg=last.tags||[];
-  const flow=a.map(e=>`${e.ts ? e.ts.slice(0,10) : '日付なし'} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
+  const flow=a.map(e=>`${e.ts ? e.ts.slice(0,10) : (e.memo || '日付なし')} ${hexName(e.hex)}${e.ch.length?'→'+hexName(e.rel.zhi):''}`).join(' / ');
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前(別の目的と同じ名前にすると、1つにまとまります) <input id="pname" value="${esc(last.title||'')}"></label>
       <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
       <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
-  return `<h3 style="margin:14px 0 2px">${esc(purposeOf(last))} <small class="hint">${a.length}件</small> ${st?`<span class="tag">${STATUS[st]}</span>`:''} <button data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button></h3>
+  return `<div class="lgroup-head"><h3 style="margin:4px 0">${esc(purposeOf(last))} <small class="hint">${a.length}件</small> ${st?`<span class="tag">${STATUS[st]}</span>`:''}</h3><button data-lact="pedit" data-pk="${esc(pk)}">目的を編集</button></div>
     ${tg.length?`<div class="hint">${tg.map(t=>'#'+esc(t)).join(' ')}</div>`:''}<div class="hint" style="margin-bottom:6px">${esc(flow)}</div>${ed}`;
 }
 function renderLogList(){
   const f=state.lf, cnt = {}; state.log.forEach(e=>cnt[e.kind]=(cnt[e.kind]||0)+1);
   $('#lkinds').innerHTML = '';   // 種別の絞り込みは使わない(目的で分ける)
-  $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['date','日付順(新しい順)'],['purpose','目的ごと(日付順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
+  $('#lmode').innerHTML = `<span class="hint">並べ方</span> ` + [['purpose','目的ごと(日付順)'],['date','日付順(新しい順)'],['stats','集計']].map(([k,v])=>`<span class="chip${f.mode===k?' on':''}" data-lmode="${k}">${v}</span>`).join('');
   const tags=new Set(); state.log.forEach(e=>(e.tags||[]).forEach(t=>tags.add(t)));
   $('#ltagchips').innerHTML = tags.size ? '<span class="hint">タグ</span> '+[...tags].map(t=>`<span class="chip${f.tag===t?' on':''}" data-ltag="${esc(t)}">#${esc(t)}</span>`).join('') : '';
   const list = logFiltered();
@@ -1471,11 +1474,18 @@ function importLogText(text){
 
   function flush(n){
     if(curHex!=null){
-      const fullTitle=[baseTitle, curSubTitle].filter(Boolean).join(' ') || '心構え';
+      let recTitle='', recMemo='';
+      if(baseTitle){
+        recTitle = baseTitle;
+        recMemo = curSubTitle;
+      } else {
+        recTitle = curSubTitle || '心構え';
+      }
       items.push({
         lineNum: curLineNum,
         ts: curTs != null ? curTs : '',
-        title: fullTitle,
+        title: recTitle,
+        memo: recMemo,
         hex: curHex,
         ch: curCh,
         chv: curChv
@@ -1509,6 +1519,7 @@ function importLogText(text){
         lineNum: n,
         ts: ts != null ? ts : '',
         title: purpose.join(' ') || baseTitle || '',
+        memo: '',
         hex,
         ch: chv ? chv.pos : [],
         chv
@@ -1551,7 +1562,7 @@ function importLogText(text){
       if(isToji){
         const d=tojiDay(y);
         curTs=`${y}-12-${pad2(d)}T00:00`;
-        curSubTitle=rest;
+        curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
       } else {
         curTs='';
         curSubTitle=`${y}年${rest ? ' ' + rest : ''}`;
@@ -1564,7 +1575,7 @@ function importLogText(text){
   flush();
 
   items.forEach(it=>{
-    const { lineNum, ts, title, hex, ch, chv } = it;
+    const { lineNum, ts, title, memo, hex, ch, chv } = it;
     if(chv) chv.names.forEach(([k,x])=>{
       if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${lineNum}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です(「${x}」と書かれています。位置を優先しました)`);
     });
@@ -1573,7 +1584,7 @@ function importLogText(text){
     const rec={
       id:'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,4),
       kind,
-      ts, title, hex, ch, rel:deriveSet(hex,ch), memo:'', advice:'', action:'', review:'', status:'', tags:[], result:'', imp:true, upd:Date.now()
+      ts, title, hex, ch, rel:deriveSet(hex,ch), memo: memo||'', advice:'', action:'', review:'', status:'', tags:[], result:'', imp:true, upd:Date.now()
     };
     {
       const same=title && state.log.find(x=>x.title && x.title.normalize('NFKC').replace(/\s+/g,'')===title.normalize('NFKC').replace(/\s+/g,''));
@@ -1587,6 +1598,38 @@ function importLogText(text){
   if(out.added){ state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))); saveUser(); renderLog(); }
   return out;
 }
+const DEFAULT_LOG = (() => {
+  const data = [
+    { y: 2017, toji: false, hex: 8, ch: [4], memo: '2017年' },
+    { y: 2018, toji: true,  hex: 15, ch: [0], memo: '2018年 冬至占' },
+    { y: 2019, toji: true,  hex: 32, ch: [2], memo: '2019年 冬至占' },
+    { y: 2020, toji: true,  hex: 10, ch: [0], memo: '2020年 冬至占' },
+    { y: 2021, toji: true,  hex: 0,  ch: [5], memo: '2021年 冬至占' },
+    { y: 2022, toji: true,  hex: 53, ch: [0], memo: '2022年 冬至占' },
+    { y: 2023, toji: true,  hex: 44, ch: [5], memo: '2023年 冬至占' },
+    { y: 2024, toji: true,  hex: 38, ch: [3], memo: '2024年 冬至占' },
+    { y: 2025, toji: true,  hex: 17, ch: [4], memo: '2025年 冬至占' },
+    { y: 2026, toji: true,  hex: 33, ch: [4], memo: '2026年 冬至占' }
+  ];
+  return data.map(e => ({
+    id: `l_toji_${e.y}`,
+    kind: 'year',
+    ts: e.toji ? `${e.y}-12-${pad2(tojiDay(e.y))}T00:00` : '',
+    title: '一年の心構え',
+    hex: e.hex,
+    ch: e.ch,
+    rel: deriveSet(e.hex, e.ch),
+    memo: e.memo,
+    advice: '',
+    action: '',
+    review: '',
+    status: '',
+    tags: ['一年の心構え'],
+    result: '',
+    imp: true,
+    upd: 1483200000000 + (e.y - 2017) * 31536000000
+  }));
+})();
 const handleBulkImport = (taId, resId) => {
   const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
   const r = importLogText(t);
@@ -2071,6 +2114,32 @@ let embRaw = '', embUser = null;
 let userData = null; try{ userData = JSON.parse(LS.get('eki.user') || 'null'); }catch(e){}
 if(!userData) userData = embUser;
 if(userData){ state.fixes = userData.fixes || []; state.notes = userData.notes || []; state.log = userData.log || []; state.lib = userData.lib || {}; state.gen = userData.gen || {}; state.genFix = userData.genFix || {}; state.tomb = userData.tomb || {}; if(relabelAll(state)) saveUser(true); }
+// 「一年の心構え」過去10年の記録を初期登録・目的統一
+{
+  const logKey = e => [(e.ts||'').slice(0,10), e.title.normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
+  state.log.forEach(x => {
+    if(/^一年の心構え(?:\s*(?:\d{4}年|冬至占?))+$/.test(x.title)){
+      if(!x.memo){
+        const sub = x.title.replace(/^一年の心構え\s*/, '').trim();
+        if(sub) x.memo = sub;
+      }
+      x.title = '一年の心構え';
+    }
+  });
+  let added = false;
+  DEFAULT_LOG.forEach(rec => {
+    const deleted = state.tomb && state.tomb[rec.id];
+    const exists = state.log.some(e => logKey(e) === logKey(rec) || e.id === rec.id);
+    if(!deleted && !exists){
+      state.log.push(rec);
+      added = true;
+    }
+  });
+  if(added){
+    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
+    saveUser(true);
+  }
+}
 if(embUser && embUser.vdict && !LS.get('eki.vdict')) $('#vdict').value = embUser.vdict;
 renderFixes();
 // オフライン対応(http/https で開いたときだけ有効)
