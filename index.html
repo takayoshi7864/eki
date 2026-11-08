@@ -134,11 +134,17 @@ details>summary+*{margin-top:10px}
 .cal-event.p-year{border-left:3px solid #ffb74d}
 .cal-event.p-other{border-left:3px solid #81c784}
 .cal-event-tag{font-size:.65rem;opacity:.85;margin-right:2px;font-weight:600}
+.cal-title-area{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cal-selectors{display:flex;align-items:center;gap:4px}
+.cal-sel{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-weight:600;font-size:.95rem;cursor:pointer;color:var(--ink)}
+.cal-jump-area{display:flex;align-items:center;gap:6px;margin-left:auto}
+.cal-jump-input{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:.88rem;color:var(--ink);cursor:pointer}
 @media(max-width:640px){
   .cal-cell{min-height:56px;padding:2px}
   .cal-event{font-size:.66rem;padding:1px 2px}
   .cal-event svg{display:none}
   .purpose-cards-grid{grid-template-columns:1fr}
+  .cal-jump-area{width:100%;margin-left:0;justify-content:flex-end}
 }
 .lrow{display:grid;grid-template-columns:4.2em 1fr;gap:8px;font-size:.9rem}
 .lrow>b{font-weight:500;color:var(--sub);font-size:.8rem;padding-top:2px}
@@ -1672,13 +1678,31 @@ function calendarHtml(list){
     }
   }
 
+  const yrSet = new Set([y, now.getFullYear(), 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]);
+  list.forEach(e => { if(e.ts && e.ts.length>=4) yrSet.add(+e.ts.slice(0,4)); });
+  const sortedYears = [...yrSet].sort((a,b)=>a-b);
+  const minYr = Math.min(...sortedYears) - 1, maxYr = Math.max(...sortedYears) + 2;
+  const allYears = [];
+  for(let i=minYr; i<=maxYr; i++) allYears.push(i);
+  const yearOptions = allYears.map(yr => `<option value="${yr}"${yr===y?' selected':''}>${yr}年</option>`).join('');
+  const monthOptions = Array.from({length:12}, (_,i)=>i+1).map(mo => `<option value="${mo}"${mo===(m+1)?' selected':''}>${mo}月</option>`).join('');
+
   return `<div class="cal-wrap">
     <div class="cal-header">
-      <div class="cal-title">${y}年 ${m+1}月</div>
-      <div class="cal-nav">
-        <button class="chip" data-lact="calprev">◀ 前月</button>
-        <button class="chip" data-lact="caltoday">今月</button>
-        <button class="chip" data-lact="calnext">翌月 ▶</button>
+      <div class="cal-title-area">
+        <button class="chip" data-lact="calprevyear" title="1年戻る">◀◀ 前年</button>
+        <button class="chip" data-lact="calprev" title="1か月戻る">◀ 前月</button>
+        <div class="cal-selectors">
+          <select class="cal-sel" data-caljump="year" title="年を選択">${yearOptions}</select>
+          <select class="cal-sel" data-caljump="month" title="月を選択">${monthOptions}</select>
+        </div>
+        <button class="chip" data-lact="calnext" title="1か月進む">翌月 ▶</button>
+        <button class="chip" data-lact="calnextyear" title="1年進む">翌年 ▶▶</button>
+        <button class="chip" data-lact="caltoday" title="今月に移動">今月</button>
+      </div>
+      <div class="cal-jump-area">
+        <span class="hint">日付へ飛ぶ:</span>
+        <input type="date" class="cal-jump-input" data-caljump="date" value="${state.calSelDate || ''}" title="指定した日付へジャンプ">
       </div>
     </div>
     <div class="cal-grid">${cells}</div>
@@ -2114,6 +2138,14 @@ $('#viewLog').addEventListener('click', e=>{
   const a=t.closest('[data-lact]'); if(!a) return;
   const id=a.dataset.id, ent=state.log.find(x=>x.id===id);
   switch(a.dataset.lact){
+    case 'calprevyear': {
+      state.calY = (state.calY||(new Date()).getFullYear()) - 1;
+      renderLogList(); break;
+    }
+    case 'calnextyear': {
+      state.calY = (state.calY||(new Date()).getFullYear()) + 1;
+      renderLogList(); break;
+    }
     case 'calprev': {
       state.calM = (state.calM!=null ? state.calM : (new Date()).getMonth()) - 1;
       if(state.calM < 0){ state.calM = 11; state.calY = (state.calY||(new Date()).getFullYear()) - 1; }
@@ -2165,6 +2197,26 @@ $('#viewLog').addEventListener('click', e=>{
 });
 $('#viewLog').addEventListener('change', e=>{
   const t=e.target;
+  if(t.dataset && t.dataset.caljump){
+    if(t.dataset.caljump==='year'){
+      state.calY = +t.value; renderLogList(); return;
+    }
+    if(t.dataset.caljump==='month'){
+      state.calM = +t.value - 1; renderLogList(); return;
+    }
+    if(t.dataset.caljump==='date' && t.value){
+      const parts = t.value.split('-');
+      if(parts.length===3){
+        state.calY = +parts[0];
+        state.calM = +parts[1] - 1;
+        state.calSelDate = t.value;
+        renderLogList();
+        const selCell = document.querySelector(`.cal-cell[data-date="${t.value}"]`);
+        if(selCell) selCell.scrollIntoView({behavior:'smooth', block:'nearest'});
+      }
+      return;
+    }
+  }
   if(t.id==='ltitle'){
     const key=t.value.normalize('NFKC').replace(/\s+/g,''), m=key && state.log.find(x=>x.title && purposeKey(x)===key);
     if(m){ if(!$('#lstat').value) $('#lstat').value=m.status||''; if(!$('#ltags').value.trim()) $('#ltags').value=(m.tags||[]).join(', '); }
