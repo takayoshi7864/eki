@@ -1464,7 +1464,7 @@ function openLogForm(entry, kind){
       <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
       <div style="margin:4px 0 8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-          <label style="font-weight:600;margin:0">日付 (記述式またはドラムロールで入力)</label>
+          <label style="font-weight:600;margin:0">日付</label>
           <div style="display:flex;gap:4px">
             <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
             <button type="button" class="chip" data-lts-q="yesterday" style="padding:1px 6px;font-size:.78rem">昨日</button>
@@ -1485,7 +1485,7 @@ function openLogForm(entry, kind){
         <div id="lts_preview" style="margin-top:4px;font-size:.82rem"></div>
         <input id="lts" type="hidden">
       </div>
-      <label>時間(なくてもかまいません) <input id="ltime" type="time"></label>
+      <label>時間(任意) <input id="ltime" type="time"></label>
       <datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
@@ -2179,7 +2179,7 @@ function tojiDay(y){
 function importLogText(text, commit = true){
   const DATE=/(\d{4})\s*[-\/.年]\s*(\d{1,2})\s*[-\/.月]\s*(\d{1,2})日?(?:\s*(\d{1,2}):(\d{2}))?/;
   const pad2 = n => String(n).padStart(2,'0');
-  const out={added:0,dup:0,skip:[],warn:[],newItems:[],dupItems:[]};
+  const out={added:0,dup:0,skip:[],warn:[],newItems:[],dupItems:[],allParsed:[]};
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
   const items=[];
   let baseTitle='', curSubTitle='', curTs=null, curHex=null, curCh=[], curChv=null, curLineNum=1;
@@ -2336,7 +2336,16 @@ function importLogText(text, commit = true){
     }
     const key=e=>[(e.ts||'').slice(0,10), (e.title||'').normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
     const existing = state.log.find(e=>key(e)===key(rec));
-    if(existing || out.newItems.some(e=>key(e)===key(rec))){
+    const isDup = !!(existing || out.newItems.some(e=>key(e)===key(rec)));
+    const parsedItem = {
+      ...rec,
+      isDup,
+      selected: !isDup,
+      dateStr: rec.ts ? rec.ts.slice(0,10) : '',
+      timeStr: (rec.ts && rec.ts.slice(11,16) !== '00:00') ? rec.ts.slice(11,16) : ''
+    };
+    out.allParsed.push(parsedItem);
+    if(isDup){
       out.dup++;
       out.dupItems.push(existing || rec);
       return;
@@ -2453,42 +2462,282 @@ const DEFAULT_LOG = (() => {
   }));
   return [...yearLogs, ...monthLogs, ...dayLogs, ...dayLogs2017];
 })();
+let currentBulkStaging = null;
+
+function renderBulkStaging(staging, resId){
+  const el = $(resId);
+  if(!el) return;
+  const items = staging.items;
+  const newCount = items.filter(x => !x.isDup).length;
+  const dupCount = items.filter(x => x.isDup).length;
+  const selCount = items.filter(x => x.selected).length;
+  const allChecked = items.length > 0 && items.every(x => x.selected);
+
+  let html = `<div class="bulk-staging panel" style="margin-top:12px;background:var(--bg,#181b22);border:1px solid var(--accent,#d9534f);border-radius:8px;padding:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div>
+        <b style="font-size:1.02rem;color:var(--accent,#d9534f)">取り込み候補の確認・編集</b>
+        <span class="hint" style="font-size:.82rem;margin-left:6px">(全 ${items.length} 件 / 新規: ${newCount} 件, 登録済み重複: ${dupCount} 件)</span>
+      </div>
+      <div class="hint" style="font-size:.8rem">日付や目的を直接編集して登録できます</div>
+    </div>`;
+
+  if(staging.skip && staging.skip.length){
+    html += `<div style="background:rgba(230,50,50,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:.8rem;color:#ff9999">
+      <b>読み取れなかった行 (${staging.skip.length}件):</b><br>${staging.skip.map(esc).join('<br>')}
+    </div>`;
+  }
+  if(staging.warn && staging.warn.length){
+    html += `<div style="background:rgba(230,180,50,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px;font-size:.8rem;color:#e8c060">
+      <b>確認・補正 (${staging.warn.length}件):</b><br>${staging.warn.map(esc).join('<br>')}
+    </div>`;
+  }
+
+  html += `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:rgba(255,255,255,0.03);border:1px solid var(--line,#2e3544);padding:8px 10px;border-radius:6px;margin-bottom:10px">
+    <label style="font-size:.85rem;display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-weight:600">
+      <input type="checkbox" id="bulk_check_all" ${allChecked ? 'checked' : ''}> 全て選択
+    </label>
+    <span style="opacity:.4">|</span>
+    <span style="font-size:.85rem">目的を一括変更:</span>
+    <input type="text" id="bulk_batch_title" list="lpurp" placeholder="例: 今日の心構え" style="font-size:.85rem;padding:3px 8px;width:150px">
+    <button type="button" class="chip" id="bulk_apply_title" style="padding:3px 8px">一括適用</button>
+  </div>`;
+
+  html += `<div style="max-height:50vh;overflow-y:auto;overflow-x:auto;border:1px solid var(--line,#2e3544);border-radius:6px;margin-bottom:10px">
+    <table style="width:100%;border-collapse:collapse;font-size:.84rem;min-width:540px">
+      <thead style="background:rgba(255,255,255,0.06);position:sticky;top:0;z-index:2">
+        <tr style="text-align:left;border-bottom:1px solid var(--line,#2e3544)">
+          <th style="padding:6px 8px;width:36px;text-align:center">選択</th>
+          <th style="padding:6px 8px;width:120px">日付</th>
+          <th style="padding:6px 8px">立てた目的</th>
+          <th style="padding:6px 8px;width:160px">卦・変爻</th>
+          <th style="padding:6px 8px;width:75px;text-align:center">状態</th>
+          <th style="padding:6px 8px;width:50px;text-align:center">除外</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  items.forEach((it, idx) => {
+    const yName = yaoNames(it.hex, it.ch);
+    html += `<tr data-bidx="${idx}" style="border-bottom:1px solid var(--line,#2e3544);background:${it.isDup ? 'rgba(255,80,80,0.06)' : 'transparent'}">
+      <td style="padding:6px 8px;text-align:center">
+        <input type="checkbox" class="bulk-item-check" data-bidx="${idx}" ${it.selected ? 'checked' : ''}>
+      </td>
+      <td style="padding:6px 8px">
+        <input type="text" class="bulk-item-date" data-bidx="${idx}" value="${esc(it.dateStr)}" placeholder="例: 2017/1/1" style="width:115px;font-size:.85rem;padding:3px 6px;box-sizing:border-box">
+      </td>
+      <td style="padding:6px 8px">
+        <input type="text" class="bulk-item-title" data-bidx="${idx}" list="lpurp" value="${esc(it.title)}" placeholder="目的" style="width:100%;min-width:130px;font-size:.85rem;padding:3px 6px;box-sizing:border-box">
+      </td>
+      <td style="padding:6px 8px;white-space:nowrap">
+        <b>${fullTrad(it.hex)}</b> <span class="hint" style="font-size:.78rem">${esc(yName)}</span>
+      </td>
+      <td style="padding:6px 8px;text-align:center;white-space:nowrap">
+        ${it.isDup ? '<span class="chip" style="background:#552222;color:#ff9999;font-size:.72rem;padding:2px 5px">既存重複</span>' : '<span class="chip" style="background:#1b3d2f;color:#7fe3ad;font-size:.72rem;padding:2px 5px">新規</span>'}
+      </td>
+      <td style="padding:6px 8px;text-align:center">
+        <button type="button" class="chip" data-bulk-del="${idx}" style="padding:2px 6px;font-size:.75rem">除外</button>
+      </td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+
+  html += `<div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+    <span id="bulk_sel_info" style="font-size:.85rem;margin-right:auto;font-weight:600">
+      選択中: ${selCount} / ${items.length} 件
+    </span>
+    <button type="button" id="bulk_cancel_btn">キャンセル</button>
+    <button type="button" class="primary" id="bulk_commit_btn" style="font-weight:600">
+      ✔ 選択した内容を登録する (${selCount}件)
+    </button>
+  </div></div>`;
+
+  el.innerHTML = html;
+}
+
+function setupBulkStagingEvents(resId){
+  const el = $(resId);
+  if(!el || el._bulkEventsAttached) return;
+  el._bulkEventsAttached = true;
+
+  el.addEventListener('change', e => {
+    if(!currentBulkStaging) return;
+    const t = e.target;
+    if(t.id === 'bulk_check_all'){
+      const checked = t.checked;
+      currentBulkStaging.items.forEach(it => it.selected = checked);
+      renderBulkStaging(currentBulkStaging, resId);
+      return;
+    }
+    if(t.classList.contains('bulk-item-check')){
+      const idx = +t.dataset.bidx;
+      if(currentBulkStaging.items[idx]){
+        currentBulkStaging.items[idx].selected = t.checked;
+        const selCount = currentBulkStaging.items.filter(x => x.selected).length;
+        const info = $('#bulk_sel_info'); if(info) info.textContent = `選択中: ${selCount} / ${currentBulkStaging.items.length} 件`;
+        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する (${selCount}件)`;
+        const checkAll = $('#bulk_check_all'); if(checkAll) checkAll.checked = currentBulkStaging.items.every(x => x.selected);
+      }
+      return;
+    }
+    if(t.classList.contains('bulk-item-date') || t.classList.contains('bulk-item-title')){
+      const idx = +t.dataset.bidx;
+      const it = currentBulkStaging.items[idx];
+      if(it){
+        if(t.classList.contains('bulk-item-date')) it.dateStr = t.value.trim();
+        if(t.classList.contains('bulk-item-title')) it.title = t.value.trim();
+        it.selected = true;
+        const row = el.querySelector(`tr[data-bidx="${idx}"]`);
+        if(row){
+          const chk = row.querySelector('.bulk-item-check');
+          if(chk) chk.checked = true;
+          const norm = it.dateStr ? (parseEasyDate(it.dateStr) || it.dateStr) : '';
+          const key = e => [(e.ts||'').slice(0,10), (e.title||'').normalize('NFKC').replace(/\s+/g,''), e.hex, (e.ch||[]).join('')].join('|');
+          it.isDup = state.log.some(e => key(e) === key({ ts: norm, title: it.title, hex: it.hex, ch: it.ch }));
+          row.style.background = it.isDup ? 'rgba(255,80,80,0.06)' : 'transparent';
+        }
+        const selCount = currentBulkStaging.items.filter(x => x.selected).length;
+        const info = $('#bulk_sel_info'); if(info) info.textContent = `選択中: ${selCount} / ${currentBulkStaging.items.length} 件`;
+        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する (${selCount}件)`;
+      }
+      return;
+    }
+  });
+
+  el.addEventListener('input', e => {
+    if(!currentBulkStaging) return;
+    const t = e.target;
+    if(t.classList.contains('bulk-item-date')){
+      const idx = +t.dataset.bidx;
+      if(currentBulkStaging.items[idx]) currentBulkStaging.items[idx].dateStr = t.value.trim();
+      return;
+    }
+    if(t.classList.contains('bulk-item-title')){
+      const idx = +t.dataset.bidx;
+      if(currentBulkStaging.items[idx]) currentBulkStaging.items[idx].title = t.value.trim();
+      return;
+    }
+  });
+
+  el.addEventListener('click', e => {
+    if(!currentBulkStaging) return;
+    const t = e.target;
+    const delBtn = t.closest('[data-bulk-del]');
+    if(delBtn){
+      const idx = +delBtn.dataset.bulkDel;
+      currentBulkStaging.items.splice(idx, 1);
+      if(!currentBulkStaging.items.length){
+        el.innerHTML = '<span class="hint">すべての候補が除外されました</span>';
+        currentBulkStaging = null;
+      } else {
+        renderBulkStaging(currentBulkStaging, resId);
+      }
+      return;
+    }
+    if(t.id === 'bulk_apply_title'){
+      const batchTitle = ($('#bulk_batch_title')?.value || '').trim();
+      if(!batchTitle){
+        toast('一括適用する目的を入力してください');
+        return;
+      }
+      let applied = 0;
+      currentBulkStaging.items.forEach(it => {
+        if(it.selected){ it.title = batchTitle; applied++; }
+      });
+      renderBulkStaging(currentBulkStaging, resId);
+      toast(`${applied}件の目的を「${batchTitle}」に変更しました`);
+      return;
+    }
+    if(t.id === 'bulk_cancel_btn'){
+      el.innerHTML = '<span class="hint">取り込みをキャンセルしました</span>';
+      currentBulkStaging = null;
+      toast('取り込みをキャンセルしました');
+      return;
+    }
+    if(t.id === 'bulk_commit_btn'){
+      commitBulkStaging(currentBulkStaging, resId);
+      return;
+    }
+  });
+}
+
+function commitBulkStaging(staging, resId){
+  const selected = staging.items.filter(x => x.selected);
+  if(!selected.length){
+    toast('登録する項目が選択されていません');
+    return;
+  }
+
+  // Validate dates
+  for(let i = 0; i < selected.length; i++){
+    const it = selected[i];
+    if(it.dateStr){
+      const norm = parseEasyDate(it.dateStr);
+      if(!norm){
+        toast(`${i+1}件目の日付「${it.dateStr}」が正しく認識できませんでした`);
+        return;
+      }
+    }
+  }
+
+  const newRecords = [];
+  for(const it of selected){
+    const dVal = it.dateStr ? parseEasyDate(it.dateStr) : '';
+    const ts = dVal ? (dVal + 'T' + (it.timeStr || '00:00')) : '';
+    const title = (it.title || '').trim();
+    const isYear = /今年|一?年の心構え|冬至占?/.test(title);
+    const kind = /今日/.test(title) ? 'day' : /今月/.test(title) ? 'month' : isYear ? 'year' : 'event';
+    const rec = {
+      id: it.id || ('l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+      kind,
+      ts,
+      title,
+      hex: it.hex,
+      ch: it.ch || [],
+      rel: deriveSet(it.hex, it.ch || []),
+      memo: it.memo || '',
+      advice: '', action: '', review: '', status: '', tags: title ? [title] : [], result: '', imp: true, upd: Date.now()
+    };
+    {
+      const same = title && state.log.find(x => x.title && x.title.normalize('NFKC').replace(/\s+/g,'') === title.normalize('NFKC').replace(/\s+/g,''));
+      if(same){ rec.status = same.status || ''; rec.tags = same.tags || []; }
+    }
+    newRecords.push(rec);
+  }
+
+  state.log.push(...newRecords);
+  state.log.sort((a,b) => (b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
+  saveUser();
+  renderLog();
+
+  if(staging.taId && $(staging.taId)) $(staging.taId).value = '';
+  const el = $(resId);
+  if(el){
+    el.innerHTML = `<b style="color:var(--accent,#d9534f)">${newRecords.length}件の記録を登録しました</b>` +
+      (staging.items.length > newRecords.length ? `<br><span class="hint">(未選択・除外: ${staging.items.length - newRecords.length}件)</span>` : '');
+  }
+  currentBulkStaging = null;
+  toast(`${newRecords.length}件の記録を登録しました`);
+}
+
 const handleBulkImport = (taId, resId) => {
   const t = $(taId).value; if(!t.trim()){ toast('取り込む内容がありません'); return; }
   const r = importLogText(t, false);
-  if(!r.newItems.length && !r.dupItems.length){
+  if(!r.allParsed.length){
     $(resId).innerHTML = r.skip.length ? `<span style="color:var(--accent)">読み取れませんでした:</span><br>`+r.skip.map(esc).join('<br>') : '取り込めるデータがありませんでした';
     return;
   }
 
-  if(r.dupItems.length > 0){
-    const dupSamples = r.dupItems.slice(0, 3).map(x => `・${(x.ts||'').slice(0,10) || (x.memo || '日付なし')} ${x.title || '心構え'} (${fullTrad(x.hex)} ${x.ch.length ? x.ch.map(k=>POSLAB[k]).join('') : '不変'})`);
-    const moreText = r.dupItems.length > 3 ? `\n...他 ${r.dupItems.length - 3} 件` : '';
-    if(!r.newItems.length){
-      alert(`既に取り込み済みの記録です (${r.dupItems.length}件すべて重複)。\n新しい記録はありません。\n\n【重複の例】\n${dupSamples.join('\n')}${moreText}`);
-      $(resId).innerHTML = `<span class="hint">すべて既に取り込み済みの記録です (${r.dupItems.length}件重複)</span>`;
-      return;
-    }
-    const ok = confirm(`既に登録済みの記録が ${r.dupItems.length} 件含まれています。\n\n【重複の例】\n${dupSamples.join('\n')}${moreText}\n\n重複を除外して、新規の ${r.newItems.length} 件のみを取り込みますか？\n（キャンセルで取り込みを中止します）`);
-    if(!ok){
-      toast('取り込みをキャンセルしました');
-      $(resId).innerHTML = `<span class="hint">取り込みをキャンセルしました (重複 ${r.dupItems.length}件)</span>`;
-      return;
-    }
-  }
-
-  if(r.newItems.length){
-    state.log.push(...r.newItems);
-    state.log.sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0)));
-    saveUser();
-    renderLog();
-  }
-
-  $(resId).innerHTML = `<b>${r.newItems.length}件を取り込みました</b>` +
-    (r.dupItems.length ? `<br><span class="hint">(重複 ${r.dupItems.length}件は確認の上除外しました)</span>` : '') +
-    (r.skip.length?`<br>読み取れなかった行: ${r.skip.length}件<br>`+r.skip.map(esc).join('<br>'):'') +
-    (r.warn.length?`<br>確認: <br>`+r.warn.map(esc).join('<br>'):'');
-  if(r.newItems.length && !r.skip.length) $(taId).value='';
+  currentBulkStaging = {
+    items: r.allParsed,
+    taId,
+    resId,
+    skip: r.skip,
+    warn: r.warn
+  };
+  setupBulkStagingEvents(resId);
+  renderBulkStaging(currentBulkStaging, resId);
 };
 $('#limpgo').addEventListener('click', ()=>handleBulkImport('#limptext','#limpres'));
 $('#lbulkgo').addEventListener('click', ()=>handleBulkImport('#lbulktext','#lbulkres'));
