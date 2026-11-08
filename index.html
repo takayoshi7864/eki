@@ -386,6 +386,7 @@ body:not(.help) .exp{display:none !important}
       </div>
       <div class="summary" id="lsum"></div>
       <div id="loglist"></div>
+    </div>
         <!-- 2. 解説 -->
         <div id="viewHex" class="tab-pane inactive">
       <div class="panel" id="libpanel">
@@ -4098,7 +4099,7 @@ $('#nobook').addEventListener('click', ()=>{ LS.set('eki.nobook','1'); start('')
 
 /* ================= タブ & スワイプ切り替え ================= */
 const TABS = ['log', 'hex', 'judge', 'search', 'settings'];
-let currentTabIdx = 0;
+let currentTabIdx = -1;
 let isAnimating = false;
 
 const tabTrack = document.getElementById('tab-track');
@@ -4142,13 +4143,13 @@ function finalizeTab(targetIdx, doScroll = false){
 
 function switchTab(t, animate = true){
   const targetIdx = TABS.indexOf(t);
-  if(targetIdx === -1 || targetIdx === currentTabIdx) return;
-  if(isAnimating) return;
+  if(targetIdx === -1) return;
 
-  if(!animate || !tabTrack){
-    finalizeTab(targetIdx, true);
+  if(!animate || !tabTrack || targetIdx === currentTabIdx){
+    finalizeTab(targetIdx, animate);
     return;
   }
+  if(isAnimating) return;
 
   isAnimating = true;
   showAllPanes();
