@@ -225,9 +225,10 @@ main{padding-bottom:calc(60px + env(safe-area-inset-bottom))}
 .lcard.empty{opacity:.85}
 .lname{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:1rem;color:var(--accent)}
 .formgrid{display:grid;gap:10px;margin-top:8px}
-.formgrid>label,#lmore label{display:flex;flex-direction:column;gap:2px;font-size:.85rem;color:var(--sub);margin:6px 0}
-.formgrid input,.formgrid select,.formgrid textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink);min-height:0}
-.formgrid textarea{min-height:90px}
+.formgrid>label,#lmore label{display:flex;flex-direction:column;gap:3px;font-size:.85rem;color:var(--sub);margin:6px 0}
+.formgrid input:not([type="checkbox"]):not([type="radio"]),
+.formgrid select{width:100%;height:38px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--ink);font-size:.95rem;box-sizing:border-box;line-height:1.4}
+.formgrid textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;box-sizing:border-box;min-height:90px;line-height:1.5}
 .yaos{display:flex;gap:10px;flex-wrap:wrap}
 .sec{margin:8px 0}
 .sec b{font-size:.82rem;color:var(--sub)}
@@ -1817,9 +1818,9 @@ function openLogForm(entry, kind){
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
       <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
-      <div id="lrow_dt" style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin:4px 0 8px">
-        <div style="flex:1;min-width:210px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div id="lrow_dt" style="display:flex;gap:12px;align-items:flex-start;margin:4px 0 8px">
+        <div style="flex:1 1 0;min-width:0">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;min-height:24px">
             <label style="font-weight:600;margin:0">日付</label>
             <div style="display:flex;gap:4px">
               <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
@@ -1834,8 +1835,8 @@ function openLogForm(entry, kind){
           </div>
           <div id="lts_preview" style="margin-top:3px;font-size:.8rem;min-height:1.2rem"></div>
         </div>
-        <div style="width:140px">
-          <div style="display:flex;align-items:center;margin-bottom:4px">
+        <div style="flex:1 1 0;min-width:0">
+          <div style="display:flex;align-items:center;margin-bottom:4px;min-height:24px">
             <label style="margin:0;font-weight:600">時刻(任意)</label>
           </div>
           <input id="ltime" type="time" style="width:100%;box-sizing:border-box">
@@ -1846,7 +1847,7 @@ function openLogForm(entry, kind){
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦
-        <div class="hex-input-wrap" style="position:relative;display:flex;align-items:center;margin-top:2px">
+        <div class="hex-input-wrap" style="position:relative;display:flex;align-items:center">
           <input id="lhex_text" list="lhex_list" placeholder="例: 34 または 雷天大壮、大壮" autocomplete="off" onfocus="this.select()" style="width:100%;box-sizing:border-box;padding-right:52px">
           <div style="position:absolute;right:8px;display:flex;align-items:center;gap:4px">
             <button type="button" id="lhex_clear" title="クリア" style="background:none;border:none;cursor:pointer;font-size:.9rem;color:var(--sub);padding:0 2px;line-height:1;display:none">✕</button>
