@@ -79,6 +79,13 @@ details>summary+*{margin-top:10px}
 .lgroup-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px}
 .lgroup-toolbar{display:flex;justify-content:flex-end;align-items:center;margin:6px 2px;flex-wrap:wrap;gap:8px}
 .lgroup .card{background:var(--bg);border:1px solid var(--line);margin:10px 0}
+.lyeargroup{margin:10px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;transition:border-color .15s}
+.lyeargroup[open]{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.lyeargroup-sum{display:flex;align-items:center;gap:10px;padding:10px 4.8em 10px 2.8em !important;border:none !important;border-radius:0 !important;background:transparent !important;cursor:pointer;user-select:none;font-size:1.02rem}
+.lyeargroup-sum:hover{background:rgba(128,128,128,.06) !important}
+.lyeargroup[open]>summary.lyeargroup-sum{background:color-mix(in srgb,var(--accent) 12%,var(--panel)) !important;border-bottom:1px solid var(--line) !important}
+.lyeargroup-body{padding:8px 10px 10px}
+.lyeargroup .lsubgroup{margin:6px 0;background:var(--bg)}
 .lsubgroup{margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--bg);overflow:hidden;transition:border-color .15s}
 .lsubgroup[open]{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
 .lsubgroup-sum{display:flex;align-items:center;gap:10px;padding:9px 4.8em 9px 2.8em !important;border:none !important;border-radius:0 !important;background:transparent !important;cursor:pointer;user-select:none;font-size:.95rem}
@@ -1546,26 +1553,63 @@ function purposeDetailHtml(a){
       <label>タグ <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
       <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
 
-  const isDaily = a.some(e => e.kind === 'day') || a.length >= 15;
+  const isDay = a.some(e => e.kind === 'day');
+  const isMonth = a.some(e => e.kind === 'month');
   const descItems = a.slice().reverse();
 
   let itemsHtml = '';
-  if(isDaily){
-    const mGroups = new Map();
+  if(isDay){
+    const yGroups = new Map();
     descItems.forEach(e => {
-      const ym = (e.ts || '').slice(0,7);
-      const label = ym ? `${ym.slice(0,4)}年${parseInt(ym.slice(5,7),10)}月` : (e.memo ? esc(e.memo) : 'その他');
-      if(!mGroups.has(label)) mGroups.set(label, []);
-      mGroups.get(label).push(e);
+      const y = (e.ts || '').slice(0,4) || (e.memo ? (e.memo.match(/\d{4}/)?.[0] || 'その他') : 'その他');
+      const m = (e.ts || '').slice(5,7);
+      const mLabel = m ? `${parseInt(m,10)}月` : 'その他';
+      if(!yGroups.has(y)) yGroups.set(y, new Map());
+      const mGroups = yGroups.get(y);
+      if(!mGroups.has(mLabel)) mGroups.set(mLabel, []);
+      mGroups.get(mLabel).push(e);
     });
-    itemsHtml = [...mGroups.entries()].map(([label, mList], idx) => {
-      return `<details class="lsubgroup"${idx === 0 ? ' open' : ''}>
-        <summary class="lsubgroup-sum">
-          <b>${label}</b>
-          <span class="chip on">${mList.length}件</span>
+
+    itemsHtml = [...yGroups.entries()].map(([yLabel, mGroups], yIdx) => {
+      const totalInYear = [...mGroups.values()].reduce((sum, list) => sum + list.length, 0);
+      const monthsHtml = [...mGroups.entries()].map(([mLabel, mList], mIdx) => {
+        return `<details class="lsubgroup"${(yIdx === 0 && mIdx === 0) ? ' open' : ''}>
+          <summary class="lsubgroup-sum">
+            <b>${mLabel}</b>
+            <span class="chip on" style="font-size:.78rem;padding:2px 8px">${mList.length}件</span>
+          </summary>
+          <div class="lsubgroup-body">
+            ${mList.map(logRowItem).join('')}
+          </div>
+        </details>`;
+      }).join('');
+
+      return `<details class="lyeargroup"${yIdx === 0 ? ' open' : ''}>
+        <summary class="lyeargroup-sum">
+          <b>${yLabel.endsWith('年') ? yLabel : yLabel + '年'}</b>
+          <span class="chip on" style="font-size:.82rem;padding:2px 9px">${totalInYear}件</span>
         </summary>
-        <div class="lsubgroup-body">
-          ${mList.map(logRowItem).join('')}
+        <div class="lyeargroup-body">
+          ${monthsHtml}
+        </div>
+      </details>`;
+    }).join('');
+  } else if(isMonth){
+    const yGroups = new Map();
+    descItems.forEach(e => {
+      const y = (e.ts || '').slice(0,4) || (e.memo ? (e.memo.match(/\d{4}/)?.[0] || 'その他') : 'その他');
+      if(!yGroups.has(y)) yGroups.set(y, []);
+      yGroups.get(y).push(e);
+    });
+
+    itemsHtml = [...yGroups.entries()].map(([yLabel, yList], yIdx) => {
+      return `<details class="lyeargroup"${yIdx === 0 ? ' open' : ''}>
+        <summary class="lyeargroup-sum">
+          <b>${yLabel.endsWith('年') ? yLabel : yLabel + '年'}</b>
+          <span class="chip on" style="font-size:.82rem;padding:2px 9px">${yList.length}件</span>
+        </summary>
+        <div class="lyeargroup-body">
+          <div class="lcompact-list">${yList.map(logRowItem).join('')}</div>
         </div>
       </details>`;
     }).join('');
