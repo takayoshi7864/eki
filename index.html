@@ -282,25 +282,25 @@ body:not(.help) .exp{display:none !important}
 </head>
 <body>
 <header class="top">
-  <div class="toprow"><h1>易</h1><button type="button" id="themebtn" class="themebtn" aria-label="表示の色を切り替える(自動・ライト・ダーク)">◐ 自動</button></div>
-  <div class="sub exp">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます(クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます)。</div>
+  <div class="toprow"><h1>易</h1><button type="button" id="themebtn" class="themebtn" aria-label="表示の色を切り替える（自動・ライト・ダーク）">◐ 自動</button></div>
+  <div class="sub exp">易を立てた記録と、その解説。データは、この端末のブラウザ内に保存されます（クラウド同期を設定した場合だけ、ご自身のCloudflareにも保存されます）。</div>
   <div class="status" id="status"></div>
 </header>
 
 <main>
   <!-- 初回:本文の読み込み -->
   <section id="setup" class="panel" hidden>
-    <h2 style="margin:.2em 0;font-size:1.1rem">① 原典(本の本文)を読み込む ― 任意</h2>
-    <div class="hint exp">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます(「原典なしで始める」)。</div>
-    <div class="drop" id="drop">ここにテキストファイル(.txt)をドラッグ&ドロップ　または
+    <h2 style="margin:.2em 0;font-size:1.1rem">① 原典（本の本文）を読み込む ― 任意</h2>
+    <div class="hint exp">原典は、解説の裏付けとして裏側で使います。なくても、解説と記録は使えます（「原典なしで始める」）。</div>
+    <div class="drop" id="drop">ここにテキストファイル（.txt）をドラッグ&ドロップ　または
       <input type="file" id="file" accept=".txt,.text,.md,.html,.htm,text/plain,text/html"></div>
-    <div class="hint exp">書き出した「内蔵版HTML」を選ぶこともできます(本文・校正がそのまま移ります)。</div>
+    <div class="hint exp">書き出した「内蔵版HTML」を選ぶこともできます（本文・校正がそのまま移ります）。</div>
     <div class="hint exp">または、OCR済みテキストをそのまま下に貼り付けてください。</div>
-    <textarea id="paste" placeholder="ここに本文を貼り付け(全文で構いません)"></textarea>
+    <textarea id="paste" placeholder="ここに本文を貼り付け（全文で構いません）"></textarea>
     <p><button class="primary" id="build">この本文で索引を作る</button> <button id="nobook">原典なしで始める</button>
     <span class="hint exp">　文字コードは UTF-8 / Shift_JIS を自動判定します。</span></p>
-    <details class="panel" id="setupcloud"><summary><b>クラウド同期に接続して始める(2台目以降の端末はこちら)</b></summary>
-      <div class="hint exp">自分専用のクラウド(Cloudflare)に保存した、記録・解説文・原文を呼び出します。本文の読み込みは要りません。</div>
+    <details class="panel" id="setupcloud"><summary><b>クラウド同期に接続して始める（2台目以降の端末はこちら）</b></summary>
+      <div class="hint exp">自分専用のクラウド（Cloudflare）に保存した、記録・解説文・原文を呼び出します。本文の読み込みは要りません。</div>
       <label class="hint">保存場所のURL <input id="sc_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
       <label class="hint">合言葉 <input id="sc_token" type="password" autocomplete="off"></label>
       <p><button class="primary" id="sc_go">接続して始める</button></p>
@@ -313,18 +313,18 @@ body:not(.help) .exp{display:none !important}
       <button data-view="log" class="on">記録</button>
       <button data-view="hex">解説</button>
       <button data-view="judge">吉凶表</button>
-      <button data-view="search" title="本の本文(原典)の検索">原典</button>
+      <button data-view="search" title="本の本文（原典）の検索">原典</button>
       <button data-view="settings">設定</button>
     </nav>
     <div id="viewSearch">
     <div class="stick">
     <div class="searchbar">
-      <input id="q" type="search" placeholder="例:潜竜　／　天行健　／　君子 吝(スペースでAND)" autocomplete="off" autofocus>
+      <input id="q" type="search" placeholder="例:潜竜　／　天行健　／　君子 吝（スペースでAND）" autocomplete="off" autofocus>
       <select id="scope" title="検索範囲"></select>
       <select id="sort" title="並び順"><option value="book">本の順</option><option value="count">一致数順</option></select>
     </div>
     <div class="opts">
-      <label><input type="checkbox" id="optVar" checked> 表記ゆれを吸収(旧字体・新字体、封/卦などOCR誤読)</label>
+      <label><input type="checkbox" id="optVar" checked> 表記ゆれを吸収（旧字体・新字体、封/卦などOCR誤読）</label>
       <label><input type="checkbox" id="optKan" checked> ふりがな・送り仮名を飛ばして漢字だけで照合</label>
     </div>
     </div>
@@ -341,7 +341,7 @@ body:not(.help) .exp{display:none !important}
       </div>
       <div class="panel">
         <b>六十四卦の一覧表</b>
-        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦(互・錯・綜)・変爻と之卦が出ます。</div>
+        <div class="hint exp">縦が上卦、横が下卦です。卦を選ぶと、解説・六爻の図・関連する卦（互・錯・綜）・変爻と之卦が出ます。</div>
         <div class="tblwrap"><table class="hextable" id="hextable"></table></div>
       </div>
       <div id="hexdetail"></div>
@@ -349,11 +349,11 @@ body:not(.help) .exp{display:none !important}
 
     <div id="viewSettings" hidden>
       <div class="panel">
-        <label>表示の色 <select id="themesel"><option value="auto">自動(端末の設定に合わせる)</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
+        <label>表示の色 <select id="themesel"><option value="auto">自動（端末の設定に合わせる）</option><option value="light">ライト</option><option value="dark">ダーク</option></select></label>
       </div>
       <div class="panel" id="fullpanel">
-        <b>解説文の全文(表示と編集)</b>
-        <div class="hint exp">登録した解説文を、見出し(例: 乾為天　初爻)つきの1つの文章で表示します。そのまま書き換えて、「保存する」を押すと、解説文に反映されます。見出しの行は、書き換えないでください。同じ項目に、解説文が複数あるときは、同じ見出しが、続けて並びます。見出しごと消すと、その解説文は削除されます。</div>
+        <b>解説文の全文（表示と編集）</b>
+        <div class="hint exp">登録した解説文を、見出し（例: 乾為天　初爻）つきの1つの文章で表示します。そのまま書き換えて、「保存する」を押すと、解説文に反映されます。見出しの行は、書き換えないでください。同じ項目に、解説文が複数あるときは、同じ見出しが、続けて並びます。見出しごと消すと、その解説文は削除されます。</div>
         <label class="hint">表示する範囲 <select id="fescope"></select></label>
         <p><button id="fecheck">変更を確認</button> <button class="primary" id="fesave">保存する</button> <button id="fereload">最新の状態に戻す</button> <button id="feundo">直前の保存を取り消す</button></p>
         <div class="hint" id="feres"></div>
@@ -361,28 +361,28 @@ body:not(.help) .exp{display:none !important}
       </div>
       <h2 class="sethead">解説文の取り込み・原文の登録</h2>
       <div class="panel">
-        <details><summary>まとめて取り込む(見出し付きの解説文を貼り付け)</summary>
-          <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします(項目: 概要・卦辞・彖伝・象伝・初爻〜上爻・用九/用六)。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
-          <label class="hint">出典(任意) <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
-          <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;(解説文)&#10;乾為天　初爻&#10;(解説文)"></textarea>
+        <details><summary>まとめて取り込む（見出し付きの解説文を貼り付け）</summary>
+          <div class="hint exp">見出しは「乾為天　初爻」のように、卦名と項目だけを書いた行にします（項目: 概要・卦辞・彖伝・象伝・初爻〜上爻・用九/用六）。見出しの下の文章が、その項目の解説として<b>追加</b>されます。すでにある解説は消えず、同じ文章は重複して入りません。</div>
+          <label class="hint">出典（任意） <input id="libsrc" placeholder="例: ○○講義 / Notebook" style="width:100%"></label>
+          <textarea id="libtext" style="min-height:140px" placeholder="乾為天　概要&#10;（解説文）&#10;乾為天　初爻&#10;（解説文）"></textarea>
           <p><button class="primary" id="libgo">取り込む</button> <label class="hint">ファイルから: <input type="file" id="libfile" accept=".txt,.md,text/plain"></label></p>
           <div class="hint" id="libres"></div>
         </details>
-        <details><summary>原文をまとめて登録する(固定。本の読み込みは不要)</summary>
+        <details><summary>原文をまとめて登録する（固定。本の読み込みは不要）</summary>
           <div class="hint exp">見出しは解説文と同じ「乾為天　初爻」の形です。見出しの下の文章が、その項目の原文として登録されます。すでに登録した原文は、同じ項目なら置き換わります。</div>
-          <textarea id="gentext" style="min-height:140px" placeholder="乾為天　卦辞&#10;(原文)&#10;乾為天　初爻&#10;(原文)"></textarea>
+          <textarea id="gentext" style="min-height:140px" placeholder="乾為天　卦辞&#10;（原文）&#10;乾為天　初爻&#10;（原文）"></textarea>
           <p><button class="primary" id="gengo">原文を登録する</button></p>
         </details>
       </div>
       <h2 class="sethead">記録の書き出し・取り込み</h2>
       <div class="panel">
         <b>書き出し・バックアップ</b>
-        <p><button id="lmd">Markdownで書き出す</button> <button id="lbak">バックアップ(JSON)</button> <label class="hint">　バックアップの読み込み(復元): <input type="file" id="nrestore" accept=".json"></label></p>
+        <p><button id="lmd">Markdownで書き出す</button> <button id="lbak">バックアップ（JSON）</button> <label class="hint">　バックアップの読み込み（復元）: <input type="file" id="nrestore" accept=".json"></label></p>
         <div class="hint exp">スマホとパソコンで記録を移すときに使います。記録は、この端末のブラウザ内にだけ保存されます。</div>
       </div>
       <details class="panel" id="limp">
         <summary><b>これまでの記録をまとめて取り込む</b></summary>
-        <div class="hint exp">1行に1件。「日付 | 目的 | 出した卦 | 変爻」の順に書きます(区切りは | またはタブ。順番が前後してもかまいません)。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
+        <div class="hint exp">1行に1件。「日付 | 目的 | 出した卦 | 変爻」の順に書きます（区切りは | またはタブ。順番が前後してもかまいません）。<br>例: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code>　変爻がないときは「なし」か省略。卦は「蒙」でも「山水蒙」でも可。同じ内容をもう一度入れても重複しません。</div>
         <textarea id="limptext" rows="8" placeholder="2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻"></textarea>
         <p><button class="primary" id="limpgo">取り込む</button></p>
         <div id="limpres" class="hint"></div>
@@ -390,30 +390,30 @@ body:not(.help) .exp{display:none !important}
       <h2 class="sethead">同期・辞書・その他</h2>
     <div class="panel">
       <b>表記ゆれ辞書</b>
-      <div class="hint exp">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います(検索語・本文の両方に適用)。<code>#</code>で始まる行はコメント。
-      OCRの誤読が見つかったらここに足してください(例: <code>#民=艮</code> <code>#免=兌</code> <code>#甲=坎</code>)。変更後は「保存して再構築」を押します。</div>
+      <div class="hint exp">1行に <code>A=B</code> と書くと、AをBと同じ字として扱います（検索語・本文の両方に適用）。<code>#</code>で始まる行はコメント。
+      OCRの誤読が見つかったらここに足してください（例: <code>#民=艮</code> <code>#免=兌</code> <code>#甲=坎</code>）。変更後は「保存して再構築」を押します。</div>
       <textarea id="vdict" style="min-height:180px"></textarea>
       <p><button id="vsave">保存して再構築</button> <button id="vreset">初期値に戻す</button></p>
     </div>
     <div class="panel">
-      <label><input type="checkbox" id="helpt"> ページ中の説明文を表示する(初期設定は非表示)</label>
+      <label><input type="checkbox" id="helpt"> ページ中の説明文を表示する（初期設定は非表示）</label>
     </div>
     <div class="panel" id="cloudpanel">
-      <b>クラウド同期(自分専用・無料)</b>
-      <div class="hint exp">記録・解説文・原文を、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版(Googleドライブに保存)とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
+      <b>クラウド同期（自分専用・無料）</b>
+      <div class="hint exp">記録・解説文・原文を、ご自身のCloudflareアカウントに保存して、スマホとパソコンで同じ内容にします。シークレットモードでも、接続用リンクを開くだけで使えます。Google版（Googleドライブに保存）とCloudflare版のどちらも使えます。設定の手順は、別紙をご覧ください。</div>
       <label class="hint">保存場所のURL <input id="c_url" placeholder="https://script.google.com/macros/s/○○/exec"></label>
-      <label class="hint">合言葉(20文字以上のランダムな文字列) <input id="c_token" type="password" autocomplete="off"></label>
+      <label class="hint">合言葉（20文字以上のランダムな文字列） <input id="c_token" type="password" autocomplete="off"></label>
       <p><button id="c_gen">合言葉を作る</button> <button class="primary" id="c_save">接続して同期</button> <button id="c_now">いますぐ同期</button> <button id="c_link">接続用リンクをコピー</button> <button id="c_off">接続を解除</button></p>
       <div class="hint" id="c_msg"></div>
       <div class="hint exp">接続用リンクには合言葉が含まれます。パスワードと同じように、ご自身のブックマークにだけ保存し、他の人には送らないでください。</div>
     </div>
     <div class="panel">
       <b>アプリの更新・ホーム画面への追加</b>
-      <div class="hint exp">ブラウザの「ホーム画面に追加」(または「インストール」)で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください(本文・校正は消えません)。</div>
+      <div class="hint exp">ブラウザの「ホーム画面に追加」（または「インストール」）で、アプリのように起動できます。初回に表示したあとは、ネットがなくても開けます。表示が古いときは「最新版に更新」を押してください（本文・校正は消えません）。</div>
       <p><button id="appupdate">最新版に更新</button></p>
     </div>
     <div class="panel">
-      <b>校正の履歴(本文の訂正)</b>
+      <b>校正の履歴（本文の訂正）</b>
       <div class="hint exp">検索結果の「校正」で行った置換の一覧です。元に戻すには「取り消す」を押します。</div>
       <div id="fixlist"></div>
     </div>
@@ -423,7 +423,7 @@ body:not(.help) .exp{display:none !important}
     </div>
     <div class="panel">
       <b>本文を内蔵した検索ファイルを書き出す</b>
-      <div class="hint exp">書き出したHTMLは、本文を中に持っているので、開くだけで検索できます(読み込み作業は不要)。スマホやほかのPCにも、そのファイルを送るだけで使えます。著作物を含むため、個人利用にとどめ、公開・配布はしないでください。</div>
+      <div class="hint exp">書き出したHTMLは、本文を中に持っているので、開くだけで検索できます（読み込み作業は不要）。スマホやほかのPCにも、そのファイルを送るだけで使えます。著作物を含むため、個人利用にとどめ、公開・配布はしないでください。</div>
       <p><button class="primary" id="export">内蔵版HTMLを書き出す</button></p>
     </div>
     <div class="panel">
@@ -435,7 +435,7 @@ body:not(.help) .exp{display:none !important}
     <div id="viewJudge" hidden>
       <div class="panel">
         <b>吉凶悔吝の一覧表</b>
-        <div class="hint exp">各爻辞(原文の1行目)から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
+        <div class="hint exp">各爻辞（原文の1行目）から、吉・凶・悔・吝・厲・无咎などを自動で拾った表です。セルを押すと、その爻の本文を開きます。卦の名前を押すと、卦の詳細へ移ります。</div>
         <div class="facets" id="jchips"></div>
         <div class="hint exp" id="jnote"></div>
       </div>
@@ -449,8 +449,8 @@ body:not(.help) .exp{display:none !important}
         <button id="lbulkbtn">＋ まとめて記録</button>
       </p>
       <details class="panel" id="lbulkpanel">
-        <summary><b>まとめて記録(複数行のメモや一覧を貼り付け)</b></summary>
-        <div class="hint exp">1行に1件(「日付 | 目的 | 出した卦 | 変爻」)のほか、複数行のメモ(年・月・日付・本卦・変爻など)もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2(複数月・複数年も一度に貼って一括登録可):<br><code>2017年1月　今日の心構え<br>1/1<br>本卦　地火明夷　第三爻<br>...</code><br>※テキストファイル（.txt / .md）の選択やドラッグ＆ドロップでも一気に読み込めます。既に登録済みの記録は自動で重複除外されます。</div>
+        <summary><b>まとめて記録（複数行のメモや一覧を貼り付け）</b></summary>
+        <div class="hint exp">1行に1件（「日付 | 目的 | 出した卦 | 変爻」）のほか、複数行のメモ（年・月・日付・本卦・変爻など）もそのまま貼り付けられます。<br>例1: <code>2024-05-01 | 転職するか迷っている | 山水蒙 | 初爻・三爻</code><br>例2（複数月・複数年も一度に貼って一括登録可）:<br><code>2017年1月　今日の心構え<br>1/1<br>本卦　地火明夷　第三爻<br>...</code><br>※テキストファイル（.txt / .md）の選択やドラッグ＆ドロップでも一気に読み込めます。既に登録済みの記録は自動で重複除外されます。</div>
         <textarea id="lbulktext" rows="8" placeholder="2017年1月　今日の心構え&#10;1/1&#10;本卦　地火明夷　第三爻&#10;..."></textarea>
         <p style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="primary" id="lbulkgo">取り込む</button>
@@ -467,25 +467,25 @@ body:not(.help) .exp{display:none !important}
           <div class="mode-segmented" id="lmode"></div>
           <div class="log-search-wrap">
             <span class="log-search-icon" aria-hidden="true">🔍</span>
-            <input id="lq" class="log-search-input" type="search" placeholder="記録を検索 (卦・目的・メモ・解説など)">
+            <input id="lq" class="log-search-input" type="search" placeholder="記録を検索（卦・目的・メモ・解説など）">
           </div>
         </div>
         <div class="purp-section" id="lpurpwrap">
           <span class="purp-section-label">目的</span>
           <div class="purp-chips" id="lkinds"></div>
         </div>
-        <details id="lfil" class="log-filter-details"><summary>絞り込み(卦・変爻・期間・状態・タグ)</summary>
+        <details id="lfil" class="log-filter-details"><summary>絞り込み（卦・変爻・期間・状態・タグ）</summary>
           <div class="formgrid">
             <label>本卦 <select id="fhex"></select></label>
             <label>変爻 <select id="fchg"><option value="">すべて</option><option value="yes">あり</option><option value="no">なし</option></select></label>
-            <label>期間(から)
+            <label>期間（から）
               <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
                 <input type="text" id="ffrom_text" placeholder="例: 2017/1/1 や 1/1" style="width:100%;box-sizing:border-box;padding-right:32px">
                 <button type="button" class="date-drum-btn" data-drum="ffrom" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
                 <input type="hidden" id="ffrom">
               </div>
             </label>
-            <label>期間(まで)
+            <label>期間（まで）
               <div class="date-input-wrap" style="position:relative;display:flex;align-items:center">
                 <input type="text" id="fto_text" placeholder="例: 2026/12/31 や 12/31" style="width:100%;box-sizing:border-box;padding-right:32px">
                 <button type="button" class="date-drum-btn" data-drum="fto" title="ドラムロールで選択" style="position:absolute;right:4px;background:none;border:none;cursor:pointer;font-size:1.05rem;padding:2px 4px;line-height:1">📅</button>
@@ -844,14 +844,14 @@ function renderStatus(){
   const d=state.diag;
   state.bookStat = state.chunks.length
     ? `原典: 本文 ${state.raw.length.toLocaleString()} 文字 ／ ${state.chunks.length} 区画 ／ 卦 <b class="${d.hexSeen.size===64?'ok':'warn'}">${d.hexSeen.size}/64</b> を認識 ／ ページ推定 ${d.withPage} 区画`
-    : '原典: なし(解説と記録だけで使っています)';
+    : '原典: なし（解説と記録だけで使っています）';
   updateStatus();
 }
 function renderDiag(){
   const d=state.diag;
   const miss = HEX.map((h,i)=>d.hexSeen.has(i)?null:h[0]).filter(Boolean);
   $('#diag').innerHTML =
-    (state.bookStat||'') + '<br>' + `ページ番号の検出: ${d.markers} 箇所(ページは推定値です。引用時は必ず原書で確認してください)<br>` +
+    (state.bookStat||'') + '<br>' + `ページ番号の検出: ${d.markers} 箇所（ページは推定値です。引用時は必ず原書で確認してください）<br>` +
     (miss.length ? `<span class="warn">卦として認識できなかった: ${miss.join('、')}</span><br>OCRで卦辞の書き出しが崩れている可能性があります。該当卦は「すべて」の範囲で語を直接検索してください。` : '<span class="ok">64卦すべて認識できました。</span>');
 }
 function fillScope(){
@@ -929,7 +929,7 @@ function runSearch(){
     }
     const pool = state.chunks.filter(c=>c.scope===scope);
     state.hits = pool.map(c=>({c, ranges:[], count:0}));
-    sum.textContent = `${pool.length} 区画を表示(閲覧モード)`;
+    sum.textContent = `${pool.length} 区画を表示（閲覧モード）`;
     renderHits(); return;
   }
 
@@ -946,7 +946,7 @@ function runSearch(){
   if(sort==='count') hits = hits.slice().sort((a,b)=>b.count-a.count);
   state.hits = hits;
   const total = hits.reduce((s,h)=>s+h.count,0);
-  sum.textContent = hits.length ? `${hits.length} 区画 ／ ${total} 箇所が一致` : '一致なし。表記ゆれの吸収がONか、別の字(旧字体・OCR誤読)がないか確認してください。';
+  sum.textContent = hits.length ? `${hits.length} 区画 ／ ${total} 箇所が一致` : '一致なし。表記ゆれの吸収がONか、別の字（旧字体・OCR誤読）がないか確認してください。';
   renderHits();
 }
 function renderHits(){
@@ -1052,7 +1052,7 @@ $('#build').addEventListener('click', ()=>{
 $('#vsave').addEventListener('click', ()=>{ LS.set('eki.vdict',$('#vdict').value); rebuild(); });
 $('#vreset').addEventListener('click', ()=>{ $('#vdict').value=DEFAULT_VDICT; LS.del('eki.vdict'); rebuild(); });
 $('#replace').addEventListener('click', ()=>{ $('#paste').value=state.base; $('#app').hidden=true; $('#setup').hidden=false; });
-$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文(原典)を削除しますか?(解説・記録は消えません)')){ LS.del('eki.raw'); LS.del('eki.nobook'); location.reload(); } });
+$('#wipe').addEventListener('click', ()=>{ if(confirm('保存した本文（原典）を削除しますか?（解説・記録は消えません）')){ LS.del('eki.raw'); LS.del('eki.nobook'); location.reload(); } });
 
 /* ---------- 校正 ---------- */
 function applyFixes(raw){ for(const f of state.fixes){ if(f.from) raw = raw.split(f.from).join(f.to); } return raw; }
@@ -1098,7 +1098,7 @@ function openEditor(card, kind){
   const sel = lastSel.i===+card.dataset.i ? lastSel.text.trim() : '';
   slot.dataset.quote = sel;
   if(kind==='fix'){
-    slot.innerHTML = `<div class="editor"><div class="hint exp">本文の誤字を選択してから「校正」を押すと、誤の欄に入ります(同じ行の中で選んでください)。</div>
+    slot.innerHTML = `<div class="editor"><div class="hint exp">本文の誤字を選択してから「校正」を押すと、誤の欄に入ります（同じ行の中で選んでください）。</div>
       <div class="row">誤 <input class="f-from" value="${escAttr(sel)}"> → 正 <input class="f-to"></div>
       <div class="hint f-count"></div>
       <button class="primary" data-act="fixgo">本文全体で置換</button> <button data-act="cancel">閉じる</button></div>`;
@@ -1108,7 +1108,7 @@ function openEditor(card, kind){
 function updateFixCount(slot){
   const f=slot.querySelector('.f-from').value;
   const n = f ? state.raw.split(f).length-1 : 0;
-  slot.querySelector('.f-count').textContent = f ? (n ? `本文中に ${n} か所あります` : '本文に見つかりません(改行をまたぐ選択はできません)') : '';
+  slot.querySelector('.f-count').textContent = f ? (n ? `本文中に ${n} か所あります` : '本文に見つかりません（改行をまたぐ選択はできません）') : '';
 }
 function doFix(slot){
   const from=slot.querySelector('.f-from').value, to=slot.querySelector('.f-to').value;
@@ -1192,7 +1192,7 @@ function renderHexDetail(i){
   let rows='';
   for(let k=5;k>=0;k--){
     const n = (state.lib[i+'|'+POSLAB[k]]||[]).length;
-    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b data-sec="${POSLAB[k]}" style="cursor:pointer">${POSLAB[k]}<small class="hint">(${yaoName(k,L[k])})</small>${n?' ●':''}</b>${lineSvg(L[k])}</div>`;
+    rows += `<div class="yao"><label class="chg" title="変爻にする"><input type="checkbox" data-chg="${k}">変</label><b data-sec="${POSLAB[k]}" style="cursor:pointer">${POSLAB[k]}<small class="hint">（${yaoName(k,L[k])}）</small>${n?' ●':''}</b>${lineSvg(L[k])}</div>`;
   }
   const bookBtns = ['卦辞','彖伝','象伝','文言伝','用九','用六'].filter(has).map(n=>`<button data-jump="${n}">${n}</button>`).join(' ');
   const book = '';
@@ -1241,15 +1241,15 @@ function relHex(i){
   ];
 }
 function renderRel(i){
-  $('#hexrel').innerHTML = '<div class="hint" style="margin:.8em 0 .2em">関連する卦</div><div class="hint exp">互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">' +
-    relHex(i).map(([n,j])=>`<button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span><small>${n}${j===i?'(同じ)':''}</small></button>`).join('') + '</div>';
+  $('#hexrel').innerHTML = '<div class="hint" style="margin:.8em 0 .2em">関連する卦</div><div class="hint exp">互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦（自分自身になる場合は「同じ」と表示）</div><div class="rels">' +
+    relHex(i).map(([n,j])=>`<button class="hc rel" data-hex="${j}">${hexSvg(j,22,22)}<span>${HEX[j][0]}</span><small>${n}${j===i?'（同じ）':''}</small></button>`).join('') + '</div>';
 }
 function readingTarget(i, ch){
   const n=ch.size;
   if(n===0) return ['卦辞','変爻がないときは、本卦の卦辞を見ます。'];
   if(n===1){ const k=[...ch][0]; return [yaoName(k,hexLines(i)[k]), '変爻が1つのときは、その爻の爻辞を見ます。']; }
   if(n===6 && (i===0||i===1)) return [i===0?'用九':'用六','乾・坤の六爻がすべて変ずるときは、用九・用六を見ます。'];
-  return ['卦辞','2爻以上が変ずるときは、本書は本卦の卦辞を見るのを妥当としています(別の読み方をする流儀もあります)。'];
+  return ['卦辞','2爻以上が変ずるときは、本書は本卦の卦辞を見るのを妥当としています（別の読み方をする流儀もあります）。'];
 }
 function chunkBox(i,label,title){
   const c = state.chunks.find(c=>c.hex===i && c.label.startsWith(label));
@@ -1334,7 +1334,7 @@ function renderJudge(){
   $('#jchips').innerHTML = `<span class="chip${state.jf?'':' on'}" data-jf="">すべて</span>` +
     order.filter(x=>cnt[x]).map(x=>`<span class="chip${state.jf===x?' on':''}" data-jf="${x}">${x}<b>${cnt[x]}</b></span>`).join('');
   $('#jnote').textContent = none
-    ? `本文の区画が見つからない欄(?): ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`
+    ? `本文の区画が見つからない欄（?）: ${none} か所。判定は爻辞の1行目から自動で行っており、OCRの崩れによる誤判定があり得ます。`
     : '判定は爻辞の1行目から自動で行っています。セルを押すと卦の詳細または原文を開きます。';
   const cell=(t,i,lab)=>{
     if(t===undefined) return '<td><span class="jnone" title="区画なし">？</span></td>';
@@ -1368,10 +1368,10 @@ const RES = {hit:'読み通り', part:'一部そのとおり', miss:'ずれた',
 const DUE = {event:30, month:31, year:366};   // 振り返りを促すまでの日数(今日の心構えは対象外)
 const pad2 = n => String(n).padStart(2,'0');
 function nowLocal(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
-const fmtDT = (s, memo) => s ? String(s).replace('T00:00','').replace('T',' ') : (memo ? `${memo} (日付なし)` : '日付なし');
+const fmtDT = (s, memo) => s ? String(s).replace('T00:00','').replace('T',' ') : (memo ? `${memo}（日付なし）` : '日付なし');
 const kindOfTitle = t => /今日/.test(t)?'day':/今月/.test(t)?'month':/今年/.test(t)?'year':'event';
 const hexName = i => HEX[i][0];
-const fullName = i => `${HEX[i][0]}(${TIMG[HT[i][0]]}${TIMG[HT[i][1]]})`;
+const fullName = i => `${HEX[i][0]}（${TIMG[HT[i][0]]}${TIMG[HT[i][1]]}）`;
 function deriveSet(i, ch){
   const L=hexLines(i);
   const [hu,cuo,zong] = relHex(i).map(x=>x[1]);
@@ -1447,7 +1447,7 @@ function syncFormDate(source){
     const val = textInp.value.trim();
     if(!val){
       hidden.value = '';
-      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
+      if(preview) preview.innerHTML = '<span class="hint">（日付なし）</span>';
       return;
     }
     const res = parseEasyDate(val);
@@ -1456,10 +1456,10 @@ function syncFormDate(source){
       const [y, m, d] = res.split('-');
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
     } else {
       hidden.value = '';
-      if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません (例: 1/1, 2017/1/1)</span>';
+      if(preview) preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません（例: 1/1, 2017/1/1）</span>';
     }
   } else if(source === 'init'){
     const cur = hidden.value;
@@ -1470,11 +1470,11 @@ function syncFormDate(source){
       textInp.value = `${y}/${+m}/${+d}`;
       const dt = new Date(+y, +m - 1, +d);
       const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
-      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+      if(preview) preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日（${dow}）</span>`;
     } else {
       hidden.value = '';
       textInp.value = '';
-      if(preview) preview.innerHTML = '<span class="hint">(日付なし)</span>';
+      if(preview) preview.innerHTML = '<span class="hint">（日付なし）</span>';
     }
   }
 }
@@ -1526,7 +1526,7 @@ function updateDrumPreview(){
   const dt = new Date(drumState.y, drumState.m - 1, drumState.d);
   const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
   const prev = $('#drumPreview');
-  if(prev) prev.textContent = `${drumState.y}年${drumState.m}月${drumState.d}日 (${dow})`;
+  if(prev) prev.textContent = `${drumState.y}年${drumState.m}月${drumState.d}日（${dow}）`;
 }
 
 function applyDrumSelection(val){
@@ -1822,7 +1822,7 @@ function syncFormHex(source){
     if(hidInput) hidInput.value = '';
     state.draft.hex = null;
     if(statEl) statEl.textContent = '';
-    if(prevEl) prevEl.innerHTML = '<span class="hint">番号(1〜64)または卦名(例: 雷天大壮、大壮)を入力</span>';
+    if(prevEl) prevEl.innerHTML = '<span class="hint">番号（1〜64）または卦名（例: 雷天大壮、大壮）を入力</span>';
     updateLogDerived();
     return;
   }
@@ -1835,7 +1835,7 @@ function syncFormHex(source){
     if(changed && source !== 'init') state.draft.ch = [];
     if(statEl) { statEl.textContent = '✓'; statEl.style.color = 'var(--accent, #4caf50)'; }
     if(prevEl){
-      prevEl.innerHTML = `${hexSvg(idx, 16, 16)} <b style="color:var(--accent, #4caf50)">第${idx+1}卦 ${fullTrad(idx)}</b> <span class="hint">(${fullName(idx)})</span>`;
+      prevEl.innerHTML = `${hexSvg(idx, 16, 16)} <b style="color:var(--accent, #4caf50)">第${idx+1}卦 ${fullTrad(idx)}</b> <span class="hint">（${fullName(idx)}）</span>`;
     }
     if(source === 'change'){
       txtInput.value = `${idx + 1} ${fullTrad(idx)}`;
@@ -1880,15 +1880,15 @@ function openLogForm(entry, kind){
         </div>
         <div style="flex:1 1 0;min-width:0">
           <div style="display:flex;align-items:center;margin-bottom:4px;min-height:24px">
-            <label style="margin:0;font-weight:600">時刻(任意)</label>
+            <label style="margin:0;font-weight:600">時刻（任意）</label>
           </div>
           <input id="ltime" type="time" style="width:100%;box-sizing:border-box">
           <div style="margin-top:3px;font-size:.8rem;min-height:1.2rem"></div>
         </div>
       </div>
       <datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
-      <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
-      <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
+      <label>目的の状態 <select id="lstat"><option value="">（未設定）</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+      <label>タグ（カンマ区切り） <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦
         <div class="hex-input-wrap" style="position:relative;display:flex;align-items:center">
           <input id="lhex_text" list="lhex_list" placeholder="例: 34 または 雷天大壮、大壮" autocomplete="off" onfocus="this.select()" style="width:100%;box-sizing:border-box;padding-right:52px">
@@ -1903,15 +1903,15 @@ function openLogForm(entry, kind){
         </datalist>
         <div id="lhex_preview" style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:.85rem;min-height:1.4rem"></div>
       </label>
-      <div><div class="hint exp">変爻(該当する爻にチェック。上の爻が上に並びます)</div><div id="lyao" class="yaos"></div></div>
+      <div><div class="hint exp">変爻（該当する爻にチェック。上の爻が上に並びます）</div><div id="lyao" class="yaos"></div></div>
       <div id="ldrv"></div>
       <div id="lread" class="read"></div>
-      <label>メモ(状況・気づき) <textarea id="lmemo"></textarea></label>
-      <details id="lmore"><summary>解説・行動・振り返り(あとから入力できます)</summary>
-        <label>解説・アドバイス(Geminiなどで得た文章を貼り付け) <textarea id="ladvice"></textarea></label>
-        <label>行動(やること・やったこと) <textarea id="laction"></textarea></label>
-        <label>結果(読みと現実の合い方) <select id="lresult"><option value="">(未入力)</option>${Object.entries(RES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
-        <label>振り返り(結果・気づき) <textarea id="lreview"></textarea></label>
+      <label>メモ（状況・気づき） <textarea id="lmemo"></textarea></label>
+      <details id="lmore"><summary>解説・行動・振り返り（あとから入力できます）</summary>
+        <label>解説・アドバイス（Geminiなどで得た文章を貼り付け） <textarea id="ladvice"></textarea></label>
+        <label>行動（やること・やったこと） <textarea id="laction"></textarea></label>
+        <label>結果（読みと現実の合い方） <select id="lresult"><option value="">（未入力）</option>${Object.entries(RES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+        <label>振り返り（結果・気づき） <textarea id="lreview"></textarea></label>
       </details>
     </div>
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
@@ -1940,10 +1940,10 @@ function updateLogDerived(){
   }
   const L=hexLines(e.hex), d=deriveSet(e.hex,e.ch);
   $('#lyao').innerHTML = [5,4,3,2,1,0].map(k=>`<label class="chg"><input type="checkbox" data-lch="${k}"${e.ch.includes(k)?' checked':''}>${yaoName(k,L[k])}</label>`).join(' ');
-  const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
-  $('#ldrv').innerHTML = `<div class="hint exp">自動で求めた関連の卦(押すと卦の詳細へ)。互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦(自分自身になる場合は「同じ」と表示)</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
+  const chip = (lab,i) => i==null ? '' : `<button type="button" class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${hexName(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'（同じ）':''}</small></button>`;
+  $('#ldrv').innerHTML = `<div class="hint exp">自動で求めた関連の卦（押すと卦の詳細へ）。互卦=2〜5爻から作る卦 / 錯卦=陰陽をすべて反転した卦 / 綜卦=上下を逆さにした卦（自分自身になる場合は「同じ」と表示）</div><div class="rels">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>`;
   const [lab,why] = readingTarget(e.hex,new Set(e.ch));
-  $('#lread').innerHTML = `<div class="hint exp">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要(参考)') : '');
+  $('#lread').innerHTML = `<div class="hint exp">${why}</div>` + readBlock(e.hex,lab,'読む箇所') + (d.zhi!=null ? readBlock(d.zhi,'概要','之卦の概要（参考）') : '');
 }
 function saveLog(){
   syncFormHex('save');
@@ -2012,9 +2012,9 @@ function renderLogTop(){
     const isOpened = state.lopen === e.id;
     if(isOpened) openEnt = e;
     const L = hexLines(e.hex);
-    const yao = e.ch.length ? ` <b>${e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・')}</b>` : '';
+    const yao = e.ch.length ? ` <b>${e.ch.map(k=>`${POSLAB[k]}（${yaoName(k,L[k])}）`).join('・')}</b>` : '';
     const act = (e.action||e.memo||'').trim().slice(0,70);
-    return `<div class="lcard${isOpened ? ' sel' : ''}"><div class="hint">${lab}(${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')})</div>
+    return `<div class="lcard${isOpened ? ' sel' : ''}"><div class="hint">${lab}（${e.ts ? e.ts.slice(5,10) : (e.memo ? e.memo : '日付なし')}）</div>
       <div class="lname">${hexSvg(e.hex,26,26)}<b>${fullTrad(e.hex)}</b>${yao}</div>
       ${act?`<div class="hint">${esc(act)}</div>`:''}
       <button class="${isOpened ? 'chip on' : ''}" data-lact="open" data-id="${e.id}">${isOpened ? '閉じる' : '開く'}</button></div>`;
@@ -2044,7 +2044,7 @@ function entryExplain(e,primary){
   const topLabs=['卦辞',...e.ch.map(k=>POSLAB[k])];
   if(e.ch.length===6 && (e.hex===0||e.hex===1)) topLabs.push(e.hex===0?'用九':'用六');
   const topKeys=new Set(topLabs.map(l=>e.hex+'|'+l));
-  const origs=topLabs.filter(l=>genText(e.hex+'|'+l)).map(l=>`<div class="orig-box"><div class="hint"><b>${fullTrad(e.hex)}　${l==='卦辞'?'卦辞(本卦)':l.endsWith('爻')?secTitle(e.hex,l)+'(変爻)':l+'(変爻)'}</b></div><div class="orig">${esc(genText(e.hex+'|'+l))}</div></div>`).join('');
+  const origs=topLabs.filter(l=>genText(e.hex+'|'+l)).map(l=>`<div class="orig-box"><div class="hint"><b>${fullTrad(e.hex)}　${l==='卦辞'?'卦辞（本卦）':l.endsWith('爻')?secTitle(e.hex,l)+'（変爻）':l+'（変爻）'}</b></div><div class="orig">${esc(genText(e.hex+'|'+l))}</div></div>`).join('');
   const origHtml = origs ? '<div class="hint"><b>原文</b></div>' + origs : '';
   // 登録のある項目だけを出す(読む箇所は、未登録でも追加できるよう残す)
   const shown=items.filter((it,k)=>n(it)>0 || k===0);
@@ -2058,19 +2058,19 @@ function entryExplain(e,primary){
 function sameHexHistory(e){
   const h=state.log.filter(x=>x.id!==e.id && x.hex===e.hex).sort((a,b)=>(b.ts||'').localeCompare(a.ts||'') || ((b.upd||0)-(a.upd||0))).slice(0,8);
   if(!h.length) return '';
-  return `<div class="sec"><b>同じ本卦(${fullTrad(e.hex)})の過去の記録</b>`+h.map(x=>{
+  return `<div class="sec"><b>同じ本卦（${fullTrad(e.hex)}）の過去の記録</b>`+h.map(x=>{
     const same=x.ch.join()===e.ch.join() && x.ch.length;
     const xL = hexLines(x.hex);
-    const xYao = x.ch.length ? x.ch.map(k=>`${POSLAB[k]}(${yaoName(k,xL[k])})`).join('・') : 'なし';
+    const xYao = x.ch.length ? x.ch.map(k=>`${POSLAB[k]}（${yaoName(k,xL[k])}）`).join('・') : 'なし';
     return `<div class="hint"><button data-lact="open" data-id="${x.id}">${x.ts ? x.ts.slice(0,10) : (x.memo || '日付なし')}</button> ${esc(purposeOf(x))} ／ <b>${fullTrad(x.hex)}</b> <b>${xYao}</b>${same?' ★同じ変爻':''}${x.result?' ／ '+RES[x.result]:''}</div>`;
   }).join('')+'</div>';
 }
 function entryDetail(e){
   const d=e.rel, L=hexLines(e.hex);
-  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${fullTrad(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'(同じ)':''}</small></button>`;
+  const chip = (lab,i) => i==null ? '' : `<button class="hc rel" data-ghex="${i}">${hexSvg(i,22,22)}<span>${fullTrad(i)}</span><small>${lab}${i===e.hex&&lab!=='本卦'&&lab!=='之卦'?'（同じ）':''}</small></button>`;
   const sec = (t,v) => `<div class="sec"><b>${t}</b><div>${v?esc(v):'<span class="hint">未入力</span>'}</div></div>`;
   const [lab,why] = readingTarget(e.hex,new Set(e.ch));
-  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : 'なし';
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}（${yaoName(k,L[k])}）`).join('・') : 'なし';
   return `<div class="rels" style="margin:6px 0">${chip('本卦',e.hex)}${chip('之卦',d.zhi)}${chip('互卦',d.hu)}${chip('錯卦',d.cuo)}${chip('綜卦',d.zong)}</div>
     <div style="margin:6px 0;font-size:.92rem"><b>本卦:</b> ${fullTrad(e.hex)} ／ <b>変爻:</b> ${yaoStr}${d.zhi!=null ? ` ／ <b>之卦:</b> ${fullTrad(d.zhi)}` : ''}</div>
     <div class="read"><div class="hint exp">${why}</div>${entryExplain(e,lab)}</div>
@@ -2082,7 +2082,7 @@ function logCard(e){
   const pend = !!(state._pend && state._pend.has(e.id));
   const rows = [['メモ',e.memo],['解説',e.advice],['行動',e.action],['振り返り',e.review]].filter(([,v])=>v && String(v).trim());
   const L = hexLines(e.hex);
-  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}（${yaoName(k,L[k])}）`).join('・') : '';
   return `<article class="card logitem" data-lid="${e.id}">
     <header><span>${fmtDT(e.ts, e.memo)}</span>${e.status?`<span class="tag">${STATUS[e.status]}</span>`:''}${e.result?`<span class="tag">${RES[e.result]}</span>`:''}${pend?'<span class="tag pend">振り返り待ち</span>':''}</header>
     <div class="lhex">
@@ -2096,7 +2096,7 @@ function logCard(e){
     <footer><button data-lact="open" data-id="${e.id}">${open?'閉じる':'解説を見る'}</button><button data-lact="edit" data-id="${e.id}">編集</button><button data-lact="del" data-id="${e.id}">削除</button></footer>
   </article>`;
 }
-const purposeOf = e => e.title || KINDS[e.kind];
+const purposeOf = e => (e.title || KINDS[e.kind] || '').replace(/\(/g, '（').replace(/\)/g, '）');
 const purposeKey = e => purposeOf(e).normalize('NFKC').replace(/\s+/g,'');
 function purposeList(){ const m=new Map(); ['今日の心構え','今月の心構え','今年の心構え'].forEach(t=>m.set(t,t)); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
 state.lf.mode = 'purpose';
@@ -2119,18 +2119,18 @@ function statsHtml(list){
   const mx=Math.max(1,...months.map(x=>x[1]));
   const withCh=list.filter(e=>e.ch.length).length;
   return `<div class="panel"><b>集計(対象 ${list.length}件)</b><div class="hint">変爻あり ${withCh}件 / なし ${list.length-withCh}件 ／ 目的 ${new Set(list.map(purposeKey)).size}種類</div></div>`+
-    block('よく出る本卦(上位10)', count(e=>fullName(e.hex)).slice(0,10)) +
+    block('よく出る本卦（上位10）', count(e=>fullName(e.hex)).slice(0,10)) +
     block('よく変わる爻の位置', POSLAB.map((l,k)=>[l,list.filter(e=>e.ch.includes(k)).length]).filter(x=>x[1]).sort((x,y)=>y[1]-x[1])) +
-    block('目的別の件数(上位10)', count(e=>purposeOf(e)).slice(0,10)) +
+    block('目的別の件数（上位10）', count(e=>purposeOf(e)).slice(0,10)) +
     (months.length?`<div class="panel"><b>月ごとの件数(直近12か月)</b>${months.map(([k,n])=>bar(k,n,mx)).join('')}</div>`:'') +
-    block('結果(読みと現実)', count(e=>e.result?RES[e.result]:null)) +
-    block('目的の状態', count(e=>e.status?STATUS[e.status]:'(未設定)'));
+    block('結果（読みと現実）', count(e=>e.result?RES[e.result]:null)) +
+    block('目的の状態', count(e=>e.status?STATUS[e.status]:'（未設定）'));
 }
 function logRowItem(e){
   const open = state.lopen===e.id;
   const pend = !!(state._pend && state._pend.has(e.id));
   const L = hexLines(e.hex);
-  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+  const yaoStr = e.ch.length ? e.ch.map(k=>`${POSLAB[k]}（${yaoName(k,L[k])}）`).join('・') : '';
   
   let dateStr = '';
   const yr = e.ts ? e.ts.slice(0,4) : '';
@@ -2185,7 +2185,7 @@ function purposeDetailHtml(a){
 
   const ed = state.pedit===pk ? `<div class="panel"><div class="formgrid">
       <label>目的の名前 <input id="pname" value="${esc(last.title||'')}"></label>
-      <label>状態 <select id="pstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
+      <label>状態 <select id="pstat"><option value="">（未設定）</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${st===k?' selected':''}>${v}</option>`).join('')}</select></label>
       <label>タグ <input id="ptags" value="${esc(tg.join(', '))}"></label></div>
       <p><button class="primary" data-lact="psave" data-pk="${esc(pk)}">保存</button> <button data-lact="pcancel">キャンセル</button></p></div>` : '';
 
@@ -2409,7 +2409,7 @@ function calendarHtml(list){
     if(dayItems.length){
       detailHtml = `<div class="panel" style="margin-top:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <b>${state.calSelDate} の記録 (${dayItems.length}件)</b>
+          <b>${state.calSelDate} の記録 （${dayItems.length}件）</b>
           <button class="chip" data-lact="calnew" data-date="${state.calSelDate}">＋ この日に追加</button>
         </div>
         ${dayItems.map(logRowItem).join('')}
@@ -2562,10 +2562,10 @@ function pendingReviews(){
 }
 function renderPending(){
   const p=pendingReviews(), box=$('#lpend');
-  box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint exp">(気になったことは30日、今月は31日、今年は1年たっても未入力のもの)</span></summary>`+
+  box.innerHTML = p.length ? `<details class="panel"><summary><b>振り返り待ち ${p.length}件</b> <span class="hint exp">（気になったことは30日、今月は31日、今年は1年たっても未入力のもの）</span></summary>`+
     p.slice(0,20).map(e=>{
       const L=hexLines(e.hex);
-      const yao=e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}(${yaoName(k,L[k])})`).join('・') : '';
+      const yao=e.ch.length ? ' '+e.ch.map(k=>`${POSLAB[k]}（${yaoName(k,L[k])}）`).join('・') : '';
       return `<div class="hint" style="margin:4px 0"><b>${e.ts ? e.ts.slice(0,10) : '日付なし'}</b> ${esc(purposeOf(e))} ／ <b>${fullTrad(e.hex)}</b> <b>${yao}</b> <button data-lact="edit" data-id="${e.id}">振り返りを書く</button></div>`;
     }).join('')+'</details>' : '';
 }
@@ -2764,7 +2764,7 @@ function importLogText(text, commit = true){
   items.forEach(it=>{
     const { lineNum, ts, title, memo, hex, ch, chv } = it;
     if(chv) chv.names.forEach(([k,x])=>{
-      if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${lineNum}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です(「${x}」と書かれています。位置を優先しました)`);
+      if(yaoName(k,hexLines(hex)[k])!==x) out.warn.push(`${lineNum}行目: ${hexName(hex)}の${POSLAB[k]}は「${yaoName(k,hexLines(hex)[k])}」です（「${x}」と書かれています。位置を優先しました）`);
     });
     const isYear=/今年|一?年の心構え|冬至占?/.test(title);
     const kind=/今日/.test(title)?'day':/今月/.test(title)?'month':isYear?'year':'event';
@@ -2920,7 +2920,7 @@ function renderBulkStaging(staging, resId){
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
       <div>
         <b style="font-size:1.02rem;color:var(--accent,#d9534f)">取り込み候補の確認・編集</b>
-        <span class="hint" style="font-size:.82rem;margin-left:6px">(全 ${items.length} 件 / 新規: ${newCount} 件, 登録済み重複: ${dupCount} 件)</span>
+        <span class="hint" style="font-size:.82rem;margin-left:6px">（全 ${items.length} 件 / 新規: ${newCount} 件, 登録済み重複: ${dupCount} 件）</span>
       </div>
       <div class="hint" style="font-size:.8rem">日付や目的を直接編集して登録できます</div>
     </div>`;
@@ -2995,7 +2995,7 @@ function renderBulkStaging(staging, resId){
     </span>
     <button type="button" id="bulk_cancel_btn">キャンセル</button>
     <button type="button" class="primary" id="bulk_commit_btn" style="font-weight:600">
-      ✔ 選択した内容を登録する (${selCount}件)
+      ✔ 選択した内容を登録する （${selCount}件）
     </button>
   </div></div>`;
 
@@ -3022,7 +3022,7 @@ function setupBulkStagingEvents(resId){
         currentBulkStaging.items[idx].selected = t.checked;
         const selCount = currentBulkStaging.items.filter(x => x.selected).length;
         const info = $('#bulk_sel_info'); if(info) info.textContent = `選択中: ${selCount} / ${currentBulkStaging.items.length} 件`;
-        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する (${selCount}件)`;
+        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する （${selCount}件）`;
         const checkAll = $('#bulk_check_all'); if(checkAll) checkAll.checked = currentBulkStaging.items.every(x => x.selected);
       }
       return;
@@ -3045,7 +3045,7 @@ function setupBulkStagingEvents(resId){
         }
         const selCount = currentBulkStaging.items.filter(x => x.selected).length;
         const info = $('#bulk_sel_info'); if(info) info.textContent = `選択中: ${selCount} / ${currentBulkStaging.items.length} 件`;
-        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する (${selCount}件)`;
+        const btn = $('#bulk_commit_btn'); if(btn) btn.textContent = `✔ 選択した内容を登録する （${selCount}件）`;
       }
       return;
     }
@@ -3161,7 +3161,7 @@ function commitBulkStaging(staging, resId){
   const el = $(resId);
   if(el){
     el.innerHTML = `<b style="color:var(--accent,#d9534f)">${newRecords.length}件の記録を登録しました</b>` +
-      (staging.items.length > newRecords.length ? `<br><span class="hint">(未選択・除外: ${staging.items.length - newRecords.length}件)</span>` : '');
+      (staging.items.length > newRecords.length ? `<br><span class="hint">（未選択・除外: ${staging.items.length - newRecords.length}件）</span>` : '');
   }
   currentBulkStaging = null;
   toast(`${newRecords.length}件の記録を登録しました`);
@@ -3578,11 +3578,11 @@ function importMissing(items){
 function updateStatus(){ $('#status').innerHTML = `解説 <b>${libCount()}</b> / ${LIBTOTAL} 項目 ／ 記録 <b>${state.log.length}</b> 件${cloud?` ／ ☁ ${cloudMsg||'未同期'}`:''}`; }
 function renderLibProg(){
   const el=$('#libprog'); if(!el) return;
-  el.textContent = `登録済みの項目: ${libCount()} / ${LIBTOTAL}(解説のある卦: ${HEX.filter((_,i)=>hasLib(i)).length} / 64)。表の ● が、解説のある卦です。`;
+  el.textContent = `登録済みの項目: ${libCount()} / ${LIBTOTAL}（解説のある卦: ${HEX.filter((_,i)=>hasLib(i)).length} / 64）。表の ● が、解説のある卦です。`;
 }
 
 /* 表示 */
-function secTitle(i,l){ const k=POSLAB.indexOf(l); return k>=0 ? `${l}(${yaoName(k,hexLines(i)[k])})` : l; }
+function secTitle(i,l){ const k=POSLAB.indexOf(l); return k>=0 ? `${l}（${yaoName(k,hexLines(i)[k])}）` : l; }
 // 解説文の見た目を整える(保存した文章は変えない): 「心構え:」「行動:」を別の行にして、ラベルを付ける
 function fmtLib(text){
   return String(text).replace(/([^\n])[ \t　]+(心構え|行動)[:：]/g,'$1\n$2:').split('\n').map(ln=>{
@@ -3688,9 +3688,9 @@ $('#libgo').addEventListener('click', ()=>{
   const r=importLib(t, $('#libsrc').value.trim());
   if(!r.found){ toast('見出しが見つかりません。「乾為天　初爻」のような見出し行が必要です'); return; }
   $('#libtext').value=''; renderLibProg(); renderHexTable(); refreshSecs();
-  toast(`${r.add} 件を追加しました${r.dup?`(重複 ${r.dup} 件はスキップ)`:''}`);
+  toast(`${r.add} 件を追加しました${r.dup?`（重複 ${r.dup} 件はスキップ）`:''}`);
   const miss=importMissing(r.items);
-  $('#libres').innerHTML = `<b>${r.found}項目を読み取りました</b>(${[...new Set(r.items.map(x=>fullTrad(x.i)))].join('・')})` +
+  $('#libres').innerHTML = `<b>${r.found}項目を読み取りました</b>（${[...new Set(r.items.map(x=>fullTrad(x.i)))].join('・')}）` +
     (miss.length ? `<br>見つからなかった項目: ${miss.map(esc).join(' ／ ')}` : '<br>この卦の項目は、すべて読み取れました');
 });
 LS.del('eki.replundo');   // 旧い「置換の取り消し」用の保存データを、消す
@@ -3770,16 +3770,16 @@ $('#fescope').addEventListener('change', ()=>{
 $('#fereload').addEventListener('click', ()=>{ if(feDirty() && !confirm('保存していない変更を、破棄して、最新の状態に戻しますか?')) return; feLoad(); });
 $('#fecheck').addEventListener('click', ()=>{
   const d=feDiff(fe.scope,$('#fetext').value), name=k=>{ const [i,l]=k.split('|'); return `${esc(fullTrad(+i))} ${esc(l)}`; };
-  if(!d.ch.length && !d.add.length && !d.del.length){ $('#feres').textContent='変更は、ありません'+(d.outside?`(表示範囲の外の見出し ${d.outside} 件は、無視します)`:''); return; }
-  const line=(t,a)=>a.length?`<br><b>${t} ${a.length}項目</b>: `+a.slice(0,30).map(x=>name(x.k)+(x.j?`(${x.j+1}つ目)`:'')).join('、')+(a.length>30?`、…ほか ${a.length-30}`:''):'';
+  if(!d.ch.length && !d.add.length && !d.del.length){ $('#feres').textContent='変更は、ありません'+(d.outside?`（表示範囲の外の見出し ${d.outside} 件は、無視します）`:''); return; }
+  const line=(t,a)=>a.length?`<br><b>${t} ${a.length}項目</b>: `+a.slice(0,30).map(x=>name(x.k)+(x.j?`（${x.j+1}つ目）`:'')).join('、')+(a.length>30?`、…ほか ${a.length-30}`:''):'';
   $('#feres').innerHTML=`<b>保存すると、次のように変わります</b>`+line('変更',d.ch)+line('追加',d.add)+line('削除',d.del)+(d.outside?`<br>表示範囲の外の見出し ${d.outside} 件は、無視します。`:'');
 });
 $('#fesave').addEventListener('click', ()=>{
   const d=feDiff(fe.scope,$('#fetext').value);
   if(!d.ch.length && !d.add.length && !d.del.length){ toast('変更は、ありません'); return; }
-  if(!confirm(`解説文を保存します。\n変更 ${d.ch.length} / 追加 ${d.add.length} / 削除 ${d.del.length} 項目`+(d.del.length?`\n\n削除は、見出しごと消した項目や、本文を空にした項目です。まちがいがないか、確認してください。(保存の直後なら、取り消せます)`:'\n(保存の直後なら、取り消せます)'))) return;
+  if(!confirm(`解説文を保存します。\n変更 ${d.ch.length} / 追加 ${d.add.length} / 削除 ${d.del.length} 項目`+(d.del.length?`\n\n削除は、見出しごと消した項目や、本文を空にした項目です。まちがいがないか、確認してください。（保存の直後なら、取り消せます）`:'\n（保存の直後なら、取り消せます）'))) return;
   const r=feApply(fe.scope,$('#fetext').value); feRefresh();
-  $('#feres').innerHTML=`<b>保存しました</b>(変更 ${r.ch} / 追加 ${r.add} / 削除 ${r.del} 項目)。まちがえたときは、「直前の保存を取り消す」を押します。`;
+  $('#feres').innerHTML=`<b>保存しました</b>（変更 ${r.ch} / 追加 ${r.add} / 削除 ${r.del} 項目）。まちがえたときは、「直前の保存を取り消す」を押します。`;
   toast('保存しました');
 });
 $('#feundo').addEventListener('click', ()=>{
@@ -3807,7 +3807,7 @@ function switchView(v){
   if(v==='log') renderLog();
   if(v==='judge') renderJudge();
   if(v==='hex'){ renderHexTable(); renderLibProg(); }
-  if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典(本の本文)は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
+  if(v==='search' && !state.chunks.length) $('#summary').textContent = '原典（本の本文）は読み込まれていません。「設定」の「本文を入れ替える」から読み込めます。';
 }
 document.querySelector('.tabs').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b) switchView(b.dataset.view); });
 
@@ -3983,7 +3983,7 @@ async function cloudSync(){
     if(mergeIn(rem)){ saveUser(true); rerender(); }
     if(needPush(rem)) await cloudReq('PUT', JSON.stringify(snapshot()));
     const n=new Date(); lastSync=Date.now(); setCloudMsg(`同期済み ${pad2(n.getHours())}:${pad2(n.getMinutes())}`);
-  }catch(e){ setCloudMsg('同期できません('+(e && e.message || e)+')', true); }
+  }catch(e){ setCloudMsg('同期できません（'+(e && e.message || e)+'）', true); }
   finally{ syncing=false; if(syncAgain){ syncAgain=false; scheduleSync(); } }
 }
 function connectCloud(url, token){
@@ -4010,7 +4010,7 @@ $('#c_link').addEventListener('click', ()=>{
   const link=location.origin+location.pathname+'#c='+encodeURIComponent(toB64(JSON.stringify({u:cloud.url,t:cloud.token})));
   copyText(link); toast('接続用リンクをコピーしました。ブックマークに保存してください');
 });
-$('#c_off').addEventListener('click', ()=>{ if(confirm('この端末のクラウド接続を解除しますか?(クラウド上のデータと、この端末のデータは消えません)')){ cloud=null; LS.del('eki.cloud'); cloudMsg=''; updateStatus(); const el=$('#c_msg'); if(el) el.textContent=''; $('#c_url').value=''; $('#c_token').value=''; } });
+$('#c_off').addEventListener('click', ()=>{ if(confirm('この端末のクラウド接続を解除しますか?（クラウド上のデータと、この端末のデータは消えません）')){ cloud=null; LS.del('eki.cloud'); cloudMsg=''; updateStatus(); const el=$('#c_msg'); if(el) el.textContent=''; $('#c_url').value=''; $('#c_token').value=''; } });
 $('#sc_go').addEventListener('click', ()=>{ if(connectCloud($('#sc_url').value, $('#sc_token').value)){ LS.set('eki.nobook','1'); start(''); } });
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && cloud && Date.now()-lastSync>20000) cloudSync(); });
 window.addEventListener('online', ()=>cloudSync());
