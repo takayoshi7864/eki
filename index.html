@@ -130,14 +130,18 @@ details>summary+*{margin-top:10px}
 .cal-cell:hover .cal-add{opacity:1}
 .cal-add:hover{background:var(--accent);color:#fff}
 /* 目的別のまとまりサマリーカード */
-.purpose-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:8px 0 12px}
-.purpose-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s;display:flex;flex-direction:column;gap:4px}
+.purpose-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:8px 0 12px}
+.purpose-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s,transform .15s,background .15s;display:flex;flex-direction:column;gap:6px;min-height:94px;box-sizing:border-box}
 .purpose-card:hover{border-color:var(--accent);transform:translateY(-1px)}
 .purpose-card.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg))}
 .purpose-detail-wrap{margin-top:10px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
-.purpose-card-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.purpose-card-title{font-size:.98rem;color:var(--ink)}
-.purpose-card-sub{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.8rem}
+.purpose-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.purpose-card-title{font-size:.95rem;color:var(--ink);line-height:1.35;flex:1;min-width:0;word-break:break-word}
+.purpose-card-head .chip{flex-shrink:0;align-self:flex-start;margin-top:1px;font-size:.78rem;padding:2px 8px;line-height:1.2}
+.purpose-card-sub{display:flex;align-items:center;gap:6px;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.purpose-card-hex{color:var(--ink);font-size:.92rem}
+.purpose-card-yao{color:var(--accent);font-size:.88rem}
+.purpose-card-date{margin-top:auto;text-align:right;font-size:.76rem;color:var(--sub);line-height:1}
 /* カレンダーの目的別色分け */
 .cal-event.p-day{border-left:3px solid #4fc3f7}
 .cal-event.p-month{border-left:3px solid #ba68c8}
@@ -2096,9 +2100,9 @@ function logCard(e){
     <footer><button data-lact="open" data-id="${e.id}">${open?'閉じる':'解説を見る'}</button><button data-lact="edit" data-id="${e.id}">編集</button><button data-lact="del" data-id="${e.id}">削除</button></footer>
   </article>`;
 }
-const purposeOf = e => (e.title || KINDS[e.kind] || '').replace(/\(/g, '（').replace(/\)/g, '）');
+const purposeOf = e => (e.title || KINDS[e.kind] || '').replace(/[\s　]*[（(]/g, '（').replace(/[）)][\s　]*/g, '）');
 const purposeKey = e => purposeOf(e).normalize('NFKC').replace(/\s+/g,'');
-function purposeList(){ const m=new Map(); ['今日の心構え','今月の心構え','今年の心構え'].forEach(t=>m.set(t,t)); state.log.forEach(e=>{ if(e.title && !m.has(purposeKey(e))) m.set(purposeKey(e), e.title); }); return [...m.values()]; }
+function purposeList(){ const m=new Map(); ['今日の心構え','今月の心構え','今年の心構え'].forEach(t=>m.set(t,t)); state.log.forEach(e=>{ const p = purposeOf(e); if(p && !m.has(purposeKey(e))) m.set(purposeKey(e), p); }); return [...m.values()]; }
 state.lf.mode = 'purpose';
 function logFiltered(){
   const f=state.lf, q=normStr(f.q||'');
@@ -2141,7 +2145,7 @@ function logRowItem(e){
   } else if(e.kind==='month' && e.ts){
     dateStr = `${e.ts.slice(0,4)}年${parseInt(e.ts.slice(5,7),10)}月`;
   } else if(e.ts){
-    dateStr = e.ts.slice(0,10);
+    dateStr = e.ts.slice(0,10).replace(/-/g,'/');
   } else {
     dateStr = e.memo || '日付なし';
   }
@@ -2475,21 +2479,18 @@ function purposeSummaryCards(groups, activePk){
       const last = a[a.length - 1];
       const pk = purposeKey(last);
       const title = purposeOf(last);
-      const yr = last.ts ? last.ts.slice(0, 4) : '';
       let latestDate = '';
-      if(last.memo && /冬至占/.test(last.memo)){
-        latestDate = last.ts ? last.ts.slice(0,10).replace(/-/g,'/') : (last.memo || '日付なし');
-      } else if(last.kind === 'day' && last.ts){
-        latestDate = last.ts.slice(5, 10).replace('-', '/');
-      } else if(last.kind === 'month' && last.ts){
-        latestDate = `${last.ts.slice(0, 4)}年${parseInt(last.ts.slice(5, 7), 10)}月`;
-      } else if(last.ts){
-        latestDate = last.ts.slice(0, 10);
+      if(last.kind === 'month' && last.ts){
+        latestDate = `${last.ts.slice(0, 4)}/${pad2(+last.ts.slice(5, 7))}`;
+      } else if(last.ts && last.ts.length >= 10){
+        latestDate = last.ts.slice(0, 10).replace(/-/g, '/');
+      } else if(last.memo){
+        latestDate = last.memo.replace(/[\s　]*[（(]/g, '（').replace(/[）)][\s　]*/g, '）');
       } else {
-        latestDate = last.memo || '日付なし';
+        latestDate = '日付なし';
       }
       const lastL = hexLines(last.hex);
-      const lastYao = last.ch.length ? last.ch.map(k => `${POSLAB[k]}(${yaoName(k,lastL[k])})`).join('・') : '';
+      const lastYao = last.ch.length ? last.ch.map(k => `${POSLAB[k]}（${yaoName(k,lastL[k])}）`).join('・') : '';
       const isAct = activePk === pk;
       return `<div class="purpose-card${isAct ? ' active' : ''}" data-lpurpcard="${esc(pk)}" title="${esc(title)} を表示">
         <div class="purpose-card-head">
@@ -2498,10 +2499,10 @@ function purposeSummaryCards(groups, activePk){
         </div>
         <div class="purpose-card-sub hint">
           ${hexSvg(last.hex, 18, 18)}
-          <b style="color:var(--ink);font-size:.92rem">${fullTrad(last.hex)}</b>
-          ${lastYao ? `<b style="color:var(--accent);font-size:.9rem">${lastYao}</b>` : '<span class="hint">不変</span>'}
-          <span style="margin-left:auto;font-size:.76rem">${latestDate}</span>
+          <b class="purpose-card-hex">${fullTrad(last.hex)}</b>
+          ${lastYao ? `<b class="purpose-card-yao">${lastYao}</b>` : '<span class="hint">不変</span>'}
         </div>
+        <div class="purpose-card-date">${esc(latestDate)}</div>
       </div>`;
     }).join('') +
   `</div>`;
@@ -4038,7 +4039,7 @@ if(cloud) cloudSync();
 setupDrumEvents();
 closeDrumModal();
 // テスト用フック
-window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, feBuild, feParse, feDiff, feApply, feUndo, fullTrad };
+window.__eki = { mergeIn, cloudSync, importLogText, state, parse, normStr, runSearch, deriveSet, logMd, parseLib, importLib, importMissing, feBuild, feParse, feDiff, feApply, feUndo, fullTrad, renderLog };
 })();
 </script>
 </body>
