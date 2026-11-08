@@ -269,11 +269,10 @@ body:not(.help) .exp{display:none !important}
 .log-search-icon{position:absolute;left:11px;font-size:.92rem;opacity:.55;pointer-events:none}
 .log-search-input{width:100%;height:38px;box-sizing:border-box;padding-left:34px;padding-right:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:.9rem;transition:border-color .15s}
 .log-search-input:focus{border-color:var(--accent);outline:none}
-.purp-rail-wrap{position:relative;width:100%;display:flex;align-items:center}
-.purp-rail{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 0;align-items:center;width:100%}
-.purp-rail::-webkit-scrollbar{display:none}
-.purp-rail-label{font-size:.8rem;font-weight:600;color:var(--sub);margin-right:4px;flex-shrink:0}
-.purp-rail .chip{flex-shrink:0;white-space:nowrap}
+.purp-rail-wrap{width:100%}
+.purp-rail{display:flex;gap:6px 8px;flex-wrap:wrap;padding:2px 0;align-items:center}
+.purp-rail-label{font-size:.8rem;font-weight:600;color:var(--sub);margin-right:4px;align-self:center}
+.purp-rail .chip{white-space:nowrap}
 .chip-count{display:inline-block;font-size:.74rem;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,0.1);margin-left:5px;font-weight:600;line-height:1.2}
 .chip.on .chip-count{background:rgba(255,255,255,0.28);color:#fff}
 .log-filter-details{margin:0}
