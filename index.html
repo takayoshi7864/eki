@@ -1303,6 +1303,156 @@ function deriveSet(i, ch){
 }
 const yaoNames = (i,ch) => ch.length ? [...ch].sort((a,b)=>b-a).map(k=>yaoName(k,hexLines(i)[k])).join('・') : 'なし';
 
+/* 日付簡単パース・ドラムロール連携 */
+function parseEasyDate(val, refYear){
+  if(!val || !val.trim()) return '';
+  let s = String(val).normalize('NFKC').trim();
+  const today = new Date();
+  if(/^(今日|きょう|本日)$/i.test(s)){
+    return `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  }
+  if(/^(昨日|きのう)$/i.test(s)){
+    const y = new Date(today.getTime() - 864e5);
+    return `${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+  }
+  if(/^(明日|あした)$/i.test(s)){
+    const t = new Date(today.getTime() + 864e5);
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  }
+
+  s = s.replace(/年|月/g, '-').replace(/日/g, '');
+  s = s.replace(/[\/\.／．\s]/g, '-');
+  s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2], da = +m[3];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const yr = 2000 + (+m[1]), mo = +m[2], da = +m[3];
+    if(mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if(m){
+    const yr = +m[1], mo = +m[2], da = +m[3];
+    if(yr >= 1900 && yr <= 2100 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    const yr = refYear || today.getFullYear();
+    const mo = +m[1], da = +m[2];
+    if(mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  m = s.match(/^(\d{2})(\d{2})$/);
+  if(m){
+    const yr = refYear || today.getFullYear();
+    const mo = +m[1], da = +m[2];
+    if(mo >= 1 && mo <= 12 && da >= 1 && da <= 31){
+      return `${yr}-${String(mo).padStart(2,'0')}-${String(da).padStart(2,'0')}`;
+    }
+  }
+  return null;
+}
+function renderYearSelectOptions(selectedYear){
+  const nowY = (new Date()).getFullYear();
+  let html = '<option value="">年(未設定)</option>';
+  for(let y = nowY + 5; y >= 2000; y--){
+    html += `<option value="${y}"${String(y) === String(selectedYear) ? ' selected' : ''}>${y}年</option>`;
+  }
+  return html;
+}
+function renderMonthSelectOptions(selectedMonth){
+  let html = '<option value="">月(未設定)</option>';
+  for(let m = 1; m <= 12; m++){
+    html += `<option value="${m}"${String(m) === String(selectedMonth) ? ' selected' : ''}>${m}月</option>`;
+  }
+  return html;
+}
+function updateDayOptions(yStr, mStr, selectedD){
+  const selD = $('#lts_d');
+  if(!selD) return;
+  const y = +yStr || (new Date()).getFullYear(), m = +mStr || 1;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const curVal = selectedD != null ? String(selectedD) : selD.value;
+  let html = '<option value="">日(未設定)</option>';
+  for(let i=1; i<=daysInMonth; i++){
+    html += `<option value="${i}"${curVal === String(i) ? ' selected' : ''}>${i}日</option>`;
+  }
+  selD.innerHTML = html;
+}
+function syncFormDate(source){
+  const hidden = $('#lts'), textInp = $('#lts_text'), selY = $('#lts_y'), selM = $('#lts_m'), selD = $('#lts_d'), preview = $('#lts_preview');
+  if(!hidden || !textInp || !selY) return;
+
+  if(source === 'text'){
+    const val = textInp.value.trim();
+    if(!val){
+      hidden.value = '';
+      selY.value = ''; selM.value = ''; selD.value = '';
+      preview.innerHTML = '<span class="hint">(日付なし)</span>';
+      return;
+    }
+    const currentY = selY.value ? +selY.value : null;
+    const res = parseEasyDate(val, currentY);
+    if(res){
+      hidden.value = res;
+      const [y, m, d] = res.split('-');
+      selY.value = y;
+      selM.value = String(+m);
+      updateDayOptions(selY.value, selM.value, String(+d));
+      const dt = new Date(+y, +m - 1, +d);
+      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+    } else {
+      preview.innerHTML = '<span style="color:#e57373">※日付が読み取れません (例: 1/1, 2017/1/1)</span>';
+    }
+  } else if(source === 'wheel'){
+    const y = selY.value, m = selM.value, d = selD.value;
+    if(y && m && d){
+      updateDayOptions(y, m, d);
+      const res = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      hidden.value = res;
+      textInp.value = `${y}/${+m}/${+d}`;
+      const dt = new Date(+y, +m - 1, +d);
+      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+    } else if(!y && !m && !d){
+      hidden.value = '';
+      textInp.value = '';
+      preview.innerHTML = '<span class="hint">(日付なし)</span>';
+    } else {
+      updateDayOptions(y, m, d);
+      preview.innerHTML = '<span class="hint">年月日のすべてを選択してください</span>';
+    }
+  } else if(source === 'init'){
+    const cur = hidden.value;
+    if(cur && cur.length >= 10){
+      const [y, m, d] = cur.slice(0,10).split('-');
+      selY.value = y;
+      selM.value = String(+m);
+      updateDayOptions(y, selM.value, String(+d));
+      textInp.value = `${y}/${+m}/${+d}`;
+      const dt = new Date(+y, +m - 1, +d);
+      const dow = ['日','月','火','水','木','金','土'][dt.getDay()];
+      preview.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ ${+y}年${+m}月${+d}日 (${dow})</span>`;
+    } else {
+      selY.value = ''; selM.value = ''; selD.value = '';
+      textInp.value = '';
+      preview.innerHTML = '<span class="hint">(日付なし)</span>';
+    }
+  }
+}
+
 /* 入力フォーム */
 function openLogForm(entry, kind){
   const base = entry ? JSON.parse(JSON.stringify(entry))
@@ -1312,7 +1462,31 @@ function openLogForm(entry, kind){
   box.innerHTML = `<div class="panel"><b>${entry?'記録を編集':'新しい記録'}</b>
     <div class="formgrid">
       <label>立てた目的 <input id="ltitle" list="lpurp" placeholder="例: 今日の心構え / 今月の心構え / ○○の件で迷っている"></label>
-      <div class="formgrid2" style="display:flex;gap:10px;flex-wrap:wrap"><label>日付(空欄で日付なし) <input id="lts" type="date"></label><label>時間(なくてもかまいません) <input id="ltime" type="time"></label></div><datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+      <div style="margin:4px 0 8px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+          <label style="font-weight:600;margin:0">日付 (記述式またはドラムロールで入力)</label>
+          <div style="display:flex;gap:4px">
+            <button type="button" class="chip" data-lts-q="today" style="padding:1px 6px;font-size:.78rem">今日</button>
+            <button type="button" class="chip" data-lts-q="yesterday" style="padding:1px 6px;font-size:.78rem">昨日</button>
+            <button type="button" class="chip" data-lts-q="clear" style="padding:1px 6px;font-size:.78rem">日付なし</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div style="flex:1;min-width:140px">
+            <input id="lts_text" type="text" placeholder="手入力: 例 1/1 や 2017/1/1" style="width:100%;box-sizing:border-box">
+          </div>
+          <span class="hint" style="font-size:.82rem">または</span>
+          <div style="display:flex;gap:4px;align-items:center">
+            <select id="lts_y" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
+            <select id="lts_m" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
+            <select id="lts_d" class="cal-sel" style="font-size:.88rem;padding:4px 6px"></select>
+          </div>
+        </div>
+        <div id="lts_preview" style="margin-top:4px;font-size:.82rem"></div>
+        <input id="lts" type="hidden">
+      </div>
+      <label>時間(なくてもかまいません) <input id="ltime" type="time"></label>
+      <datalist id="lpurp">${purposeList().map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
       <label>目的の状態 <select id="lstat"><option value="">(未設定)</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
       <label>タグ(カンマ区切り) <input id="ltags" placeholder="例: 仕事, 家族, お金"></label>
       <label>本卦 <select id="lhex">${HEX.map((h,i)=>`<option value="${i}">${i+1} ${fullName(i)}</option>`).join('')}</select></label>
@@ -1328,10 +1502,20 @@ function openLogForm(entry, kind){
       </details>
     </div>
     <p><button class="primary" data-lact="save">保存</button> <button data-lact="cancel">キャンセル</button></p></div>`;
-  $('#lts').value=base.ts ? base.ts.slice(0,10) : ''; $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16); $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
+
+  const curD = base.ts ? base.ts.slice(0,10) : '';
+  const [initY, initM, initDay] = curD ? curD.split('-') : ['', '', ''];
+  $('#lts_y').innerHTML = renderYearSelectOptions(initY);
+  $('#lts_m').innerHTML = renderMonthSelectOptions(initM ? +initM : '');
+  updateDayOptions(initY, initM, initDay ? +initDay : '');
+  $('#lts').value = curD;
+  syncFormDate('init');
+
+  $('#ltime').value = (base.ts.slice(11,16)==='00:00'||!base.ts.slice(11,16)) ? '' : base.ts.slice(11,16);
+  $('#ltitle').value=base.title; $('#lhex').value=String(base.hex);
   $('#lstat').value=base.status||''; $('#ltags').value=(base.tags||[]).join(', '); $('#lresult').value=base.result||'';
   $('#lmemo').value=base.memo; $('#ladvice').value=base.advice; $('#laction').value=base.action; $('#lreview').value=base.review;
-  if(entry) $('#lmore').open = true;   // 編集時は、解説・行動・振り返りの欄を最初から開く
+  if(entry) $('#lmore').open = true;
   updateLogDerived();
   box.scrollIntoView({block:'start'});
 }
@@ -2367,6 +2551,23 @@ $('#viewLog').addEventListener('click', e=>{
     renderLogList();
     return;
   }
+  const qBtn = t.closest('[data-lts-q]');
+  if(qBtn){
+    const act = qBtn.dataset.ltsQ;
+    const today = new Date();
+    if(act === 'today'){
+      $('#lts').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      syncFormDate('init');
+    } else if(act === 'yesterday'){
+      const y = new Date(today.getTime() - 864e5);
+      $('#lts').value = `${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+      syncFormDate('init');
+    } else if(act === 'clear'){
+      $('#lts').value = '';
+      syncFormDate('init');
+    }
+    return;
+  }
   const a=t.closest('[data-lact]'); if(!a) return;
   const id=a.dataset.id, ent=state.log.find(x=>x.id===id);
   switch(a.dataset.lact){
@@ -2435,6 +2636,11 @@ $('#viewLog').addEventListener('click', e=>{
     case 'del': if(ent && confirm('この記録を削除しますか?')){ tombAdd(ent.id); state.log=state.log.filter(x=>x!==ent); saveUser(); renderLog(); } break;
   }
 });
+$('#viewLog').addEventListener('input', e=>{
+  if(e.target && e.target.id === 'lts_text'){
+    syncFormDate('text');
+  }
+});
 $('#viewLog').addEventListener('keydown', e=>{
   if(e.key==='Enter' && e.target && e.target.dataset && e.target.dataset.caljump==='date'){
     e.preventDefault();
@@ -2443,6 +2649,14 @@ $('#viewLog').addEventListener('keydown', e=>{
 });
 $('#viewLog').addEventListener('change', e=>{
   const t=e.target;
+  if(t.id==='lts_y' || t.id==='lts_m' || t.id==='lts_d'){
+    syncFormDate('wheel');
+    return;
+  }
+  if(t.id==='lts_text'){
+    syncFormDate('text');
+    return;
+  }
   if(t.dataset && t.dataset.caljump){
     if(t.dataset.caljump==='year'){
       state.calY = +t.value; renderLogList(); return;
